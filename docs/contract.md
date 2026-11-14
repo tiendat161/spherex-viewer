@@ -13,7 +13,7 @@ So the API fetches and resamples in the background, serves small images from its
 ## Request
 
 ```
-GET /api/series?ra=<deg>&dec=<deg>&fov=0.2&max_frames=40
+GET /api/series?ra=<deg>&dec=<deg>&fov=0.2&max_frames=102
 ```
 
 | Parameter | Required | Default | Meaning |
@@ -21,7 +21,7 @@ GET /api/series?ra=<deg>&dec=<deg>&fov=0.2&max_frames=40
 | `ra` | yes | none | Right ascension, ICRS, decimal degrees, 0 ≤ ra < 360 |
 | `dec` | yes | none | Declination, ICRS, decimal degrees, −90 to 90 |
 | `fov` | no | `0.2` | Full width of the square field, degrees |
-| `max_frames` | no | `40` | Upper limit on frames in the series |
+| `max_frames` | no | `102` | Upper limit on frames in the series. A cached series is returned only when its frame count is at most `max_frames` (2026-11-14: was a fixed 40; raised so the WISE 0855 per-wavelength series fits) |
 
 The coordinates are used as given: no epoch or proper-motion correction (open decision 1).
 
@@ -97,7 +97,7 @@ Provisional answers adopted for the prototype so the build sessions are not bloc
 | 10 | Bilinear (`reproject.reproject_interp`). |
 | 11 | Honour `retry-after`; up to 4 attempts per cutout, then the frame counts as failed. |
 | 12 | Always HTTP 200 with `status` in the body; poll every 2 s; no machine-readable error code. |
-| 13 | Only cached targets are served: a request matches if within 1″ of a cached position with `fov=0.2` and `max_frames=40`. Anything else returns `status: "error"`. |
+| 13 | Only cached targets are served: a request matches if within 1″ of a cached position with `fov=0.2` and `max_frames` at least the series' frame count (at most 102). Anything else returns `status: "error"`. |
 | 14 | Prefer `dr1` when the same observation appears under both release paths. |
 | 15 | `url` = `/api/frames/<id>/NN.png`, a path on the API origin, kept as long as the cache is deployed. |
 
