@@ -129,6 +129,8 @@ Pytest unit tests; none touches the network. `tests/pipeline/synth.py` builds sy
 
 | File | Holds |
 |---|---|
+| `TASKS.md` | The task board: todo, in progress, done, with the files each task touches |
+| `WORKLOG.md` | What was done, why, and what is still missing, newest first |
 | `PLAN.md` | The pre-hackathon prep plan: goal, schedule, challenge text, open questions |
 | `spike.md` | Measurements from the feasibility spike: query times, cutout sizes, 503 rates, CORS, coordinate epoch |
 | `contract.md` | The API contract in prose, the prototype choices and the open decisions |
