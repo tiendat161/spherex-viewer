@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildSlots, mjdToUtc, nextSlot, parseLocation, progressText, seriesUrl } from '../src/model.js';
+import { blinkPair, buildSlots, mjdToUtc, nextSlot, parseLocation, progressText, seriesUrl, zoomRect } from '../src/model.js';
 import { errorResponse, fixture, gapResponse, loadingResponse, validateSeries, validateTargets } from './helpers.js';
 
 describe('hand-built responses are schema-valid', () => {
@@ -62,7 +62,7 @@ describe('index gap', () => {
 
 describe('url and dates', () => {
   it('builds the contract request', () => {
-    expect(seriesUrl(133.795129, -7.245147)).toBe('/api/series?ra=133.795129&dec=-7.245147&fov=0.2&max_frames=40');
+    expect(seriesUrl(133.795129, -7.245147)).toBe('/api/series?ra=133.795129&dec=-7.245147&fov=0.2&max_frames=102');
   });
   it('parses ?ra=&dec=', () => {
     expect(parseLocation('?ra=133.795129&dec=-7.245147')).toEqual({ ra: 133.795129, dec: -7.245147 });
@@ -74,5 +74,30 @@ describe('url and dates', () => {
   it('converts MJD to UTC (MJD 40587 = 1970-01-01)', () => {
     expect(mjdToUtc(40587)).toBe('1970-01-01 00:00 UTC');
     expect(mjdToUtc(60800.5)).toBe('2025-05-05 12:00 UTC'); // checked with Python datetime(1858,11,17)+60800.5 d
+  });
+});
+
+describe('zoom', () => {
+  it('1x draws the frame unchanged', () => expect(zoomRect(116, 116, 1)).toEqual({ dx: 0, dy: 0, dw: 116, dh: 116 }));
+  it('4x keeps the grid centre at the canvas centre on whole pixels', () => {
+    const z = zoomRect(116, 116, 4);
+    expect(z).toEqual({ dx: -174, dy: -174, dw: 464, dh: 464 });
+    expect(z.dx + 58 * 4).toBe(58); // source pixel 58 lands on canvas pixel 58
+  });
+});
+
+describe('blink pair', () => {
+  const f = (index, obs_mjd, wavelength_um) => ({ index, obs_mjd, wavelength_um });
+  it('prefers the closest wavelengths among widely separated frames', () => {
+    const slots = [f(0, 100, 2.3), f(1, 101, 1.39), { skipped: true, index: 2 }, f(3, 300, 4.4), f(4, 490, 1.37), f(5, 500, 4.3)];
+    expect(blinkPair(slots)).toEqual([1, 4]);
+  });
+  it('never pairs frames closer than 80% of the time span', () => {
+    const slots = [f(0, 100, 1.0), f(1, 110, 1.0), f(2, 500, 3.0)];
+    expect(blinkPair(slots)).toEqual([0, 2]);
+  });
+  it('needs two usable frames', () => {
+    expect(blinkPair([f(0, 100, 1.0), { skipped: true, index: 1 }])).toBeNull();
+    expect(blinkPair([])).toBeNull();
   });
 });

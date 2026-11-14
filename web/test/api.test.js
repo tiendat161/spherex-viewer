@@ -13,7 +13,7 @@ describe('pollSeries', () => {
     const last = await pollSeries(133.795129, -7.245147, { fetchFn, sleep, onUpdate: (r) => seen.push(r.status) });
     expect(seen).toEqual(['loading', 'loading', 'ready']);
     expect(last.status).toBe('ready');
-    expect(fetchFn.mock.calls.map((c) => c[0])).toEqual(Array(3).fill('/api/series?ra=133.795129&dec=-7.245147&fov=0.2&max_frames=40'));
+    expect(fetchFn.mock.calls.map((c) => c[0])).toEqual(Array(3).fill('/api/series?ra=133.795129&dec=-7.245147&fov=0.2&max_frames=102'));
     expect(sleep.mock.calls.map((c) => c[0])).toEqual([2000, 2000]);
   });
   it('stops on a server error response and does not sleep', async () => {

@@ -65,7 +65,7 @@ test('mock: simulated badge, 40 frames, play/step/slider, screenshot', async ({ 
 });
 
 test('partial frames while loading, then ready', async ({ page }) => {
-  const fixture = await (await page.request.get('/api/series?ra=133.795129&dec=-7.245147&fov=0.2&max_frames=40')).json();
+  const fixture = await (await page.request.get('/api/series?ra=133.795129&dec=-7.245147&fov=0.2&max_frames=102')).json();
   let n = 0;
   await page.route('**/api/series*', (route) => {
     n++;
@@ -77,4 +77,35 @@ test('partial frames while loading, then ready', async ({ page }) => {
   await expect(page.locator('#progress-text')).toHaveText('Loading: 10 / 40 frames');
   await expect(page.locator('#slider')).toHaveAttribute('max', '9');
   await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames', { timeout: 10000 });
+});
+
+test('zoom magnifies the centre; pair blink alternates two frames', async ({ page }) => {
+  await page.goto(wise);
+  await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
+  await page.locator('#play').click();
+  await page.locator('#slider').fill('0');
+  const px = () => page.evaluate(() => {
+    const c = document.getElementById('canvas');
+    return { w: c.width, data: Array.from(c.getContext('2d').getImageData(0, 0, c.width, c.height).data) };
+  });
+  await expect.poll(async () => (await px()).data.some((v) => v > 100)).toBe(true);
+  const full = await px();
+  await page.locator('#zoom').selectOption('4');
+  const zoomed = await px();
+  expect(zoomed.w).toBe(116);
+  // Canvas pixel (x, y) at 4x shows source pixel (43 + floor((x + 2) / 4), same for y): check a few.
+  const at = (d, x, y) => d.data[(y * 116 + x) * 4];
+  for (const [x, y] of [[0, 0], [58, 58], [115, 115], [30, 90]]) {
+    expect(at(zoomed, x, y)).toBe(at(full, 43 + Math.floor((x + 2) / 4), 43 + Math.floor((y + 2) / 4)));
+  }
+
+  await page.locator('#pair').check();
+  await expect(page.locator('#pair-note')).toContainText('days apart');
+  await expect(page.locator('#play')).toHaveText('Pause');
+  const seen = new Set();
+  for (let i = 0; i < 12; i++) { seen.add(await page.locator('#r-frame').textContent()); await page.waitForTimeout(120); }
+  expect(seen.size).toBe(2);
+  await page.locator('#slider').fill('5');
+  await expect(page.locator('#pair')).not.toBeChecked();
+  await expect(page.locator('#pair-note')).toBeHidden();
 });

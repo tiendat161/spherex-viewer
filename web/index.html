@@ -20,7 +20,7 @@
         <label>RA <input id="ra" name="ra" inputmode="decimal" autocomplete="off" /></label>
         <label>Dec <input id="dec" name="dec" inputmode="decimal" autocomplete="off" /></label>
         <button type="submit">Load series</button>
-        <p class="muted small">The prototype serves cached targets only; other positions return an error.</p>
+        <p class="muted small">Any other position is built live from the SPHEREx archive (IRSA): up to 40 frames spread evenly over the observation dates. The archive is slow, so expect a few minutes; frames appear as they arrive and the brightness scale is refined as more come in.</p>
       </form>
     </aside>
     <section id="viewer">
@@ -43,7 +43,12 @@
         <label class="speed">Speed
           <select id="fps"><option value="2">2 fps</option><option value="5" selected>5 fps</option><option value="10">10 fps</option></select>
         </label>
+        <label class="speed">Zoom
+          <select id="zoom"><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select>
+        </label>
+        <label class="speed" title="Blink two frames far apart in time and close in wavelength"><input id="pair" type="checkbox" /> Blink widest pair</label>
       </div>
+      <p id="pair-note" class="muted small" hidden></p>
       <dl id="readout" class="readout">
         <div><dt>Frame</dt><dd id="r-frame">—</dd></div>
         <div><dt>Observed</dt><dd id="r-date">—</dd></div>
@@ -51,7 +56,7 @@
         <div><dt>Flagged</dt><dd id="r-flag">—</dd></div>
       </dl>
       <p id="legend" class="muted small"></p>
-      <p class="muted small">Marker (circle) = requested position at grid centre. North is up, east is left; frames are not rotated or flipped. A moving target can be off-centre and shifts between frames: look for something that hops across the field while the stars stay put. Images are shown pixel-for-pixel with nearest-neighbour scaling.</p>
+      <p class="muted small">Marker (circle) = requested position at grid centre. North is up, east is left; frames are not rotated or flipped. A moving target can be off-centre and shifts between frames: look for something that hops across the field while the stars stay put. Images are shown pixel-for-pixel with nearest-neighbour scaling; zoom magnifies the centre of the same pixels and does not resample or restretch them.</p>
     </section>
   </main>
   <script type="module" src="/src/main.js"></script>

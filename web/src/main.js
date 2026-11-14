@@ -1,16 +1,16 @@
 import { fetchTargets, pollSeries } from './api.js';
-import { buildSlots, formatFlag, locationQuery, mjdToUtc, nextSlot, parseLocation, progressText } from './model.js';
+import { blinkPair, buildSlots, formatFlag, locationQuery, mjdToUtc, nextSlot, parseLocation, progressText, zoomRect } from './model.js';
 
 const $ = (id) => document.getElementById(id);
 const el = {
   badge: $('badge'), targets: $('targets'), ra: $('ra'), dec: $('dec'), coords: $('coords'),
   progressText: $('progress-text'), bar: $('bar'), message: $('message'),
   frameBox: $('frame-box'), canvas: $('canvas'), scalebar: $('scalebar'), scalebarLabel: $('scalebar-label'), skipped: $('skipped'),
-  prev: $('prev'), play: $('play'), next: $('next'), slider: $('slider'), fps: $('fps'),
+  prev: $('prev'), play: $('play'), next: $('next'), slider: $('slider'), fps: $('fps'), zoom: $('zoom'), pair: $('pair'), pairNote: $('pair-note'),
   rFrame: $('r-frame'), rDate: $('r-date'), rWave: $('r-wave'), rFlag: $('r-flag'), legend: $('legend'),
 };
 
-const state = { targets: [], resp: null, slots: [], current: 0, playing: false, timer: null, abort: null, pos: null };
+const state = { targets: [], resp: null, slots: [], current: 0, playing: false, timer: null, abort: null, pos: null, pair: null };
 const images = new Map(); // url -> HTMLImageElement, preloaded so blinking does not stutter
 const ctx = el.canvas.getContext('2d');
 
@@ -46,7 +46,10 @@ function drawCurrent() {
     el.canvas.height = img.naturalHeight;
   }
   ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(img, 0, 0); // untransformed: north up, east left as delivered
+  // Untransformed apart from the centred zoom: north up, east left as delivered.
+  const z = zoomRect(img.naturalWidth, img.naturalHeight, Number(el.zoom.value));
+  ctx.clearRect(0, 0, el.canvas.width, el.canvas.height);
+  ctx.drawImage(img, z.dx, z.dy, z.dw, z.dh);
 }
 
 function renderReadout() {
@@ -71,7 +74,9 @@ function render() {
   setBadge(r);
   const has = state.slots.length > 0;
   el.frameBox.hidden = !has;
-  for (const b of [el.prev, el.play, el.next, el.slider]) b.disabled = !has;
+  for (const b of [el.prev, el.play, el.next, el.slider, el.pair]) b.disabled = !has;
+  el.pair.checked = !!state.pair;
+  renderPairNote();
   el.slider.max = String(Math.max(0, state.slots.length - 1));
   el.slider.value = String(state.current);
   el.play.textContent = state.playing ? 'Pause' : 'Play';
@@ -85,7 +90,7 @@ function render() {
     el.scalebar.hidden = !g;
     if (g) {
       const arcsec = 60;
-      el.scalebar.style.setProperty('--w', `${((arcsec / g.pixel_scale_arcsec) / g.shape[1]) * 100}%`);
+      el.scalebar.style.setProperty('--w', `${((arcsec / g.pixel_scale_arcsec) / g.shape[1]) * 100 * Number(el.zoom.value)}%`);
       el.scalebarLabel.textContent = `${arcsec}″`;
     }
     el.legend.textContent = s
@@ -94,6 +99,19 @@ function render() {
   }
   renderReadout();
   drawCurrent();
+}
+
+function renderPairNote() {
+  el.pairNote.hidden = !state.pair;
+  if (!state.pair) return;
+  const [a, b] = state.pair.map((i) => state.slots[i]);
+  el.pairNote.textContent = `Blinking frames ${a.index + 1} and ${b.index + 1}: ${(b.obs_mjd - a.obs_mjd).toFixed(0)} days apart, ${a.wavelength_um.toFixed(3)} and ${b.wavelength_um.toFixed(3)} µm. Chosen as the closest wavelengths among frames at least 80% of the series' time span apart.`;
+}
+
+/** Next slot for stepping or playback. In pair mode there are only the two chosen frames. */
+function advance(dir, opts) {
+  if (state.pair) return state.current === state.pair[0] ? state.pair[1] : state.pair[0];
+  return nextSlot(state.slots, state.current, dir, opts);
 }
 
 function stopPlaying() {
@@ -106,7 +124,7 @@ function startPlaying() {
   if (state.slots.filter((s) => !s.skipped).length < 2) return;
   state.playing = true;
   clearInterval(state.timer);
-  state.timer = setInterval(() => go(nextSlot(state.slots, state.current, 1, { skipFailed: true })), 1000 / Number(el.fps.value));
+  state.timer = setInterval(() => go(advance(1, { skipFailed: true })), 1000 / Number(el.fps.value));
 }
 
 function go(i) {
@@ -118,6 +136,7 @@ function go(i) {
 function onUpdate(resp) {
   state.resp = resp;
   state.slots = buildSlots(resp);
+  if (state.pair && resp.status !== 'ready') state.pair = null;
   for (const s of state.slots) if (!s.skipped) preload(s.url);
   if (state.current >= state.slots.length) state.current = 0;
   // Start blinking once the series is complete, unless the user prefers reduced motion.
@@ -137,6 +156,7 @@ async function load(ra, dec, { push = false } = {}) {
   state.resp = null;
   state.slots = [];
   state.current = 0;
+  state.pair = null;
   el.ra.value = String(ra);
   el.dec.value = String(dec);
   const url = locationQuery(ra, dec);
@@ -177,9 +197,15 @@ function renderTargets() {
 }
 
 el.play.addEventListener('click', () => { state.playing ? stopPlaying() : startPlaying(); render(); });
-el.prev.addEventListener('click', () => { stopPlaying(); go(nextSlot(state.slots, state.current, -1)); });
-el.next.addEventListener('click', () => { stopPlaying(); go(nextSlot(state.slots, state.current, 1)); });
-el.slider.addEventListener('input', () => { stopPlaying(); go(Number(el.slider.value)); });
+el.prev.addEventListener('click', () => { stopPlaying(); go(advance(-1)); });
+el.next.addEventListener('click', () => { stopPlaying(); go(advance(1)); });
+el.slider.addEventListener('input', () => { stopPlaying(); state.pair = null; go(Number(el.slider.value)); });
+el.zoom.addEventListener('change', render);
+el.pair.addEventListener('change', () => {
+  state.pair = el.pair.checked ? blinkPair(state.slots) : null;
+  if (state.pair) { go(state.pair[0]); startPlaying(); }
+  render();
+});
 el.fps.addEventListener('change', () => { if (state.playing) startPlaying(); });
 el.coords.addEventListener('submit', (e) => {
   e.preventDefault();

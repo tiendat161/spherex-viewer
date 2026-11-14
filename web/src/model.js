@@ -1,7 +1,7 @@
 // Pure helpers: no DOM, no network. Unit-tested in test/model.test.js.
 
 export const FOV_DEG = 0.2;
-export const MAX_FRAMES = 40;
+export const MAX_FRAMES = 102; // ceiling the API accepts; each cached series has its own frame count
 export const POLL_MS = 2000;
 
 /** The one request for a position. Identical on every poll (docs/contract.md, Polling). */
@@ -89,4 +89,37 @@ export function progressText(resp) {
   const fail = failed > 0 ? `, ${failed} failed` : '';
   if (resp.status === 'loading') return `Loading: ${base}${fail}`;
   return `${base}${fail}`;
+}
+
+/**
+ * Where to draw a frame on a canvas of its own size so the centre is magnified `zoom` times.
+ * The grid centre stays at the canvas centre. Offsets are whole pixels when (zoom - 1) * size is even.
+ */
+export function zoomRect(width, height, zoom) {
+  return { dx: ((1 - zoom) * width) / 2, dy: ((1 - zoom) * height) / 2, dw: width * zoom, dh: height * zoom };
+}
+
+/**
+ * Two frames to blink against each other to show motion: far apart in time, close in wavelength.
+ * Among pairs separated by at least `minBaseline` of the full time span, pick the smallest
+ * wavelength difference (ties: the longer baseline). Returns slot positions [early, late] or null.
+ */
+export function blinkPair(slots, { minBaseline = 0.8 } = {}) {
+  const live = slots.map((s, i) => ({ s, i })).filter(({ s }) => !s.skipped);
+  if (live.length < 2) return null;
+  const times = live.map(({ s }) => s.obs_mjd);
+  const span = Math.max(...times) - Math.min(...times);
+  let best = null;
+  for (let a = 0; a < live.length; a++) {
+    for (let b = a + 1; b < live.length; b++) {
+      const dt = Math.abs(live[b].s.obs_mjd - live[a].s.obs_mjd);
+      if (dt < minBaseline * span) continue;
+      const dw = Math.abs(live[b].s.wavelength_um - live[a].s.wavelength_um);
+      if (!best || dw < best.dw || (dw === best.dw && dt > best.dt)) {
+        const [e, l] = live[a].s.obs_mjd <= live[b].s.obs_mjd ? [live[a].i, live[b].i] : [live[b].i, live[a].i];
+        best = { dw, dt, pair: [e, l] };
+      }
+    }
+  }
+  return best ? best.pair : null;
 }
