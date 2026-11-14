@@ -1,0 +1,273 @@
+{
+ "status": "ready",
+ "data_origin": "real",
+ "progress": {
+  "done": 35,
+  "total": 40,
+  "failed": 5
+ },
+ "grid": {
+  "center": {
+   "ra": 248.167612,
+   "dec": 66.754981
+  },
+  "pixel_scale_arcsec": 6.2,
+  "shape": [
+   116,
+   116
+  ]
+ },
+ "stretch": {
+  "kind": "asinh",
+  "vmin": 0.084101,
+  "vmax": 13.313945,
+  "unit": "MJy / sr"
+ },
+ "frames": [
+  {
+   "index": 0,
+   "obs_mjd": 60789.879611,
+   "wavelength_um": 1.65426,
+   "url": "/api/frames/rdra/00.png",
+   "flag_fraction": 0.0334
+  },
+  {
+   "index": 1,
+   "obs_mjd": 60796.610544,
+   "wavelength_um": 1.8757,
+   "url": "/api/frames/rdra/01.png",
+   "flag_fraction": 0.0685
+  },
+  {
+   "index": 2,
+   "obs_mjd": 60834.792227,
+   "wavelength_um": 4.28638,
+   "url": "/api/frames/rdra/02.png",
+   "flag_fraction": 0.0352
+  },
+  {
+   "index": 3,
+   "obs_mjd": 60857.684746,
+   "wavelength_um": 1.13293,
+   "url": "/api/frames/rdra/03.png",
+   "flag_fraction": 0.2834
+  },
+  {
+   "index": 4,
+   "obs_mjd": 60921.673271,
+   "wavelength_um": 0.88641,
+   "url": "/api/frames/rdra/04.png",
+   "flag_fraction": 0.0273
+  },
+  {
+   "index": 5,
+   "obs_mjd": 60927.647868,
+   "wavelength_um": 3.34135,
+   "url": "/api/frames/rdra/05.png",
+   "flag_fraction": 0.067
+  },
+  {
+   "index": 6,
+   "obs_mjd": 60933.082553,
+   "wavelength_um": 2.95983,
+   "url": "/api/frames/rdra/06.png",
+   "flag_fraction": 0.0363
+  },
+  {
+   "index": 7,
+   "obs_mjd": 60957.192949,
+   "wavelength_um": 2.41781,
+   "url": "/api/frames/rdra/07.png",
+   "flag_fraction": 0.6967
+  },
+  {
+   "index": 8,
+   "obs_mjd": 60967.4519,
+   "wavelength_um": 3.71078,
+   "url": "/api/frames/rdra/08.png",
+   "flag_fraction": 0.0565
+  },
+  {
+   "index": 9,
+   "obs_mjd": 60993.256151,
+   "wavelength_um": 2.62475,
+   "url": "/api/frames/rdra/09.png",
+   "flag_fraction": 0.4345
+  },
+  {
+   "index": 10,
+   "obs_mjd": 61021.362201,
+   "wavelength_um": 3.88309,
+   "url": "/api/frames/rdra/10.png",
+   "flag_fraction": 0.1373
+  },
+  {
+   "index": 11,
+   "obs_mjd": 61043.570292,
+   "wavelength_um": 4.83381,
+   "url": "/api/frames/rdra/11.png",
+   "flag_fraction": 0.0294
+  },
+  {
+   "index": 12,
+   "obs_mjd": 61094.353801,
+   "wavelength_um": 2.03811,
+   "url": "/api/frames/rdra/12.png",
+   "flag_fraction": 0.037
+  },
+  {
+   "index": 13,
+   "obs_mjd": 61100.468155,
+   "wavelength_um": 4.66888,
+   "url": "/api/frames/rdra/13.png",
+   "flag_fraction": 0.0277
+  },
+  {
+   "index": 14,
+   "obs_mjd": 61104.405647,
+   "wavelength_um": 4.85647,
+   "url": "/api/frames/rdra/14.png",
+   "flag_fraction": 0.029
+  },
+  {
+   "index": 15,
+   "obs_mjd": 61109.222911,
+   "wavelength_um": 2.12011,
+   "url": "/api/frames/rdra/15.png",
+   "flag_fraction": 0.0357
+  },
+  {
+   "index": 16,
+   "obs_mjd": 61113.365516,
+   "wavelength_um": 2.33936,
+   "url": "/api/frames/rdra/16.png",
+   "flag_fraction": 0.0246
+  },
+  {
+   "index": 17,
+   "obs_mjd": 61117.028397,
+   "wavelength_um": 2.00583,
+   "url": "/api/frames/rdra/17.png",
+   "flag_fraction": 0.0384
+  },
+  {
+   "index": 19,
+   "obs_mjd": 61124.838804,
+   "wavelength_um": 4.46383,
+   "url": "/api/frames/rdra/19.png",
+   "flag_fraction": 0.0371
+  },
+  {
+   "index": 20,
+   "obs_mjd": 61127.011651,
+   "wavelength_um": 2.07629,
+   "url": "/api/frames/rdra/20.png",
+   "flag_fraction": 0.033
+  },
+  {
+   "index": 22,
+   "obs_mjd": 61137.87489,
+   "wavelength_um": 4.48927,
+   "url": "/api/frames/rdra/22.png",
+   "flag_fraction": 0.0302
+  },
+  {
+   "index": 23,
+   "obs_mjd": 61141.675005,
+   "wavelength_um": 4.40413,
+   "url": "/api/frames/rdra/23.png",
+   "flag_fraction": 0.2284
+  },
+  {
+   "index": 26,
+   "obs_mjd": 61198.97313,
+   "wavelength_um": 1.62288,
+   "url": "/api/frames/rdra/26.png",
+   "flag_fraction": 0.388
+  },
+  {
+   "index": 27,
+   "obs_mjd": 61227.959562,
+   "wavelength_um": 1.10668,
+   "url": "/api/frames/rdra/27.png",
+   "flag_fraction": 0.2388
+  },
+  {
+   "index": 28,
+   "obs_mjd": 61248.529888,
+   "wavelength_um": 2.69838,
+   "url": "/api/frames/rdra/28.png",
+   "flag_fraction": 0.038
+  },
+  {
+   "index": 30,
+   "obs_mjd": 61262.034139,
+   "wavelength_um": 0.85223,
+   "url": "/api/frames/rdra/30.png",
+   "flag_fraction": 0.0305
+  },
+  {
+   "index": 31,
+   "obs_mjd": 61267.056127,
+   "wavelength_um": 0.82713,
+   "url": "/api/frames/rdra/31.png",
+   "flag_fraction": 0.0399
+  },
+  {
+   "index": 32,
+   "obs_mjd": 61272.691202,
+   "wavelength_um": 0.84195,
+   "url": "/api/frames/rdra/32.png",
+   "flag_fraction": 0.0502
+  },
+  {
+   "index": 33,
+   "obs_mjd": 61275.682018,
+   "wavelength_um": 0.89796,
+   "url": "/api/frames/rdra/33.png",
+   "flag_fraction": 0.0504
+  },
+  {
+   "index": 34,
+   "obs_mjd": 61279.275066,
+   "wavelength_um": 2.66796,
+   "url": "/api/frames/rdra/34.png",
+   "flag_fraction": 0.0919
+  },
+  {
+   "index": 35,
+   "obs_mjd": 61282.871844,
+   "wavelength_um": 0.84552,
+   "url": "/api/frames/rdra/35.png",
+   "flag_fraction": 0.0485
+  },
+  {
+   "index": 36,
+   "obs_mjd": 61286.676455,
+   "wavelength_um": 0.99006,
+   "url": "/api/frames/rdra/36.png",
+   "flag_fraction": 0.0677
+  },
+  {
+   "index": 37,
+   "obs_mjd": 61291.362171,
+   "wavelength_um": 0.89282,
+   "url": "/api/frames/rdra/37.png",
+   "flag_fraction": 0.0618
+  },
+  {
+   "index": 38,
+   "obs_mjd": 61298.148182,
+   "wavelength_um": 0.90477,
+   "url": "/api/frames/rdra/38.png",
+   "flag_fraction": 0.0735
+  },
+  {
+   "index": 39,
+   "obs_mjd": 61310.291175,
+   "wavelength_um": 1.11232,
+   "url": "/api/frames/rdra/39.png",
+   "flag_fraction": 0.4655
+  }
+ ]
+}

@@ -3,11 +3,11 @@
 PY := .venv/bin/python
 
 dev:
-	@echo "TODO: start api + web"
+	$(PY) -m uvicorn api.main:app --reload --port 8000
 
 # The only target that contacts IRSA (at most 4 requests in flight). Session A fills this in.
 cache:
-	@echo "TODO: $(PY) -m pipeline.build verify/targets.json" && exit 1
+	$(PY) -m pipeline.build verify/targets.json
 
 # Offline: schemas are valid; fixtures and every cached series match the contract.
 verify-contract:

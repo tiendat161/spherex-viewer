@@ -1,0 +1,308 @@
+{
+ "status": "ready",
+ "data_origin": "real",
+ "progress": {
+  "done": 40,
+  "total": 40,
+  "failed": 0
+ },
+ "grid": {
+  "center": {
+   "ra": 331.09634,
+   "dec": -56.800558
+  },
+  "pixel_scale_arcsec": 6.2,
+  "shape": [
+   116,
+   116
+  ]
+ },
+ "stretch": {
+  "kind": "asinh",
+  "vmin": 0.105325,
+  "vmax": 4.531916,
+  "unit": "MJy / sr"
+ },
+ "frames": [
+  {
+   "index": 0,
+   "obs_mjd": 60789.855522,
+   "wavelength_um": 1.56192,
+   "url": "/api/frames/epsindb/00.png",
+   "flag_fraction": 0.0208
+  },
+  {
+   "index": 1,
+   "obs_mjd": 60791.074551,
+   "wavelength_um": 4.41481,
+   "url": "/api/frames/epsindb/01.png",
+   "flag_fraction": 0.0376
+  },
+  {
+   "index": 2,
+   "obs_mjd": 60791.823431,
+   "wavelength_um": 4.38161,
+   "url": "/api/frames/epsindb/02.png",
+   "flag_fraction": 0.0543
+  },
+  {
+   "index": 3,
+   "obs_mjd": 60792.841183,
+   "wavelength_um": 3.64013,
+   "url": "/api/frames/epsindb/03.png",
+   "flag_fraction": 0.0297
+  },
+  {
+   "index": 4,
+   "obs_mjd": 60794.133083,
+   "wavelength_um": 4.55742,
+   "url": "/api/frames/epsindb/04.png",
+   "flag_fraction": 0.0536
+  },
+  {
+   "index": 5,
+   "obs_mjd": 60795.084182,
+   "wavelength_um": 4.76245,
+   "url": "/api/frames/epsindb/05.png",
+   "flag_fraction": 0.1016
+  },
+  {
+   "index": 6,
+   "obs_mjd": 60796.583346,
+   "wavelength_um": 1.71956,
+   "url": "/api/frames/epsindb/06.png",
+   "flag_fraction": 0.0216
+  },
+  {
+   "index": 7,
+   "obs_mjd": 60802.218236,
+   "wavelength_um": 4.45873,
+   "url": "/api/frames/epsindb/07.png",
+   "flag_fraction": 0.0871
+  },
+  {
+   "index": 8,
+   "obs_mjd": 60832.722365,
+   "wavelength_um": 1.21208,
+   "url": "/api/frames/epsindb/08.png",
+   "flag_fraction": 0.0192
+  },
+  {
+   "index": 9,
+   "obs_mjd": 60832.857699,
+   "wavelength_um": 4.41667,
+   "url": "/api/frames/epsindb/09.png",
+   "flag_fraction": 0.0508
+  },
+  {
+   "index": 10,
+   "obs_mjd": 60836.189812,
+   "wavelength_um": 4.65902,
+   "url": "/api/frames/epsindb/10.png",
+   "flag_fraction": 0.047
+  },
+  {
+   "index": 11,
+   "obs_mjd": 60947.306424,
+   "wavelength_um": 4.63899,
+   "url": "/api/frames/epsindb/11.png",
+   "flag_fraction": 0.0379
+  },
+  {
+   "index": 12,
+   "obs_mjd": 60949.002265,
+   "wavelength_um": 2.23942,
+   "url": "/api/frames/epsindb/12.png",
+   "flag_fraction": 0.0516
+  },
+  {
+   "index": 13,
+   "obs_mjd": 60949.542479,
+   "wavelength_um": 4.50616,
+   "url": "/api/frames/epsindb/13.png",
+   "flag_fraction": 0.0437
+  },
+  {
+   "index": 14,
+   "obs_mjd": 60950.089355,
+   "wavelength_um": 1.4003,
+   "url": "/api/frames/epsindb/14.png",
+   "flag_fraction": 0.0211
+  },
+  {
+   "index": 15,
+   "obs_mjd": 60951.720371,
+   "wavelength_um": 3.77963,
+   "url": "/api/frames/epsindb/15.png",
+   "flag_fraction": 0.1955
+  },
+  {
+   "index": 16,
+   "obs_mjd": 60954.298206,
+   "wavelength_um": 1.12841,
+   "url": "/api/frames/epsindb/16.png",
+   "flag_fraction": 0.0203
+  },
+  {
+   "index": 17,
+   "obs_mjd": 60955.791349,
+   "wavelength_um": 0.83048,
+   "url": "/api/frames/epsindb/17.png",
+   "flag_fraction": 0.0803
+  },
+  {
+   "index": 18,
+   "obs_mjd": 60958.236995,
+   "wavelength_um": 1.10665,
+   "url": "/api/frames/epsindb/18.png",
+   "flag_fraction": 0.2496
+  },
+  {
+   "index": 19,
+   "obs_mjd": 60959.120481,
+   "wavelength_um": 0.74828,
+   "url": "/api/frames/epsindb/19.png",
+   "flag_fraction": 0.078
+  },
+  {
+   "index": 20,
+   "obs_mjd": 60968.08586,
+   "wavelength_um": 0.77332,
+   "url": "/api/frames/epsindb/20.png",
+   "flag_fraction": 0.0992
+  },
+  {
+   "index": 21,
+   "obs_mjd": 60983.503554,
+   "wavelength_um": 1.90616,
+   "url": "/api/frames/epsindb/21.png",
+   "flag_fraction": 0.0246
+  },
+  {
+   "index": 22,
+   "obs_mjd": 60990.359311,
+   "wavelength_um": 0.7921,
+   "url": "/api/frames/epsindb/22.png",
+   "flag_fraction": 0.0322
+  },
+  {
+   "index": 23,
+   "obs_mjd": 61150.817586,
+   "wavelength_um": 2.44414,
+   "url": "/api/frames/epsindb/23.png",
+   "flag_fraction": 0.0332
+  },
+  {
+   "index": 24,
+   "obs_mjd": 61151.287788,
+   "wavelength_um": 0.86577,
+   "url": "/api/frames/epsindb/24.png",
+   "flag_fraction": 0.2741
+  },
+  {
+   "index": 25,
+   "obs_mjd": 61151.834575,
+   "wavelength_um": 3.37375,
+   "url": "/api/frames/epsindb/25.png",
+   "flag_fraction": 0.0407
+  },
+  {
+   "index": 26,
+   "obs_mjd": 61155.094334,
+   "wavelength_um": 4.13582,
+   "url": "/api/frames/epsindb/26.png",
+   "flag_fraction": 0.031
+  },
+  {
+   "index": 27,
+   "obs_mjd": 61159.298939,
+   "wavelength_um": 2.06893,
+   "url": "/api/frames/epsindb/27.png",
+   "flag_fraction": 0.0449
+  },
+  {
+   "index": 28,
+   "obs_mjd": 61159.568042,
+   "wavelength_um": 2.16692,
+   "url": "/api/frames/epsindb/28.png",
+   "flag_fraction": 0.0511
+  },
+  {
+   "index": 29,
+   "obs_mjd": 61305.228398,
+   "wavelength_um": 1.74869,
+   "url": "/api/frames/epsindb/29.png",
+   "flag_fraction": 0.1895
+  },
+  {
+   "index": 30,
+   "obs_mjd": 61306.721293,
+   "wavelength_um": 2.1008,
+   "url": "/api/frames/epsindb/30.png",
+   "flag_fraction": 0.2038
+  },
+  {
+   "index": 31,
+   "obs_mjd": 61308.217456,
+   "wavelength_um": 4.96082,
+   "url": "/api/frames/epsindb/31.png",
+   "flag_fraction": 0.1558
+  },
+  {
+   "index": 32,
+   "obs_mjd": 61309.367274,
+   "wavelength_um": 4.69451,
+   "url": "/api/frames/epsindb/32.png",
+   "flag_fraction": 0.0394
+  },
+  {
+   "index": 33,
+   "obs_mjd": 61310.318853,
+   "wavelength_um": 4.86747,
+   "url": "/api/frames/epsindb/33.png",
+   "flag_fraction": 0.039
+  },
+  {
+   "index": 34,
+   "obs_mjd": 61310.792377,
+   "wavelength_um": 1.72115,
+   "url": "/api/frames/epsindb/34.png",
+   "flag_fraction": 0.0412
+  },
+  {
+   "index": 35,
+   "obs_mjd": 61311.336624,
+   "wavelength_um": 1.93276,
+   "url": "/api/frames/epsindb/35.png",
+   "flag_fraction": 0.0271
+  },
+  {
+   "index": 36,
+   "obs_mjd": 61313.307093,
+   "wavelength_um": 1.57948,
+   "url": "/api/frames/epsindb/36.png",
+   "flag_fraction": 0.0196
+  },
+  {
+   "index": 37,
+   "obs_mjd": 61314.188448,
+   "wavelength_um": 1.5237,
+   "url": "/api/frames/epsindb/37.png",
+   "flag_fraction": 0.0425
+  },
+  {
+   "index": 38,
+   "obs_mjd": 61315.136989,
+   "wavelength_um": 3.98016,
+   "url": "/api/frames/epsindb/38.png",
+   "flag_fraction": 0.0893
+  },
+  {
+   "index": 39,
+   "obs_mjd": 61315.478076,
+   "wavelength_um": 4.12262,
+   "url": "/api/frames/epsindb/39.png",
+   "flag_fraction": 0.0302
+  }
+ ]
+}
