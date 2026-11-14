@@ -1,6 +1,6 @@
-# Series API contract (DRAFT)
+# Series API contract
 
-Date: 2026-11-14. Status: draft, not implemented. The machine-readable source of truth is [`contracts/series.schema.json`](../contracts/series.schema.json); if this page and the schema disagree, the schema wins. Measured facts are cited to [`docs/spike.md`](spike.md); anything not measured is marked UNVERIFIED. Unresolved points are in [Open decisions](#open-decisions), each with the provisional choice the schema currently encodes.
+Date: 2026-11-14. Status: implemented by `pipeline/` and `api/`; the points under Open decisions are still provisional. The machine-readable source of truth is [`contracts/series.schema.json`](../contracts/series.schema.json); if this page and the schema disagree, the schema wins. Measured facts are cited to [`docs/spike.md`](spike.md); anything not measured is marked UNVERIFIED. Unresolved points are in [Open decisions](#open-decisions), each with the provisional choice the schema currently encodes.
 
 ## Why one endpoint
 
