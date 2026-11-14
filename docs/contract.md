@@ -90,7 +90,7 @@ Provisional answers adopted for the prototype so the build sessions are not bloc
 | 1 | Coordinates used as given; the API applies no correction. Proper-motion propagation happens only when the pipeline derives a cached target's position from `verify/targets.json`. |
 | 2, 3 | 40 frames evenly spaced through the time-ordered list; order by `obs_mjd`. |
 | 4 | `wavelength_um` from the cutout's `WCS-WAVE` extension at the target pixel. Timebox 1 h; if it cannot be evaluated, stop and ask. No invented values. |
-| 5 | `flag_fraction` = fraction of grid pixels whose nearest source pixel has any `FLAGS` bit set, plus pixels with no coverage. Bit meanings are still unread. |
+| 5 | `flag_fraction` = fraction of grid pixels whose nearest source pixel has any `FLAGS` bit set other than `SOURCE` (bit 21) and `FULLSAMPLE` (bit 12), plus pixels with no coverage. The same mask selects the pixels used for the stretch limits. Revised 2026-11-14: the first version counted every bit, but `SOURCE` means "Pixel mapped to a known source" and `FULLSAMPLE` is "purely informational" (Explanatory Supplement v2.0, Table 16), and `SOURCE` was set on 96% of pixels in ten Barnard's Star cutouts and 52% in ten WISE 0855 cutouts (measured from `.cache/cutouts/`). |
 | 6 | `obs_mjd` = TAP `time_bounds_lower`. |
 | 7 | `asinh`; `vmin`/`vmax` = 1st and 99.5th percentile over all unflagged pixels of all frames in the series; unit from header `BUNIT`; no `ZODI` subtraction. |
 | 8, 9 | 6.2″ and `[116, 116]`, as the schema fixes them. Native scale still UNVERIFIED. |
