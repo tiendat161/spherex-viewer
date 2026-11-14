@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "targets.schema.json",
+  "title": "Targets response",
+  "description": "Response body of GET /api/targets: the targets whose series are cached. Requesting GET /api/series with a target's ra and dec (fov=0.2, max_frames=40) returns its cached series. See docs/build-plan.md.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["id", "name", "ra", "dec", "position_note"],
+    "properties": {
+      "id": { "description": "Stable identifier, also the directory name of the cached series.", "type": "string", "pattern": "^[a-z0-9]+$" },
+      "name": { "description": "Display name.", "type": "string", "minLength": 1 },
+      "ra": { "description": "Cached request position, ICRS, decimal degrees.", "type": "number", "minimum": 0, "exclusiveMaximum": 360 },
+      "dec": { "description": "Cached request position, ICRS, decimal degrees.", "type": "number", "minimum": -90, "maximum": 90 },
+      "position_note": { "description": "Where the position comes from and its epoch, for display. The UI must show it.", "type": "string", "minLength": 1 }
+    }
+  }
+}
