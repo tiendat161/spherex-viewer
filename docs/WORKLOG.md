@@ -15,6 +15,22 @@ Commits: abc1234, def5678
 
 ---
 
+## 2026-11-14: Structure guide and a check that keeps it current (T27)
+Commits: `3ab1d85`, `18f595a`, `c8f4e76`
+
+**What:**
+- `docs/structure.md` rewritten against the current code. New: a request flow from the browser through the API to the cache or a live build, and a "to change X, look in Y" table. Added the files it was missing (`pipeline/live.py`, `pipeline/stack.py`, their tests, the mock and test helpers) and the environment variables. Removed the claim that the API never contacts IRSA.
+- `make verify-docs` (new `verify/check_docs.py`, part of `make verify`): fails when a source file under `contracts/`, `pipeline/`, `api/`, `web/`, `verify/`, `tests/`, `fixtures/` or `docs/` is not named in the guide, or when the guide names a file that does not exist.
+- `CLAUDE.md`: the project paragraph is filled in, the Layout section says to read the guide first, and a working rule says a commit that adds, moves or removes a source file updates the guide.
+- `docs/contract.md`: the status line no longer says "draft, not implemented".
+
+**Why:** the guide existed but nothing pointed to it and nothing failed when it went stale, so it had fallen behind after T06 to T08 and T13. Counts and sizes (frame totals, megabytes) were dropped because they were the first things to go stale. One line per source file rather than a full tree, since most tracked files are generated PNGs. No new dependency.
+
+**Gaps:**
+- The check compares file names only. A description that is wrong, or a request flow that no longer matches the code, passes.
+- `contracts/series.schema.json` still says "DRAFT" in its description; changing it is a contract commit and was left alone.
+- `README.md` is still the scaffolding text (T12).
+
 ## 2026-11-14: Field-of-view selector (T13)
 Commits: `07fc9f5` (contract), `1703a89`, `cb845e5`
 

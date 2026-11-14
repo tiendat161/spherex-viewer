@@ -15,7 +15,7 @@ Details of finished work (what, why, what is still missing) are in [`WORKLOG.md`
 
 | ID | Task | Owner | Touches |
 |---|---|---|---|
-| T27 | Bring `docs/structure.md` up to date, point `CLAUDE.md` at it, and add a check that fails when a source file is missing from it | `t27-structure-guide` | `docs/structure.md`, `CLAUDE.md`, `docs/contract.md` (status line only), `Makefile`, new `verify/check_docs.py` |
+| | *(none)* | | |
 
 ## Todo
 
@@ -60,3 +60,4 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 | T09 | "Mark centre" toggle (circle hidden by default) | none | `cf89aa9` |
 | T11 | Push `main` to `origin` | none | pushed up to `ac6e722` |
 | T13 | Field-of-view selector: 0.1°, 0.2° (default), 0.5°, 1°; `&fov=` in the URL; wide-field wavelength note | "Let users choose the field of view" | `07fc9f5` (contract), `1703a89`, `cb845e5` |
+| T27 | Structure guide brought up to date, `CLAUDE.md` points to it, `make verify-docs` fails when a source file is missing from it | none | `3ab1d85`, `18f595a`, `c8f4e76` |
