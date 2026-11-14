@@ -5,79 +5,188 @@
   "description": "Response body of GET /api/series?ra=&dec=&fov=0.2&max_frames=40. See docs/contract.md. DRAFT: several definitions are open decisions listed there.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["status", "data_origin", "progress", "grid", "stretch", "frames"],
+  "required": [
+    "status",
+    "data_origin",
+    "progress",
+    "grid",
+    "stretch",
+    "frames"
+  ],
   "properties": {
     "status": {
       "description": "ready: all frames are done or failed. loading: work in progress, poll again. error: the series could not be built.",
-      "enum": ["ready", "loading", "error"]
+      "enum": [
+        "ready",
+        "loading",
+        "error"
+      ]
     },
     "data_origin": {
       "description": "real: pixels and metadata come from the SPHEREx archive. simulated: any part is a placeholder or synthetic. The UI must show this label.",
-      "enum": ["real", "simulated"]
+      "enum": [
+        "real",
+        "simulated"
+      ]
     },
     "progress": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["done", "total", "failed"],
+      "required": [
+        "done",
+        "total",
+        "failed"
+      ],
       "properties": {
-        "done": { "description": "Frames resampled and available in `frames`.", "type": "integer", "minimum": 0 },
-        "total": { "description": "Frames planned for this series (at most max_frames). 0 until the archive query has returned.", "type": "integer", "minimum": 0 },
-        "failed": { "description": "Frames given up on. Not present in `frames`.", "type": "integer", "minimum": 0 }
+        "done": {
+          "description": "Frames resampled and available in `frames`.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "total": {
+          "description": "Frames planned for this series (at most max_frames). 0 until the archive query has returned.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "description": "Frames given up on. Not present in `frames`.",
+          "type": "integer",
+          "minimum": 0
+        }
       }
     },
     "grid": {
       "description": "The one north-up grid every frame is resampled onto. May be null unless status is ready.",
-      "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/grid" }]
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/grid"
+        }
+      ]
     },
     "stretch": {
-      "description": "The one intensity mapping already applied to every frame PNG. May be null unless status is ready.",
-      "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/stretch" }]
+      "description": "The one intensity mapping already applied to every frame PNG in `frames` (stack images carry their own per-band stretch). May be null unless status is ready.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/stretch"
+        }
+      ]
     },
     "frames": {
       "description": "Frames available so far, ordered by index.",
       "type": "array",
-      "items": { "$ref": "#/$defs/frame" }
+      "items": {
+        "$ref": "#/$defs/frame"
+      }
     },
     "error": {
       "description": "Present only when status is error.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["message"],
+      "required": [
+        "message"
+      ],
       "properties": {
-        "message": { "type": "string", "minLength": 1 }
+        "message": {
+          "type": "string",
+          "minLength": 1
+        }
       }
+    },
+    "background": {
+      "description": "What was removed from every image before stretching. median_subtracted: each image had the median of its unflagged pixels subtracted, so stretch limits are relative to that background. Absent means none.",
+      "enum": [
+        "none",
+        "median_subtracted"
+      ]
+    },
+    "stacks": {
+      "description": "Optional. Images combined per visit (a group of observation dates) and per band. Present only when status is ready. See docs/contract.md, Stacks.",
+      "$ref": "#/$defs/stacks"
     }
   },
   "allOf": [
     {
-      "if": { "properties": { "status": { "const": "ready" } }, "required": ["status"] },
+      "if": {
+        "properties": {
+          "status": {
+            "const": "ready"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
       "then": {
         "properties": {
-          "grid": { "$ref": "#/$defs/grid" },
-          "stretch": { "$ref": "#/$defs/stretch" }
+          "grid": {
+            "$ref": "#/$defs/grid"
+          },
+          "stretch": {
+            "$ref": "#/$defs/stretch"
+          }
         }
       }
     },
     {
-      "if": { "properties": { "status": { "const": "error" } }, "required": ["status"] },
-      "then": { "required": ["error"] },
-      "else": { "not": { "required": ["error"] } }
+      "if": {
+        "properties": {
+          "status": {
+            "const": "error"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "error"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "error"
+          ]
+        }
+      }
     }
   ],
   "$defs": {
     "grid": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["center", "pixel_scale_arcsec", "shape"],
+      "required": [
+        "center",
+        "pixel_scale_arcsec",
+        "shape"
+      ],
       "properties": {
         "center": {
           "description": "ICRS degrees. Equals the request ra/dec.",
           "type": "object",
           "additionalProperties": false,
-          "required": ["ra", "dec"],
+          "required": [
+            "ra",
+            "dec"
+          ],
           "properties": {
-            "ra": { "type": "number", "minimum": 0, "exclusiveMaximum": 360 },
-            "dec": { "type": "number", "minimum": -90, "maximum": 90 }
+            "ra": {
+              "type": "number",
+              "minimum": 0,
+              "exclusiveMaximum": 360
+            },
+            "dec": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            }
           }
         },
         "pixel_scale_arcsec": {
@@ -89,31 +198,202 @@
           "type": "array",
           "minItems": 2,
           "maxItems": 2,
-          "items": { "type": "integer", "minimum": 1 }
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          }
         }
       }
     },
     "stretch": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "vmin", "vmax", "unit"],
+      "required": [
+        "kind",
+        "vmin",
+        "vmax",
+        "unit"
+      ],
       "properties": {
-        "kind": { "enum": ["linear", "asinh"] },
-        "vmin": { "description": "Pixel value mapped to PNG 0.", "type": "number" },
-        "vmax": { "description": "Pixel value mapped to PNG 255.", "type": "number" },
-        "unit": { "description": "Unit of vmin and vmax.", "type": "string", "minLength": 1 }
+        "kind": {
+          "enum": [
+            "linear",
+            "asinh"
+          ]
+        },
+        "vmin": {
+          "description": "Pixel value mapped to PNG 0.",
+          "type": "number"
+        },
+        "vmax": {
+          "description": "Pixel value mapped to PNG 255.",
+          "type": "number"
+        },
+        "unit": {
+          "description": "Unit of vmin and vmax.",
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "frame": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["index", "obs_mjd", "wavelength_um", "url", "flag_fraction"],
+      "required": [
+        "index",
+        "obs_mjd",
+        "wavelength_um",
+        "url",
+        "flag_fraction"
+      ],
       "properties": {
-        "index": { "description": "Position in the planned series, 0-based. Gaps mark failed frames.", "type": "integer", "minimum": 0 },
-        "obs_mjd": { "description": "Observation time, MJD (UTC).", "type": "number" },
-        "wavelength_um": { "description": "Wavelength in micrometres.", "type": "number", "exclusiveMinimum": 0 },
-        "url": { "description": "Location of the frame's 8-bit PNG on the API origin.", "type": "string", "minLength": 1 },
-        "flag_fraction": { "description": "Fraction of grid pixels that are flagged, 0 to 1.", "type": "number", "minimum": 0, "maximum": 1 }
+        "index": {
+          "description": "Position in the planned series, 0-based. Gaps mark failed frames.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "obs_mjd": {
+          "description": "Observation time, MJD (UTC).",
+          "type": "number"
+        },
+        "wavelength_um": {
+          "description": "Wavelength in micrometres.",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "url": {
+          "description": "Location of the frame's 8-bit PNG on the API origin.",
+          "type": "string",
+          "minLength": 1
+        },
+        "flag_fraction": {
+          "description": "Fraction of grid pixels that are flagged, 0 to 1.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "stacks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "visits",
+        "bands",
+        "images"
+      ],
+      "properties": {
+        "visits": {
+          "description": "Time groups, ordered by index.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "index",
+              "start_mjd",
+              "end_mjd"
+            ],
+            "properties": {
+              "index": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "start_mjd": {
+                "description": "Earliest obs_mjd of the images in this visit.",
+                "type": "number"
+              },
+              "end_mjd": {
+                "description": "Latest obs_mjd of the images in this visit.",
+                "type": "number"
+              }
+            }
+          }
+        },
+        "bands": {
+          "description": "Band groups. `all` combines every image of a visit; any other id is the archive detector band name with the 'SPHEREx-' prefix removed.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "wavelength_min_um",
+              "wavelength_max_um",
+              "stretch"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9]+$"
+              },
+              "wavelength_min_um": {
+                "description": "Smallest wavelength_um among the images combined in this band.",
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "wavelength_max_um": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "stretch": {
+                "description": "The mapping applied to this band's stack PNGs, shared by all visits.",
+                "$ref": "#/$defs/stretch"
+              },
+              "diff_limit": {
+                "description": "Difference PNGs of this band map -diff_limit to 0 and +diff_limit to 255, linearly, in stretch.unit. Present only if the band has difference images.",
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            }
+          }
+        },
+        "images": {
+          "description": "One per (visit, band) that has at least one image.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "visit",
+              "band",
+              "url",
+              "n_images",
+              "flag_fraction"
+            ],
+            "properties": {
+              "visit": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "band": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9]+$"
+              },
+              "url": {
+                "description": "8-bit PNG of the combined image, band stretch applied.",
+                "type": "string",
+                "minLength": 1
+              },
+              "n_images": {
+                "description": "Number of images combined.",
+                "type": "integer",
+                "minimum": 1
+              },
+              "flag_fraction": {
+                "description": "Fraction of grid pixels where no combined image had an unflagged value, 0 to 1.",
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "diff_url": {
+                "description": "8-bit PNG of this image minus the same band's earliest visit image. Absent for that earliest image.",
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
       }
     }
   }

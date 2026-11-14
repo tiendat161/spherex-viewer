@@ -67,7 +67,20 @@ The source images are ICRS with a `TAN-SIP` WCS tied to each image's own observa
 
 ### Polling
 
-The client repeats the identical GET until `status` is `ready` or `error`. While `loading`, `frames` holds what is finished so far and grows between polls; `grid` and `stretch` may be null. When `ready`, `progress.done + progress.failed == progress.total` and `frames` has `progress.done` entries (not expressible in JSON Schema; the API must guarantee it).
+The client repeats the identical GET until `status` is `ready` or `error`. While `loading`, `frames` holds what is finished so far and grows between polls; `grid` and `stretch` may be null. For a live series the stretch cannot be final until every frame is in: while `loading`, `stretch` is the mapping applied to the PNGs at that moment (limits computed over the frames done so far, recomputed at 1, 2, 4, 8, … frames and at the end), and each recompute changes the `?v=` suffix of every `frames[].url` so clients refetch. When `ready`, the stretch is the all-frames one. When `ready`, `progress.done + progress.failed == progress.total` and `frames` has `progress.done` entries (not expressible in JSON Schema; the API must guarantee it).
+
+## Stacks
+
+Added 2026-11-14. Optional `stacks` object, present only on a `ready` series, plus the optional top-level `background` field (`"none"` or `"median_subtracted"`). Consecutive images of one position are in different wavelengths, so `frames` in time order mostly shows wavelength changing. `stacks` combines images so that only time changes between frames.
+
+| Field | Meaning |
+|---|---|
+| `stacks.visits[]` | `{index, start_mjd, end_mjd}`: groups of observation dates. A gap of more than 30 days between consecutive archive images starts a new visit; a run longer than 60 days (continuously observed fields) is cut into equal bins of at most 60 days. Boundaries come from every archive image of the position, not only the ones read. `start_mjd`/`end_mjd` are those of the images actually combined. |
+| `stacks.bands[]` | `{id, wavelength_min_um, wavelength_max_um, stretch, diff_limit?}`. `id` is `all` (every image of the visit) or the archive's detector band name without the `SPHEREx-` prefix (`D1` to `D6`). The wavelength range is the measured range of the combined images, not a nominal band. `stretch` is shared by all visits of the band (asinh, 1st to 99.5th percentile of the band's stack pixels). |
+| `stacks.images[]` | `{visit, band, url, n_images, flag_fraction, diff_url?}`: the sigma-clipped (3σ) mean of the unflagged values per pixel, a plain mean when fewer than 3 images. Where no image has an unflagged value, the mean of all finite values is used and the pixel counts towards `flag_fraction`. |
+| `diff_url` | This image minus the band's earliest visit image, linear, `-diff_limit` to `+diff_limit` mapped to 0 to 255 (`diff_limit` = 99.5th percentile of the absolute differences of the band). |
+
+The 30-day, 60-day and 3σ values are choices, not measurements. Stacks are built from the images the series read: all 258 for `wise0855`, but only the 40 selected frames for the other cached targets and for live series, so their per-detector stacks hold only a few images each (`n_images` says how many). Setting `stack_images` for a target in `verify/targets.json` makes `make cache` read more.
 
 ## Fixture
 
@@ -92,12 +105,12 @@ Provisional answers adopted for the prototype so the build sessions are not bloc
 | 4 | `wavelength_um` from the cutout's `WCS-WAVE` extension at the target pixel. Timebox 1 h; if it cannot be evaluated, stop and ask. No invented values. |
 | 5 | `flag_fraction` = fraction of grid pixels whose nearest source pixel has any `FLAGS` bit set other than `SOURCE` (bit 21) and `FULLSAMPLE` (bit 12), plus pixels with no coverage. The same mask selects the pixels used for the stretch limits. Revised 2026-11-14: the first version counted every bit, but `SOURCE` means "Pixel mapped to a known source" and `FULLSAMPLE` is "purely informational" (Explanatory Supplement v2.0, Table 16), and `SOURCE` was set on 96% of pixels in ten Barnard's Star cutouts and 52% in ten WISE 0855 cutouts (measured from `.cache/cutouts/`). |
 | 6 | `obs_mjd` = TAP `time_bounds_lower`. |
-| 7 | `asinh`; `vmin`/`vmax` = 1st and 99.5th percentile over all unflagged pixels of all frames in the series; unit from header `BUNIT`; no `ZODI` subtraction. |
+| 7 | `asinh`; `vmin`/`vmax` = 1st and 99.5th percentile over all unflagged pixels of all frames in the series; unit from header `BUNIT`. **Revised 2026-11-14:** each image first has the median of its own unflagged pixels subtracted (`background: "median_subtracted"`), because the background level differs a lot between wavelengths and made a time-ordered blink flicker. The `ZODI` extension is not used. |
 | 8, 9 | 6.2″ and `[116, 116]`, as the schema fixes them. Native scale still UNVERIFIED. |
 | 10 | Bilinear (`reproject.reproject_interp`). |
 | 11 | Honour `retry-after`; up to 4 attempts per cutout, then the frame counts as failed. |
 | 12 | Always HTTP 200 with `status` in the body; poll every 2 s; no machine-readable error code. |
-| 13 | Only cached targets are served: a request matches if within 1″ of a cached position with `fov=0.2` and `max_frames` at least the series' frame count (at most 102). Anything else returns `status: "error"`. |
+| 13 | Cached targets first: a request matches if within 1″ of a cached position with `fov=0.2` and `max_frames` at least the series' frame count (at most 102). **Any other position is built live (2026-11-14, `pipeline/live.py`):** min(`max_frames`, 40) frames, evenly spaced in time, same grid, flag and stretch rules as the cache. Requests within 1″ of a live series share it. Live series are held in memory only (lost on restart; the 30 most recent are kept); 2 are built at a time and 6 more may wait, beyond that the response is `status: "error"`. A failed live series is retried when requested again after 60 s. `fov` other than 0.2 still returns `status: "error"`. With `SPHEREX_LIVE=0` the API serves the cache only. |
 | 14 | Prefer `dr1` when the same observation appears under both release paths. |
 | 15 | `url` = `/api/frames/<id>/NN.png`, a path on the API origin, kept as long as the cache is deployed. |
 
