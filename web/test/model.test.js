@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { blinkPair, buildSlots, mjdToUtc, nextSlot, parseLocation, progressText, seriesUrl, zoomRect } from '../src/model.js';
+import { blinkPair, buildSlots, gridFovDeg, isWideField, locationQuery, mjdToUtc, nextSlot, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, seriesUrl, zoomRect } from '../src/model.js';
 import { errorResponse, fixture, gapResponse, loadingResponse, validateSeries, validateTargets } from './helpers.js';
 
 describe('hand-built responses are schema-valid', () => {
@@ -65,11 +65,28 @@ describe('url and dates', () => {
     expect(seriesUrl(133.795129, -7.245147)).toBe('/api/series?ra=133.795129&dec=-7.245147&fov=0.2&max_frames=102');
   });
   it('parses ?ra=&dec=', () => {
-    expect(parseLocation('?ra=133.795129&dec=-7.245147')).toEqual({ ra: 133.795129, dec: -7.245147 });
+    expect(parseLocation('?ra=133.795129&dec=-7.245147')).toEqual({ ra: 133.795129, dec: -7.245147, fov: 0.2 });
     expect(parseLocation('')).toBeNull();
     expect(parseLocation('?ra=abc&dec=1')).toBeNull();
     expect(parseLocation('?ra=360&dec=1')).toBeNull();
     expect(parseLocation('?ra=&dec=1')).toBeNull();
+  });
+  it('field of view: request, page URL and parsing', () => {
+    expect(seriesUrl(1, 2, 0.5)).toBe('/api/series?ra=1&dec=2&fov=0.5&max_frames=102');
+    expect(parseLocation('?ra=1&dec=2&fov=0.5').fov).toBe(0.5);
+    expect(parseLocation('?ra=1&dec=2&fov=1.0').fov).toBe(1);
+    expect(parseLocation('?ra=1&dec=2&fov=0.3').fov).toBe(0.2); // not offered: default
+    expect(parseLocation('?ra=1&dec=2&fov=').fov).toBe(0.2);
+    expect(parseFov('abc')).toBe(0.2);
+    expect(locationQuery(1, 2)).toBe('?ra=1&dec=2');
+    expect(locationQuery(1, 2, 0.2)).toBe('?ra=1&dec=2');
+    expect(locationQuery(1, 2, 1)).toBe('?ra=1&dec=2&fov=1');
+  });
+  it('scale bar grows with the field', () => {
+    expect(gridFovDeg({ pixel_scale_arcsec: 6.2, shape: [290, 290] })).toBeCloseTo(0.4994, 4);
+    expect([58, 116, 290, 581].map((n) => isWideField({ pixel_scale_arcsec: 6.2, shape: [n, n] }))).toEqual([false, false, true, true]);
+    expect([360, 720, 1800, 3600, 180].map(scaleBarArcsec)).toEqual([60, 60, 120, 300, 60]);
+    expect([60, 120, 300].map(scaleBarLabel)).toEqual(['60″', '2′', '5′']);
   });
   it('converts MJD to UTC (MJD 40587 = 1970-01-01)', () => {
     expect(mjdToUtc(40587)).toBe('1970-01-01 00:00 UTC');

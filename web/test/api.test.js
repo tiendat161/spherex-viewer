@@ -16,6 +16,11 @@ describe('pollSeries', () => {
     expect(fetchFn.mock.calls.map((c) => c[0])).toEqual(Array(3).fill('/api/series?ra=133.795129&dec=-7.245147&fov=0.2&max_frames=102'));
     expect(sleep.mock.calls.map((c) => c[0])).toEqual([2000, 2000]);
   });
+  it('passes the field of view through to the request', async () => {
+    const fetchFn = vi.fn(async () => ok(fixture()));
+    await pollSeries(1, 2, { fov: 0.5, fetchFn });
+    expect(fetchFn.mock.calls[0][0]).toBe('/api/series?ra=1&dec=2&fov=0.5&max_frames=102');
+  });
   it('stops on a server error response and does not sleep', async () => {
     const sleep = vi.fn();
     const last = await pollSeries(1, 2, { fetchFn: async () => ok(errorResponse('nope')), sleep });

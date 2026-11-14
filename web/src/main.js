@@ -1,9 +1,9 @@
 import { fetchTargets, pollSeries } from './api.js';
-import { bandLabel, blinkPair, buildSlots, formatFlag, locationQuery, mjdToUtc, nextSlot, orderSlots, parseLocation, progressText, stackSlots, zoomRect } from './model.js';
+import { FOV_DEG, WIDE_FOV_DEG, bandLabel, blinkPair, buildSlots, formatFlag, gridFovDeg, isWideField, locationQuery, mjdToUtc, nextSlot, orderSlots, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, stackSlots, zoomRect } from './model.js';
 
 const $ = (id) => document.getElementById(id);
 const el = {
-  badge: $('badge'), targets: $('targets'), ra: $('ra'), dec: $('dec'), coords: $('coords'),
+  badge: $('badge'), targets: $('targets'), ra: $('ra'), dec: $('dec'), fov: $('fov'), fovNote: $('fov-note'), coords: $('coords'),
   progressText: $('progress-text'), bar: $('bar'), message: $('message'),
   frameBox: $('frame-box'), canvas: $('canvas'), scalebar: $('scalebar'), scalebarLabel: $('scalebar-label'), skipped: $('skipped'),
   prev: $('prev'), play: $('play'), next: $('next'), slider: $('slider'), fps: $('fps'), zoom: $('zoom'), pair: $('pair'), pairNote: $('pair-note'),
@@ -127,9 +127,9 @@ function render() {
     const g = r.grid, s = r.stretch;
     el.scalebar.hidden = !g;
     if (g) {
-      const arcsec = 60;
+      const arcsec = scaleBarArcsec(gridFovDeg(g) * 3600 / Number(el.zoom.value));
       el.scalebar.style.setProperty('--w', `${((arcsec / g.pixel_scale_arcsec) / g.shape[1]) * 100 * Number(el.zoom.value)}%`);
-      el.scalebarLabel.textContent = `${arcsec}″`;
+      el.scalebarLabel.textContent = scaleBarLabel(arcsec);
     }
     const bg = r.background === 'median_subtracted' ? ' Each image had its own median background subtracted first.' : '';
     const slot = currentSlot();
@@ -144,6 +144,8 @@ function render() {
         : '';
     }
   }
+  // The wavelength in the readout is the one at the grid centre; on a wide field say so.
+  el.fovNote.hidden = !(r?.grid ? isWideField(r.grid) : state.pos?.fov >= WIDE_FOV_DEG);
   renderReadout();
   drawCurrent();
 }
@@ -201,11 +203,11 @@ function onUpdate(resp) {
   render();
 }
 
-async function load(ra, dec, { push = false } = {}) {
+async function load(ra, dec, { fov = FOV_DEG, push = false } = {}) {
   state.abort?.abort();
   stopPlaying();
   state.abort = new AbortController();
-  state.pos = { ra, dec };
+  state.pos = { ra, dec, fov };
   state.autoStarted = false;
   state.stacksSeen = false;
   setView('frames');
@@ -216,14 +218,15 @@ async function load(ra, dec, { push = false } = {}) {
   state.pair = null;
   el.ra.value = String(ra);
   el.dec.value = String(dec);
-  const url = locationQuery(ra, dec);
+  el.fov.value = String(fov);
+  const url = locationQuery(ra, dec, fov);
   if (push) history.pushState(null, '', url);
   markTargets();
   el.progressText.textContent = 'Requesting series…';
   el.message.hidden = true;
   render();
   try {
-    await pollSeries(ra, dec, { onUpdate, signal: state.abort.signal });
+    await pollSeries(ra, dec, { fov, onUpdate, signal: state.abort.signal });
   } catch (e) {
     if (e.name !== 'AbortError') throw e;
   }
@@ -232,7 +235,7 @@ async function load(ra, dec, { push = false } = {}) {
 function markTargets() {
   for (const b of el.targets.querySelectorAll('button')) {
     const t = state.targets[Number(b.dataset.i)];
-    b.setAttribute('aria-pressed', String(!!state.pos && t.ra === state.pos.ra && t.dec === state.pos.dec));
+    b.setAttribute('aria-pressed', String(!!state.pos && t.ra === state.pos.ra && t.dec === state.pos.dec && state.pos.fov === FOV_DEG));
   }
 }
 
@@ -246,7 +249,7 @@ function renderTargets() {
     const name = document.createElement('span'); name.className = 'name'; name.textContent = t.name;
     const note = document.createElement('span'); note.className = 'note'; note.textContent = `RA ${t.ra}, Dec ${t.dec}. ${t.position_note}`;
     b.append(name, note);
-    b.addEventListener('click', () => load(t.ra, t.dec, { push: true }));
+    b.addEventListener('click', () => load(t.ra, t.dec, { push: true })); // the cached series: default field of view
     li.append(b);
     return li;
   }));
@@ -275,8 +278,10 @@ el.coords.addEventListener('submit', (e) => {
     el.message.textContent = 'Enter RA in [0, 360) and Dec in [-90, 90], in decimal degrees.';
     return;
   }
-  load(p.ra, p.dec, { push: true });
+  load(p.ra, p.dec, { fov: parseFov(el.fov.value), push: true });
 });
+// Changing the field of view reloads the position on screen at the new size (a live build unless it is the cached 0.2°).
+el.fov.addEventListener('change', () => { if (state.pos) load(state.pos.ra, state.pos.dec, { fov: parseFov(el.fov.value), push: true }); });
 document.addEventListener('keydown', (e) => {
   if (e.target instanceof HTMLInputElement && e.target.type !== 'range') return;
   if (e.key === ' ' && e.target === document.body) { e.preventDefault(); el.play.click(); }
@@ -285,7 +290,7 @@ document.addEventListener('keydown', (e) => {
 });
 window.addEventListener('popstate', () => {
   const p = parseLocation(location.search);
-  if (p) load(p.ra, p.dec);
+  if (p) load(p.ra, p.dec, { fov: p.fov });
 });
 
 (async function init() {
@@ -300,5 +305,5 @@ window.addEventListener('popstate', () => {
     el.targets.append(li);
   }
   const p = parseLocation(location.search);
-  if (p) load(p.ra, p.dec);
+  if (p) load(p.ra, p.dec, { fov: p.fov });
 })();

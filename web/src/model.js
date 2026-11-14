@@ -1,21 +1,23 @@
 // Pure helpers: no DOM, no network. Unit-tested in test/model.test.js.
 
-export const FOV_DEG = 0.2;
+export const FOVS_DEG = [0.1, 0.2, 0.5, 1]; // the field widths the API accepts (docs/contract.md)
+export const FOV_DEG = 0.2; // default, and the only size in the static cache
+export const WIDE_FOV_DEG = 0.5; // from here on the UI says the wavelength is exact at the centre only
 export const MAX_FRAMES = 102; // ceiling the API accepts; each cached series has its own frame count
 export const POLL_MS = 2000;
 
 /** The one request for a position. Identical on every poll (docs/contract.md, Polling). */
-export function seriesUrl(ra, dec) {
+export function seriesUrl(ra, dec, fov = FOV_DEG) {
   const q = new URLSearchParams({
     ra: String(ra),
     dec: String(dec),
-    fov: String(FOV_DEG),
+    fov: String(fov),
     max_frames: String(MAX_FRAMES),
   });
   return `/api/series?${q}`;
 }
 
-/** Read ?ra=&dec= from a query string. Returns {ra, dec} or null. */
+/** Read ?ra=&dec=&fov= from a query string. Returns {ra, dec, fov} or null. A missing or unsupported fov is the default. */
 export function parseLocation(search) {
   const q = new URLSearchParams(search);
   if (!q.has('ra') || !q.has('dec')) return null;
@@ -24,11 +26,37 @@ export function parseLocation(search) {
   if (q.get('ra').trim() === '' || q.get('dec').trim() === '') return null;
   if (!Number.isFinite(ra) || !Number.isFinite(dec)) return null;
   if (ra < 0 || ra >= 360 || dec < -90 || dec > 90) return null;
-  return { ra, dec };
+  return { ra, dec, fov: parseFov(q.get('fov')) };
 }
 
-export function locationQuery(ra, dec) {
-  return `?ra=${ra}&dec=${dec}`;
+/** One of FOVS_DEG, or the default when the text is missing or not an allowed value. */
+export function parseFov(text) {
+  const v = text == null || String(text).trim() === '' ? NaN : Number(text);
+  return FOVS_DEG.find((f) => Math.abs(f - v) < 1e-9) ?? FOV_DEG;
+}
+
+/** The page URL for a position. The default field of view is left out, so old links stay as they were. */
+export function locationQuery(ra, dec, fov = FOV_DEG) {
+  return `?ra=${ra}&dec=${dec}${fov === FOV_DEG ? '' : `&fov=${fov}`}`;
+}
+
+/** Width of the grid on the sky in degrees, from the response's own grid. */
+export function gridFovDeg(grid) {
+  return (grid.shape[1] * grid.pixel_scale_arcsec) / 3600;
+}
+
+/** True from WIDE_FOV_DEG up. The grid is a whole number of pixels (290 px is 0.4994°), so allow one pixel. */
+export function isWideField(grid) {
+  return gridFovDeg(grid) + grid.pixel_scale_arcsec / 3600 >= WIDE_FOV_DEG;
+}
+
+/** Scale bar length in arcseconds: the longest of 1, 2, 5, 10 arcmin that is at most a tenth of the field (never under 1 arcmin). */
+export function scaleBarArcsec(fovArcsec) {
+  return [600, 300, 120, 60].find((a) => a <= fovArcsec / 10) ?? 60;
+}
+
+export function scaleBarLabel(arcsec) {
+  return arcsec > 60 ? `${arcsec / 60}′` : `${arcsec}″`;
 }
 
 /** Cheap structural guard for a response body; the schema is the real source of truth. */

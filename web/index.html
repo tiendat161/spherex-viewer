@@ -19,8 +19,11 @@
         <h2>Position (ICRS, degrees)</h2>
         <label>RA <input id="ra" name="ra" inputmode="decimal" autocomplete="off" /></label>
         <label>Dec <input id="dec" name="dec" inputmode="decimal" autocomplete="off" /></label>
+        <label>Field of view
+          <select id="fov" name="fov"><option value="0.1">0.1°</option><option value="0.2" selected>0.2° (cached targets)</option><option value="0.5">0.5°</option><option value="1">1°</option></select>
+        </label>
         <button type="submit">Load series</button>
-        <p class="muted small">Any other position is built live from the SPHEREx archive (IRSA): up to 40 frames spread evenly over the observation dates. The archive is slow, so expect a few minutes; frames appear as they arrive and the brightness scale is refined as more come in.</p>
+        <p class="muted small">Any other position is built live from the SPHEREx archive (IRSA): up to 40 frames spread evenly over the observation dates. The archive is slow, so expect a few minutes; frames appear as they arrive and the brightness scale is refined as more come in. The cached targets are stored at 0.2° only: any other field of view is built live, also for a cached target, and wider fields take longer. At 0.5° and 1° part of an image can be empty where the field runs off the edge of the detector.</p>
       </form>
     </aside>
     <section id="viewer">
@@ -66,6 +69,7 @@
         <div><dt>Wavelength</dt><dd id="r-wave">—</dd></div>
         <div><dt>Flagged</dt><dd id="r-flag">—</dd></div>
       </dl>
+      <p id="fov-note" class="note-wide small" hidden>Wide field: the wavelength shown is exact only at the centre of the image. SPHEREx observes each position on the detector at its own wavelength, so towards the edges of a field this wide the light is from a different wavelength than the one shown. How large the difference is has not been measured for this tool.</p>
       <p id="legend" class="muted small"></p>
       <p class="muted small">The requested position is the centre of the image; tick "Mark centre" to circle it. North is up, east is left; frames are not rotated or flipped. A moving target can be off-centre and shifts between frames: look for something that hops across the field while the stars stay put. Images are shown pixel-for-pixel with nearest-neighbour scaling; zoom magnifies the centre of the same pixels and does not resample or restretch them.</p>
     </section>

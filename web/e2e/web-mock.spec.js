@@ -109,3 +109,41 @@ test('zoom magnifies the centre; pair blink alternates two frames', async ({ pag
   await expect(page.locator('#pair')).not.toBeChecked();
   await expect(page.locator('#pair-note')).toBeHidden();
 });
+
+test('field of view: selector, URL parameter, grid size, wide-field note', async ({ page }) => {
+  const series = [];
+  page.on('request', (r) => { const u = new URL(r.url()); if (u.pathname === '/api/series') series.push(u.searchParams.get('fov')); });
+  await page.goto(wise);
+  await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
+  await expect(page.locator('#fov')).toHaveValue('0.2');
+  await expect(page.locator('#fov-note')).toBeHidden();
+  await expect(page.locator('#scalebar-label')).toHaveText('60″');
+
+  // Choosing a size reloads the same position at that size and puts it in the URL.
+  await page.locator('#fov').selectOption('0.5');
+  await expect(page).toHaveURL(/\?ra=133\.795129&dec=-7\.245147&fov=0\.5$/);
+  await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
+  expect(series.at(-1)).toBe('0.5');
+  await expect.poll(() => page.evaluate(() => document.getElementById('canvas').width)).toBe(290);
+  await expect(page.locator('#fov-note')).toBeVisible();
+  await expect(page.locator('#fov-note')).toContainText('exact only at the centre');
+  await expect(page.locator('#scalebar-label')).toHaveText('2′');
+  await page.locator('#play').click();
+  await page.locator('#slider').fill('3');
+  mkdirSync(outDir, { recursive: true });
+  await page.screenshot({ path: outDir + 'web-mock-fov05.png', fullPage: true });
+
+  // Back restores 0.2; a link with &fov=1 opens at 1 degree; a cached-target button goes back to 0.2.
+  await page.goBack();
+  await expect(page.locator('#fov')).toHaveValue('0.2');
+  await expect(page.locator('#fov-note')).toBeHidden();
+  await page.goto(wise + '&fov=1');
+  await expect(page.locator('#fov')).toHaveValue('1');
+  await expect.poll(() => page.evaluate(() => document.getElementById('canvas').width)).toBe(581);
+  await expect(page.locator('#fov-note')).toBeVisible();
+  await expect(page.locator('#scalebar-label')).toHaveText('5′');
+  await page.locator('#targets button').nth(0).click();
+  await expect(page.locator('#fov')).toHaveValue('0.2');
+  await expect(page).toHaveURL(/dec=-7\.245147$/);
+  await expect.poll(() => page.evaluate(() => document.getElementById('canvas').width)).toBe(116);
+});
