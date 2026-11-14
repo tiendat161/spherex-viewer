@@ -1,0 +1,154 @@
+# Folder structure
+
+What each folder holds and what it does. Written 2026-11-14 against `main`.
+
+## How the pieces fit
+
+```
+IRSA archive ──(make cache, the only network step)──▶ pipeline/ ──▶ static/series/
+                                                                        │ read only
+browser ◀── web/ (built into web/dist) ◀── served by ── api/ ◀──────────┘
+```
+
+`contracts/` defines the JSON that `pipeline/` writes, `api/` returns and `web/` reads. `verify/` and `tests/` check that all three agree.
+
+## Tree
+
+```
+spherex-viewer/
+├── contracts/        JSON schemas: the interface everyone builds against
+├── pipeline/         Python: fetches real SPHEREx data and builds the cache
+├── api/              Python: FastAPI service that serves the cache and the web app
+├── web/              JavaScript: the blink viewer the user sees
+├── static/series/    Generated: the cached series for the five targets
+├── tests/            Python unit tests for pipeline/ and api/
+├── verify/           Acceptance targets and the offline contract and end-to-end checks
+├── fixtures/         A simulated example response for frontend development
+├── docs/             Plans, the contract write-up, spike notes
+├── spike/            Day-one feasibility scripts and their logs
+├── .claude/          Claude Code agents and the preview launch config
+├── Makefile          dev, cache, test and verify commands
+├── requirements.txt  Python dependencies
+├── CLAUDE.md         Working rules for AI-assisted sessions
+├── README.md         Project summary
+└── REFERENCES.md     Data sources, tools and AI-usage notes for the submission
+```
+
+Not in git: `.venv/` (Python environment), `.cache/` (raw downloads), `web/node_modules/`, `web/dist/` (built frontend) and `verify/out/` (screenshots).
+
+## Source folders
+
+### `contracts/`
+
+The source of truth for every interface. Read it before changing anything that crosses a boundary; a contract change goes in its own commit.
+
+| File | Defines |
+|---|---|
+| `series.schema.json` | Response of `GET /api/series`: status, real or simulated label, progress, the shared grid, the stretch, and the list of frames |
+| `targets.schema.json` | Response of `GET /api/targets`: the cached targets and where each position comes from |
+
+The prose explanation, including the choices made for the prototype, is in `docs/contract.md`.
+
+### `pipeline/`
+
+Turns archive data into the static cache. This is the only code that contacts IRSA, and only when run through `make cache`.
+
+| File | Does |
+|---|---|
+| `irsa.py` | The one IRSA client: archive query and cutout download, limited to 4 requests in flight, with retries on HTTP 503 |
+| `targets.py` | Reads `verify/targets.json`, converts positions to degrees and applies proper motion where the target asks for it |
+| `select.py` | Picks 40 frames evenly spaced in time, de-duplicating across data releases |
+| `cutout.py` | Reads one downloaded cutout: image, flags, sky coordinates, unit and wavelength |
+| `grid.py` | Defines the shared north-up grid and resamples every frame onto it; decides which pixels count as flagged |
+| `stretch.py` | Computes one brightness mapping per series and converts frames to 8-bit |
+| `writer.py` | Writes `series.json` and the frame PNGs |
+| `build.py` | The command-line entry point that runs the steps above; `--offline` rebuilds from `.cache/` without any network |
+| `tapcount.py` | Small helper that prints how many archive images cover each target |
+
+### `api/`
+
+`main.py` is the whole service. It reads `static/series/` and never contacts IRSA.
+
+- `GET /api/targets` lists the cached targets.
+- `GET /api/series?ra=&dec=` returns the cached series within 1 arcsecond of that position, or a contract-valid error for anything else.
+- `GET /api/frames/<id>/NN.png` serves a frame image.
+- Everything else is served from `web/dist`, so the app and the API share one origin.
+
+### `web/`
+
+The frontend, built with Vite and no UI framework. It only ever calls relative `/api/` paths.
+
+| Path | Holds |
+|---|---|
+| `index.html`, `src/style.css` | Page markup and styling |
+| `src/model.js` | Pure helpers: URL parsing, date conversion, frame slots, progress text |
+| `src/api.js` | Fetching targets and polling a series |
+| `src/main.js` | The player: target list, canvas, controls, badge, readouts |
+| `mock/` | Dev-only stand-in for the API that serves the fixture and generated placeholder frames, labelled simulated. Used by `npm run dev:mock`; never part of a build. |
+| `test/` | Vitest unit tests, including one that checks the built bundle contains no archive hostname |
+| `e2e/` | Playwright spec against the mock (`make verify-web`) |
+| `e2e-real/` | Playwright spec against the real API, one test per target (`make verify`) |
+| `vite.config.js`, `vitest.config.js`, `playwright*.config.js` | Tool configuration; the dev server proxies `/api` to port 8000 |
+
+## Data folders
+
+### `static/series/`
+
+Generated by `pipeline/` and committed, about 2 MB. One folder per target (`wise0855`, `barnard`, `epsindb`, `rwaur`, `rdra`), each with:
+
+- `series.json`: the exact response the API returns for that target, marked `data_origin: "real"`;
+- `frames/NN.png`: 116×116 8-bit images, 192 in total. A missing number is a frame that failed to download (3 for Barnard's Star, 5 for R Draconis).
+
+Do not edit by hand; rebuild with `make cache`.
+
+### `fixtures/`
+
+`wise0855.json` is an example `ready` response marked `data_origin: "simulated"`. Only its observation times and grid centre are real; `README.md` there lists every placeholder field. It exists so the frontend and the contract check have something to run against without the backend.
+
+### `.cache/` (not in git)
+
+Raw material, about 855 MB: archive query results (`tap/`), downloaded cutout files (`cutouts/<id>/`), the SPHEREx Explanatory Supplement (`expsupp/`), and leftovers from the spike. Safe to delete, but the next `make cache` would download everything again.
+
+## Checking folders
+
+### `tests/`
+
+Pytest unit tests; none touches the network. `tests/pipeline/synth.py` builds synthetic cutouts, labelled simulated, so reprojection, orientation, the flag mask, frame selection, the concurrency limit and retries can be tested offline. `tests/api/` tests the three endpoints.
+
+### `verify/`
+
+| File | Does |
+|---|---|
+| `targets.json` | The five acceptance targets with their source positions, proper motions and the 30-frame minimum |
+| `check_contract.py` | `make verify-contract`: validates the schemas, the fixture and every cached series, and that every frame PNG exists at the right size |
+| `e2e.py` | `make verify`: builds the web app, starts the API, checks each target through the API and in a browser, and saves `out/<id>.png` |
+
+## Documentation and history
+
+### `docs/`
+
+| File | Holds |
+|---|---|
+| `PLAN.md` | The pre-hackathon prep plan: goal, schedule, challenge text, open questions |
+| `spike.md` | Measurements from the feasibility spike: query times, cutout sizes, 503 rates, CORS, coordinate epoch |
+| `contract.md` | The API contract in prose, the prototype choices and the open decisions |
+| `build-plan.md` | The prototype build plan: session briefs, verify design, merge order, risks, cut list |
+| `structure.md` | This file |
+
+### `spike/`
+
+The throwaway scripts behind `docs/spike.md` and the logs they produced. Kept as evidence for the measurements; nothing imports them.
+
+### `.claude/`
+
+`agents/` defines three helper agents (researcher, reviewer, verifier). `launch.json` tells the Claude desktop preview pane how to start the API. `worktrees/` (not in git) holds the two build sessions' working copies.
+
+## Commands
+
+| Command | Does | Network |
+|---|---|---|
+| `make dev` | Starts the API on port 8000, serving `web/dist` (build it first with `cd web && npm run build`) | No |
+| `make cache` | Rebuilds `static/series/` from the archive | Yes, IRSA |
+| `make test` | Backend and frontend unit tests | No |
+| `make verify-contract` | Schema and cache consistency check | No |
+| `make verify` | Everything above except `cache`, plus the end-to-end run on all five targets | No |
