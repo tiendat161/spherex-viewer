@@ -73,9 +73,37 @@ The client repeats the identical GET until `status` is `ready` or `error`. While
 
 [`fixtures/wise0855.json`](../fixtures/wise0855.json) is a `ready` response for the WISE 0855 challenge coordinates with `data_origin: "simulated"`. Only its `obs_mjd` values and grid centre are real; see [`fixtures/README.md`](../fixtures/README.md).
 
+## Targets endpoint
+
+```
+GET /api/targets
+```
+
+Returns the targets whose series are cached, validated by [`contracts/targets.schema.json`](../contracts/targets.schema.json): an array of `{id, name, ra, dec, position_note}`. `ra`/`dec` are the cached request position (ICRS degrees); passing them to `/api/series` with the default `fov` and `max_frames` returns that target's cached series. The UI must show `position_note`. The source list is [`verify/targets.json`](../verify/targets.json).
+
+## Prototype choices (2026-11-14)
+
+Provisional answers adopted for the prototype so the build sessions are not blocked. They are choices, not findings; none changes `series.schema.json`. Numbers match the open decisions below.
+
+| # | Choice |
+|---|---|
+| 1 | Coordinates used as given; the API applies no correction. Proper-motion propagation happens only when the pipeline derives a cached target's position from `verify/targets.json`. |
+| 2, 3 | 40 frames evenly spaced through the time-ordered list; order by `obs_mjd`. |
+| 4 | `wavelength_um` from the cutout's `WCS-WAVE` extension at the target pixel. Timebox 1 h; if it cannot be evaluated, stop and ask. No invented values. |
+| 5 | `flag_fraction` = fraction of grid pixels whose nearest source pixel has any `FLAGS` bit set, plus pixels with no coverage. Bit meanings are still unread. |
+| 6 | `obs_mjd` = TAP `time_bounds_lower`. |
+| 7 | `asinh`; `vmin`/`vmax` = 1st and 99.5th percentile over all unflagged pixels of all frames in the series; unit from header `BUNIT`; no `ZODI` subtraction. |
+| 8, 9 | 6.2″ and `[116, 116]`, as the schema fixes them. Native scale still UNVERIFIED. |
+| 10 | Bilinear (`reproject.reproject_interp`). |
+| 11 | Honour `retry-after`; up to 4 attempts per cutout, then the frame counts as failed. |
+| 12 | Always HTTP 200 with `status` in the body; poll every 2 s; no machine-readable error code. |
+| 13 | Only cached targets are served: a request matches if within 1″ of a cached position with `fov=0.2` and `max_frames=40`. Anything else returns `status: "error"`. |
+| 14 | Prefer `dr1` when the same observation appears under both release paths. |
+| 15 | `url` = `/api/frames/<id>/NN.png`, a path on the API origin, kept as long as the cache is deployed. |
+
 ## Open decisions
 
-Each item gives the provisional choice in the current schema or fixture.
+Each item gives the provisional choice in the current schema or fixture. See [Prototype choices](#prototype-choices-2026-11-14) for what the prototype adopts.
 
 1. **Epoch of the request coordinates.** The epoch of the challenge coordinates is not established by any source (spike §4). Provisional: centre the grid on the coordinates as given. With `fov=0.2` the half-width is 360″, so even the spike's largest offset case (212″ if the coordinates are J2000.0) stays inside the field, but the target would be well off-centre. Needs the challenge author's answer.
 2. **Which frames when more exist than `max_frames`.** WISE 0855 has 258 images (spike §1). Provisional: evenly spaced through the time-ordered list. Alternative: choose for even wavelength coverage.
