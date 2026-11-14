@@ -15,7 +15,7 @@ Details of finished work (what, why, what is still missing) are in [`WORKLOG.md`
 
 | ID | Task | Owner | Touches |
 |---|---|---|---|
-| | *(none)* | | |
+| T13 | Field-of-view selector: 0.1°, 0.2° (default), 0.5°, 1°, also as `&fov=` in the URL | `t13-fov-selector` | `contracts/`, `docs/contract.md`, `api/main.py`, `pipeline/live.py`, `web/src/main.js`, `web/src/model.js`, `web/src/api.js`, `web/index.html`, `web/mock/` |
 
 ## Todo
 
@@ -25,7 +25,6 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 |---|---|---|---|---|---|
 | T10 | P1 | Deploy a public link | "public-facing web tool" | new `Dockerfile` or hosting config, `README.md` | Not deployed anywhere. Live builds need a running Python backend; a static-only host would be cached targets only. Independent of all other tasks. |
 | T12 | P1 | Submission paperwork: rewrite `README.md`, finish `REFERENCES.md`, demo video | submission | `README.md`, `REFERENCES.md` | README still says "generic scaffolding only". Submission deadline is still unknown: check first. Independent of code tasks. |
-| T13 | P2 | Field-of-view selector: 0.1°, 0.2° (default), 0.5°, 1°, also as `&fov=` in the URL | "Let users choose the field of view" | `contracts/`, `docs/contract.md`, `api/main.py`, `pipeline/live.py`, `web/src/main.js`, `web/src/model.js`, `web/index.html` | API currently rejects anything but 0.2. Cached targets exist only at 0.2; other sizes build live. Timings measured, see WORKLOG 2026-11-14 "FOV timing". At 0.5° and 1° the UI must say the wavelength shown is only exact at the centre. |
 | T14 | P2 | Spectrum on click: brightness of the clicked point across all bands | "Extra kudos if your tool can generate spectra on the fly" | `contracts/`, `pipeline/` (new per-frame flux data), `api/main.py`, `web/src/main.js` | Needs per-frame flux values, which the 8-bit PNGs do not carry. Clashes with T13 and T15 in `main.js`. |
 | T15 | P2 | Overlay Gaia or WISE catalogue positions | "overlay astronomical data from other telescopes" | `api/main.py` (catalogue query), `web/src/main.js`, `web/index.html` | Would also answer where WISE 0855 and Epsilon Indi B should be. Aladin Lite was the planned route. |
 | T16 | P2 | Deeper stacks for Barnard's Star, Epsilon Indi B, RW Aurigae, R Draconis | "add together ... to improve the signal-to-noise" | `verify/targets.json` (`stack_images`), `static/series/`, `.cache/` | They stack only their 35–40 cached images (1–3 per detector per visit). A full fetch was started and stopped (about 14 images a minute). Suggested: `stack_images: 120`. Barnard's Star already has 170 cutouts cached. Contacts IRSA. Data only: no code clash. |
