@@ -2,6 +2,7 @@
 import json
 from pathlib import Path
 
+import numpy as np
 from PIL import Image
 
 from .grid import PIXEL_SCALE_ARCSEC, to_png_array
@@ -20,7 +21,7 @@ def write_series(out_dir: Path, series_id, ra, dec, shape, stretch, frames, tota
         old.unlink()
     entries = []
     for f in frames:
-        Image.fromarray(to_png_array(f["png"]), mode="L").save(fdir / f"{f['index']:02d}.png", optimize=True)
+        Image.fromarray(np.ascontiguousarray(to_png_array(f["png"]))).save(fdir / f"{f['index']:02d}.png", optimize=True)
         entries.append({
             "index": f["index"],
             "obs_mjd": round(f["obs_mjd"], 6),

@@ -4,6 +4,7 @@ Grid: TAN, ICRS, centred on the request position, north up, east left,
 6.2 arcsec pixels, shape [116, 116] for fov 0.2. Array row 0 is the SOUTH edge
 (FITS convention); `to_png_array` flips it so PNG row 0 is the north edge.
 """
+import threading
 import warnings
 
 import numpy as np
@@ -11,6 +12,8 @@ from astropy.wcs import WCS
 from reproject import reproject_interp
 
 PIXEL_SCALE_ARCSEC = 6.2
+# astropy/wcslib WCS objects are not thread-safe; the build fetches in threads but reprojects one at a time.
+_REPROJECT_LOCK = threading.Lock()
 
 
 def grid_shape(fov_deg: float):
@@ -38,7 +41,7 @@ def reproject_frame(image, image_wcs, flags, grid_wcs, shape):
     flagged: bool, True where the nearest source pixel has any FLAGS bit set,
     or where there is no coverage (contract prototype choice 5).
     """
-    with warnings.catch_warnings():
+    with _REPROJECT_LOCK, warnings.catch_warnings():
         warnings.simplefilter("ignore")
         pix, foot = reproject_interp((image, image_wcs), grid_wcs, shape_out=shape, order="bilinear")
         bad = (np.asarray(flags) != 0).astype("float32")

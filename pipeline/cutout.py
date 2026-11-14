@@ -1,9 +1,13 @@
 """Read one SPHEREx cutout MEF: image, flags, WCS, unit and wavelength."""
 import io
+import threading
 import warnings
 
 from astropy.io import fits
 from astropy.wcs import WCS
+
+
+_WCS_LOCK = threading.Lock()  # wcslib is not thread-safe
 
 
 class CutoutError(Exception):
@@ -16,7 +20,7 @@ def wavelength_um_at(hdul, hdr, ra, dec) -> float:
     Evaluated with astropy's WAVE-TAB support. Raises CutoutError if it cannot be
     evaluated; never falls back to a nominal band value.
     """
-    with warnings.catch_warnings():
+    with _WCS_LOCK, warnings.catch_warnings():
         warnings.simplefilter("ignore")
         cel = WCS(hdr, hdul)
         wav = WCS(hdr, hdul, key="W")
@@ -33,7 +37,7 @@ def read_cutout(source, ra, dec):
     try:
         with fits.open(f) as hdul:
             hdr = hdul["IMAGE"].header
-            with warnings.catch_warnings():
+            with _WCS_LOCK, warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 wcs = WCS(hdr)
             image = hdul["IMAGE"].data.astype("float32")
