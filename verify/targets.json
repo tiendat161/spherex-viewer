@@ -1,0 +1,49 @@
+{
+  "_comment": "Acceptance targets (challenge text, docs/PLAN.md). Source positions only: the pipeline converts and propagates them; no derived numbers are typed in here. SIMBAD values are ICRS, epoch J2000, read 2026-11-08 via simbad.cfa.harvard.edu and recorded in the prep repo's learning-log.md. pm_ra_cosdec is mu_alpha*cos(dec).",
+  "fov": 0.2,
+  "max_frames": 40,
+  "min_frames": 30,
+  "propagate_to_epoch": 2025.85,
+  "targets": [
+    {
+      "id": "wise0855",
+      "name": "WISE 0855",
+      "position": { "ra_deg": 133.795129, "dec_deg": -7.245147 },
+      "position_source": "Challenge text coordinates 08h55m10.831s -7d14m42.53s, used as given (docs/spike.md, Targets). Epoch not stated by the challenge; prep work found they match about 2010.45.",
+      "propagate": false
+    },
+    {
+      "id": "barnard",
+      "name": "Barnard's Star",
+      "position": { "ra_hms": "17 57 48.498", "dec_dms": "+04 41 36.11", "epoch": 2000.0 },
+      "pm_mas_per_yr": { "pm_ra_cosdec": -801.55, "pm_dec": 10362.39 },
+      "position_source": "SIMBAD",
+      "propagate": true,
+      "cross_check": { "ra_deg": 269.446268, "dec_deg": 4.768204, "epoch": 2026.0, "source": "Gaia DR3 position propagated by hand in docs/spike.md", "max_sep_arcsec": 5 }
+    },
+    {
+      "id": "epsindb",
+      "name": "Epsilon Indi B",
+      "position": { "ra_hms": "22 04 10.595", "dec_dms": "-56 46 58.24", "epoch": 2000.0 },
+      "pm_mas_per_yr": { "pm_ra_cosdec": 3981.98, "pm_dec": -2466.83 },
+      "position_source": "SIMBAD",
+      "propagate": true
+    },
+    {
+      "id": "rwaur",
+      "name": "RW Aurigae",
+      "position": { "ra_hms": "05 07 49.566", "dec_dms": "+30 24 05.18", "epoch": 2000.0 },
+      "pm_mas_per_yr": { "pm_ra_cosdec": 7.23, "pm_dec": -20.33 },
+      "position_source": "SIMBAD",
+      "propagate": false
+    },
+    {
+      "id": "rdra",
+      "name": "R Draconis",
+      "position": { "ra_hms": "16 32 40.227", "dec_dms": "+66 45 17.93", "epoch": 2000.0 },
+      "pm_mas_per_yr": { "pm_ra_cosdec": -20.64, "pm_dec": 6.15 },
+      "position_source": "SIMBAD",
+      "propagate": false
+    }
+  ]
+}
