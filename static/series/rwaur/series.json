@@ -1,0 +1,308 @@
+{
+ "status": "ready",
+ "data_origin": "real",
+ "progress": {
+  "done": 40,
+  "total": 40,
+  "failed": 0
+ },
+ "grid": {
+  "center": {
+   "ra": 76.956525,
+   "dec": 30.401439
+  },
+  "pixel_scale_arcsec": 6.2,
+  "shape": [
+   116,
+   116
+  ]
+ },
+ "stretch": {
+  "kind": "asinh",
+  "vmin": 0.178834,
+  "vmax": 1.778584,
+  "unit": "MJy / sr"
+ },
+ "frames": [
+  {
+   "index": 0,
+   "obs_mjd": 60919.419647,
+   "wavelength_um": 1.0685,
+   "url": "/api/frames/rwaur/00.png",
+   "flag_fraction": 0.8317
+  },
+  {
+   "index": 1,
+   "obs_mjd": 60920.031631,
+   "wavelength_um": 2.48406,
+   "url": "/api/frames/rwaur/01.png",
+   "flag_fraction": 0.9228
+  },
+  {
+   "index": 2,
+   "obs_mjd": 60920.981842,
+   "wavelength_um": 2.76576,
+   "url": "/api/frames/rwaur/02.png",
+   "flag_fraction": 0.9243
+  },
+  {
+   "index": 3,
+   "obs_mjd": 60921.995509,
+   "wavelength_um": 0.97252,
+   "url": "/api/frames/rwaur/03.png",
+   "flag_fraction": 0.8294
+  },
+  {
+   "index": 4,
+   "obs_mjd": 60922.066533,
+   "wavelength_um": 0.94286,
+   "url": "/api/frames/rwaur/04.png",
+   "flag_fraction": 0.8364
+  },
+  {
+   "index": 5,
+   "obs_mjd": 60926.27812,
+   "wavelength_um": 4.28442,
+   "url": "/api/frames/rwaur/05.png",
+   "flag_fraction": 0.8327
+  },
+  {
+   "index": 6,
+   "obs_mjd": 60926.552713,
+   "wavelength_um": 3.88508,
+   "url": "/api/frames/rwaur/06.png",
+   "flag_fraction": 0.8319
+  },
+  {
+   "index": 7,
+   "obs_mjd": 60927.90681,
+   "wavelength_um": 1.29609,
+   "url": "/api/frames/rwaur/07.png",
+   "flag_fraction": 0.9092
+  },
+  {
+   "index": 8,
+   "obs_mjd": 60928.518456,
+   "wavelength_um": 4.35726,
+   "url": "/api/frames/rwaur/08.png",
+   "flag_fraction": 0.8284
+  },
+  {
+   "index": 9,
+   "obs_mjd": 60935.106637,
+   "wavelength_um": 4.39998,
+   "url": "/api/frames/rwaur/09.png",
+   "flag_fraction": 0.8463
+  },
+  {
+   "index": 10,
+   "obs_mjd": 60935.924925,
+   "wavelength_um": 1.81018,
+   "url": "/api/frames/rwaur/10.png",
+   "flag_fraction": 0.8913
+  },
+  {
+   "index": 11,
+   "obs_mjd": 60936.196782,
+   "wavelength_um": 2.2435,
+   "url": "/api/frames/rwaur/11.png",
+   "flag_fraction": 0.8891
+  },
+  {
+   "index": 12,
+   "obs_mjd": 60936.601787,
+   "wavelength_um": 4.69979,
+   "url": "/api/frames/rwaur/12.png",
+   "flag_fraction": 0.7405
+  },
+  {
+   "index": 13,
+   "obs_mjd": 60938.232058,
+   "wavelength_um": 4.80332,
+   "url": "/api/frames/rwaur/13.png",
+   "flag_fraction": 0.7399
+  },
+  {
+   "index": 14,
+   "obs_mjd": 61092.397775,
+   "wavelength_um": 2.11135,
+   "url": "/api/frames/rwaur/14.png",
+   "flag_fraction": 0.8905
+  },
+  {
+   "index": 15,
+   "obs_mjd": 61098.644638,
+   "wavelength_um": 1.62723,
+   "url": "/api/frames/rwaur/15.png",
+   "flag_fraction": 0.918
+  },
+  {
+   "index": 16,
+   "obs_mjd": 61098.986346,
+   "wavelength_um": 4.96913,
+   "url": "/api/frames/rwaur/16.png",
+   "flag_fraction": 0.7367
+  },
+  {
+   "index": 17,
+   "obs_mjd": 61100.209853,
+   "wavelength_um": 1.36093,
+   "url": "/api/frames/rwaur/17.png",
+   "flag_fraction": 0.9088
+  },
+  {
+   "index": 18,
+   "obs_mjd": 61100.481887,
+   "wavelength_um": 1.86888,
+   "url": "/api/frames/rwaur/18.png",
+   "flag_fraction": 0.8973
+  },
+  {
+   "index": 19,
+   "obs_mjd": 61101.431867,
+   "wavelength_um": 4.2761,
+   "url": "/api/frames/rwaur/19.png",
+   "flag_fraction": 0.8308
+  },
+  {
+   "index": 20,
+   "obs_mjd": 61103.332591,
+   "wavelength_um": 2.99664,
+   "url": "/api/frames/rwaur/20.png",
+   "flag_fraction": 0.9255
+  },
+  {
+   "index": 21,
+   "obs_mjd": 61104.216361,
+   "wavelength_um": 1.6463,
+   "url": "/api/frames/rwaur/21.png",
+   "flag_fraction": 0.9279
+  },
+  {
+   "index": 22,
+   "obs_mjd": 61105.23129,
+   "wavelength_um": 0.96489,
+   "url": "/api/frames/rwaur/22.png",
+   "flag_fraction": 0.8295
+  },
+  {
+   "index": 23,
+   "obs_mjd": 61106.31758,
+   "wavelength_um": 3.91018,
+   "url": "/api/frames/rwaur/23.png",
+   "flag_fraction": 0.8331
+  },
+  {
+   "index": 24,
+   "obs_mjd": 61107.87862,
+   "wavelength_um": 1.0358,
+   "url": "/api/frames/rwaur/24.png",
+   "flag_fraction": 0.8297
+  },
+  {
+   "index": 25,
+   "obs_mjd": 61108.217007,
+   "wavelength_um": 1.25838,
+   "url": "/api/frames/rwaur/25.png",
+   "flag_fraction": 0.9082
+  },
+  {
+   "index": 26,
+   "obs_mjd": 61109.443889,
+   "wavelength_um": 2.73919,
+   "url": "/api/frames/rwaur/26.png",
+   "flag_fraction": 0.9229
+  },
+  {
+   "index": 27,
+   "obs_mjd": 61285.100154,
+   "wavelength_um": 3.48861,
+   "url": "/api/frames/rwaur/27.png",
+   "flag_fraction": 0.9186
+  },
+  {
+   "index": 28,
+   "obs_mjd": 61291.27665,
+   "wavelength_um": 0.76999,
+   "url": "/api/frames/rwaur/28.png",
+   "flag_fraction": 0.831
+  },
+  {
+   "index": 29,
+   "obs_mjd": 61291.820382,
+   "wavelength_um": 0.84605,
+   "url": "/api/frames/rwaur/29.png",
+   "flag_fraction": 0.8326
+  },
+  {
+   "index": 30,
+   "obs_mjd": 61292.024856,
+   "wavelength_um": 3.11574,
+   "url": "/api/frames/rwaur/30.png",
+   "flag_fraction": 0.9186
+  },
+  {
+   "index": 31,
+   "obs_mjd": 61293.379966,
+   "wavelength_um": 4.27023,
+   "url": "/api/frames/rwaur/31.png",
+   "flag_fraction": 0.8274
+  },
+  {
+   "index": 32,
+   "obs_mjd": 61295.958316,
+   "wavelength_um": 3.87079,
+   "url": "/api/frames/rwaur/32.png",
+   "flag_fraction": 0.831
+  },
+  {
+   "index": 33,
+   "obs_mjd": 61296.299083,
+   "wavelength_um": 2.22144,
+   "url": "/api/frames/rwaur/33.png",
+   "flag_fraction": 0.8905
+  },
+  {
+   "index": 34,
+   "obs_mjd": 61296.570993,
+   "wavelength_um": 1.63906,
+   "url": "/api/frames/rwaur/34.png",
+   "flag_fraction": 0.9162
+  },
+  {
+   "index": 35,
+   "obs_mjd": 61297.320798,
+   "wavelength_um": 4.11393,
+   "url": "/api/frames/rwaur/35.png",
+   "flag_fraction": 0.832
+  },
+  {
+   "index": 36,
+   "obs_mjd": 61297.85991,
+   "wavelength_um": 4.51445,
+   "url": "/api/frames/rwaur/36.png",
+   "flag_fraction": 0.7432
+  },
+  {
+   "index": 37,
+   "obs_mjd": 61298.876811,
+   "wavelength_um": 1.79167,
+   "url": "/api/frames/rwaur/37.png",
+   "flag_fraction": 0.8927
+  },
+  {
+   "index": 38,
+   "obs_mjd": 61299.283575,
+   "wavelength_um": 1.96553,
+   "url": "/api/frames/rwaur/38.png",
+   "flag_fraction": 0.8905
+  },
+  {
+   "index": 39,
+   "obs_mjd": 61299.895897,
+   "wavelength_um": 4.8214,
+   "url": "/api/frames/rwaur/39.png",
+   "flag_fraction": 0.7378
+  }
+ ]
+}
