@@ -28,6 +28,7 @@ verify-web: verify-contract test-web
 	cd web && npx playwright test
 
 # End-to-end check over every acceptance target in verify/targets.json.
-# verify/e2e.py is written at integration (build-plan merge step 4); until then this fails, on purpose.
+# Offline: builds web, serves it from the API, checks each target through the API and in a browser,
+# and saves verify/out/<id>.png.
 verify: verify-contract test
 	$(PY) verify/e2e.py
