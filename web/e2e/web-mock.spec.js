@@ -42,8 +42,12 @@ test('mock: simulated badge, 40 frames, play/step/slider, screenshot', async ({ 
   })).toBe(true);
 
   // Target picker sets the URL; an uncached mock target shows the error message.
+  await page.locator('#targets button').nth(2).click();
+  await expect(page.locator('#message')).toContainText('only WISE 0855 and Barnard');
+  expect(page.url()).toMatch(/\?ra=331\.\d+&dec=-56\.\d+/);
   await page.locator('#targets button').nth(1).click();
-  await expect(page.locator('#message')).toContainText('only the WISE 0855 series');
+  await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
+  await expect(page.locator('#badge')).toHaveText('SIMULATED DATA');
   expect(page.url()).toMatch(/\?ra=269\.\d+&dec=4\.\d+/);
   await page.locator('#targets button').nth(0).click();
   await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
