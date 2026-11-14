@@ -66,3 +66,28 @@ def test_stretch_limits_use_unflagged_pixels_only():
     vmin, vmax = stretch.compute_limits([p], [f])
     assert vmax < 4
     assert stretch.apply(np.array([[vmin, vmax]], dtype="float32"), vmin, vmax).tolist() == [[0, 255]]
+
+
+def flagged_for(bitmask):
+    """SIMULATED flags array filled with one value, through the real reprojection."""
+    from astropy.io import fits
+    import io
+    from unittest import mock
+    raw = synthetic_cutout_bytes(RA, DEC, None, nx=200, ny=200)
+    with fits.open(io.BytesIO(raw)) as h:
+        h["FLAGS"].data[:] = bitmask
+        buf = io.BytesIO()
+        h.writeto(buf)
+    with mock.patch("pipeline.cutout.wavelength_um_at", return_value=2.5):
+        c = read_cutout(buf.getvalue(), RA, DEC)
+    shape = grid_shape(0.2)
+    _, flagged = reproject_frame(c["image"], c["wcs"], c["flags"], make_grid_wcs(RA, DEC, shape), shape)
+    return flagged[40:76, 40:76]  # well inside the covered area
+
+
+def test_source_and_fullsample_bits_are_not_flags():
+    assert not flagged_for(1 << 21).any()
+    assert not flagged_for(1 << 12).any()
+    assert not flagged_for((1 << 21) | (1 << 12)).any()
+    assert flagged_for(1 << 0).all()
+    assert flagged_for((1 << 21) | (1 << 0)).all()

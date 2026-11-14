@@ -19,8 +19,8 @@
  },
  "stretch": {
   "kind": "asinh",
-  "vmin": 0.107717,
-  "vmax": 3.342008,
+  "vmin": 0.108675,
+  "vmax": 3.589449,
   "unit": "MJy / sr"
  },
  "frames": [
@@ -29,280 +29,280 @@
    "obs_mjd": 60800.700028,
    "wavelength_um": 2.365,
    "url": "/api/frames/wise0855/00.png",
-   "flag_fraction": 0.4956
+   "flag_fraction": 0.0415
   },
   {
    "index": 1,
    "obs_mjd": 60801.106596,
    "wavelength_um": 4.2952,
    "url": "/api/frames/wise0855/01.png",
-   "flag_fraction": 0.4952
+   "flag_fraction": 0.0302
   },
   {
    "index": 2,
    "obs_mjd": 60801.111073,
    "wavelength_um": 4.407,
    "url": "/api/frames/wise0855/02.png",
-   "flag_fraction": 0.5027
+   "flag_fraction": 0.0481
   },
   {
    "index": 3,
    "obs_mjd": 60801.450117,
    "wavelength_um": 1.37326,
    "url": "/api/frames/wise0855/03.png",
-   "flag_fraction": 0.5124
+   "flag_fraction": 0.0262
   },
   {
    "index": 4,
    "obs_mjd": 60801.517161,
    "wavelength_um": 1.0403,
    "url": "/api/frames/wise0855/04.png",
-   "flag_fraction": 0.4392
+   "flag_fraction": 0.0409
   },
   {
    "index": 5,
    "obs_mjd": 60979.724169,
    "wavelength_um": 2.93013,
    "url": "/api/frames/wise0855/05.png",
-   "flag_fraction": 0.614
+   "flag_fraction": 0.0336
   },
   {
    "index": 6,
    "obs_mjd": 60979.786915,
    "wavelength_um": 0.96803,
    "url": "/api/frames/wise0855/06.png",
-   "flag_fraction": 0.4421
+   "flag_fraction": 0.0444
   },
   {
    "index": 7,
    "obs_mjd": 60979.791623,
    "wavelength_um": 1.0392,
    "url": "/api/frames/wise0855/07.png",
-   "flag_fraction": 0.4453
+   "flag_fraction": 0.047
   },
   {
    "index": 8,
    "obs_mjd": 60979.858224,
    "wavelength_um": 3.83064,
    "url": "/api/frames/wise0855/08.png",
-   "flag_fraction": 0.7115
+   "flag_fraction": 0.2726
   },
   {
    "index": 9,
    "obs_mjd": 60982.508078,
    "wavelength_um": 2.61422,
    "url": "/api/frames/wise0855/09.png",
-   "flag_fraction": 0.6107
+   "flag_fraction": 0.0303
   },
   {
    "index": 10,
    "obs_mjd": 60986.240989,
    "wavelength_um": 1.09524,
    "url": "/api/frames/wise0855/10.png",
-   "flag_fraction": 0.5343
+   "flag_fraction": 0.0592
   },
   {
    "index": 11,
    "obs_mjd": 60986.245466,
    "wavelength_um": 1.17551,
    "url": "/api/frames/wise0855/11.png",
-   "flag_fraction": 0.5177
+   "flag_fraction": 0.0306
   },
   {
    "index": 12,
    "obs_mjd": 60986.782802,
    "wavelength_um": 4.00322,
    "url": "/api/frames/wise0855/12.png",
-   "flag_fraction": 0.4923
+   "flag_fraction": 0.0259
   },
   {
    "index": 13,
    "obs_mjd": 60986.853684,
    "wavelength_um": 1.37288,
    "url": "/api/frames/wise0855/13.png",
-   "flag_fraction": 0.5151
+   "flag_fraction": 0.0339
   },
   {
    "index": 14,
    "obs_mjd": 60986.921244,
    "wavelength_um": 1.51008,
    "url": "/api/frames/wise0855/14.png",
-   "flag_fraction": 0.5133
+   "flag_fraction": 0.0349
   },
   {
    "index": 15,
    "obs_mjd": 60986.925721,
    "wavelength_um": 4.40004,
    "url": "/api/frames/wise0855/15.png",
-   "flag_fraction": 0.4877
+   "flag_fraction": 0.0251
   },
   {
    "index": 16,
    "obs_mjd": 60989.298548,
    "wavelength_um": 4.44269,
    "url": "/api/frames/wise0855/16.png",
-   "flag_fraction": 0.4173
+   "flag_fraction": 0.0221
   },
   {
    "index": 17,
    "obs_mjd": 60989.366268,
    "wavelength_um": 1.8229,
    "url": "/api/frames/wise0855/17.png",
-   "flag_fraction": 0.5085
+   "flag_fraction": 0.0586
   },
   {
    "index": 18,
    "obs_mjd": 60989.976991,
    "wavelength_um": 4.62659,
    "url": "/api/frames/wise0855/18.png",
-   "flag_fraction": 0.4266
+   "flag_fraction": 0.0302
   },
   {
    "index": 19,
    "obs_mjd": 60993.506601,
    "wavelength_um": 4.73006,
    "url": "/api/frames/wise0855/19.png",
-   "flag_fraction": 0.4237
+   "flag_fraction": 0.0315
   },
   {
    "index": 20,
    "obs_mjd": 60993.575742,
    "wavelength_um": 2.22173,
    "url": "/api/frames/wise0855/20.png",
-   "flag_fraction": 0.5003
+   "flag_fraction": 0.0486
   },
   {
    "index": 21,
    "obs_mjd": 60993.912885,
    "wavelength_um": 2.37749,
    "url": "/api/frames/wise0855/21.png",
-   "flag_fraction": 0.5081
+   "flag_fraction": 0.0781
   },
   {
    "index": 22,
    "obs_mjd": 61021.282827,
    "wavelength_um": 4.62678,
    "url": "/api/frames/wise0855/22.png",
-   "flag_fraction": 0.423
+   "flag_fraction": 0.0276
   },
   {
    "index": 23,
    "obs_mjd": 61022.029133,
    "wavelength_um": 2.02532,
    "url": "/api/frames/wise0855/23.png",
-   "flag_fraction": 0.501
+   "flag_fraction": 0.043
   },
   {
    "index": 24,
    "obs_mjd": 61151.197933,
    "wavelength_um": 1.629,
    "url": "/api/frames/wise0855/24.png",
-   "flag_fraction": 0.5794
+   "flag_fraction": 0.206
   },
   {
    "index": 25,
    "obs_mjd": 61152.757304,
    "wavelength_um": 4.51138,
    "url": "/api/frames/wise0855/25.png",
-   "flag_fraction": 0.4262
+   "flag_fraction": 0.034
   },
   {
    "index": 26,
    "obs_mjd": 61153.436457,
    "wavelength_um": 4.611,
    "url": "/api/frames/wise0855/26.png",
-   "flag_fraction": 0.4246
+   "flag_fraction": 0.0317
   },
   {
    "index": 27,
    "obs_mjd": 61156.085511,
    "wavelength_um": 2.14686,
    "url": "/api/frames/wise0855/27.png",
-   "flag_fraction": 0.4975
+   "flag_fraction": 0.0407
   },
   {
    "index": 28,
    "obs_mjd": 61156.493181,
    "wavelength_um": 4.89601,
    "url": "/api/frames/wise0855/28.png",
-   "flag_fraction": 0.4191
+   "flag_fraction": 0.0307
   },
   {
    "index": 29,
    "obs_mjd": 61161.586867,
    "wavelength_um": 3.83231,
    "url": "/api/frames/wise0855/29.png",
-   "flag_fraction": 0.4968
+   "flag_fraction": 0.0286
   },
   {
    "index": 30,
    "obs_mjd": 61161.655174,
    "wavelength_um": 1.0906,
    "url": "/api/frames/wise0855/30.png",
-   "flag_fraction": 0.4329
+   "flag_fraction": 0.0389
   },
   {
    "index": 31,
    "obs_mjd": 61162.336956,
    "wavelength_um": 0.77792,
    "url": "/api/frames/wise0855/31.png",
-   "flag_fraction": 0.4354
+   "flag_fraction": 0.0378
   },
   {
    "index": 32,
    "obs_mjd": 61162.673655,
    "wavelength_um": 4.22259,
    "url": "/api/frames/wise0855/32.png",
-   "flag_fraction": 0.4965
+   "flag_fraction": 0.0418
   },
   {
    "index": 33,
    "obs_mjd": 61163.217209,
    "wavelength_um": 4.21696,
    "url": "/api/frames/wise0855/33.png",
-   "flag_fraction": 0.4992
+   "flag_fraction": 0.0354
   },
   {
    "index": 34,
    "obs_mjd": 61163.287807,
    "wavelength_um": 0.85503,
    "url": "/api/frames/wise0855/34.png",
-   "flag_fraction": 0.4321
+   "flag_fraction": 0.0312
   },
   {
    "index": 35,
    "obs_mjd": 61164.640482,
    "wavelength_um": 2.98658,
    "url": "/api/frames/wise0855/35.png",
-   "flag_fraction": 0.6112
+   "flag_fraction": 0.0334
   },
   {
    "index": 36,
    "obs_mjd": 61165.590143,
    "wavelength_um": 3.24134,
    "url": "/api/frames/wise0855/36.png",
-   "flag_fraction": 0.6092
+   "flag_fraction": 0.0392
   },
   {
    "index": 37,
    "obs_mjd": 61169.933208,
    "wavelength_um": 2.31213,
    "url": "/api/frames/wise0855/37.png",
-   "flag_fraction": 0.5044
+   "flag_fraction": 0.0502
   },
   {
    "index": 38,
    "obs_mjd": 61172.175304,
    "wavelength_um": 1.47954,
    "url": "/api/frames/wise0855/38.png",
-   "flag_fraction": 0.5143
+   "flag_fraction": 0.0291
   },
   {
    "index": 39,
    "obs_mjd": 61174.287218,
    "wavelength_um": 4.36933,
    "url": "/api/frames/wise0855/39.png",
-   "flag_fraction": 0.5011
+   "flag_fraction": 0.0484
   }
  ]
 }

@@ -25,6 +25,16 @@ ROOT = Path(__file__).resolve().parent.parent
 CUTOUT_FOV_FACTOR = 1.5  # cutout is square on the detector, grid on the sky: oversize so corners are covered
 
 
+class OfflineClient:
+    """Stand-in client for --offline: any IRSA call fails, so nothing is ever fetched."""
+
+    def tap_rows(self, *a, **k):
+        raise IrsaError("offline: TAP not cached")
+
+    def fetch_cutout(self, *a, **k):
+        raise IrsaError("offline: cutout not in cache")
+
+
 def cache_dir() -> Path:
     return Path(os.environ.get("SPHEREX_CACHE_DIR", ROOT / ".cache"))
 
@@ -103,12 +113,13 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("config", nargs="?", default=str(ROOT / "verify" / "targets.json"))
     ap.add_argument("--only", nargs="*")
+    ap.add_argument("--offline", action="store_true", help="rebuild from cached TAP rows and FITS only; uncached frames count as failed")
     ap.add_argument("--refresh-tap", action="store_true")
     ap.add_argument("--out", default=str(ROOT / "static" / "series"))
     a = ap.parse_args(argv)
     cfg = targets_mod.load_config(a.config)
     tl = targets_mod.resolve(cfg)  # raises SystemExit if a cross-check fails
-    client = IrsaClient()
+    client = OfflineClient() if a.offline else IrsaClient()
     for t in tl:
         if a.only and t.id not in a.only:
             continue

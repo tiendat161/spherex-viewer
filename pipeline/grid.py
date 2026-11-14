@@ -12,6 +12,10 @@ from astropy.wcs import WCS
 from reproject import reproject_interp
 
 PIXEL_SCALE_ARCSEC = 6.2
+# FLAGS bits that do not mean "bad pixel". SPHEREx Explanatory Supplement v2.0, Table 16:
+# bit 21 SOURCE ("Pixel mapped to a known source") and bit 12 FULLSAMPLE ("purely informational").
+# Bit meanings were taken from the Supplement as relayed by the planning session; not re-read here.
+IGNORED_FLAG_BITS = (1 << 21) | (1 << 12)
 # astropy/wcslib WCS objects are not thread-safe; the build fetches in threads but reprojects one at a time.
 _REPROJECT_LOCK = threading.Lock()
 
@@ -38,13 +42,13 @@ def reproject_frame(image, image_wcs, flags, grid_wcs, shape):
     """Return (pixels, flagged) on the grid.
 
     pixels: float32, bilinear, NaN where the source has no coverage.
-    flagged: bool, True where the nearest source pixel has any FLAGS bit set,
+    flagged: bool, True where the nearest source pixel has any FLAGS bit set other than IGNORED_FLAG_BITS,
     or where there is no coverage (contract prototype choice 5).
     """
     with _REPROJECT_LOCK, warnings.catch_warnings():
         warnings.simplefilter("ignore")
         pix, foot = reproject_interp((image, image_wcs), grid_wcs, shape_out=shape, order="bilinear")
-        bad = (np.asarray(flags) != 0).astype("float32")
+        bad = ((np.asarray(flags).astype("int64") & ~IGNORED_FLAG_BITS) != 0).astype("float32")
         fl, fl_foot = reproject_interp((bad, image_wcs), grid_wcs, shape_out=shape, order="nearest-neighbor")
     covered = (foot > 0) & np.isfinite(pix)
     flagged = (np.nan_to_num(fl) > 0.5) | (fl_foot <= 0) | ~covered
