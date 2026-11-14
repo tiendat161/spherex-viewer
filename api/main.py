@@ -2,7 +2,7 @@
 cached is built live from IRSA in the background (`pipeline/live.py`) while the client polls;
 set SPHEREX_LIVE=0 to serve the cache only, in which case nothing here contacts IRSA.
 
-    GET /api/series?ra=&dec=&fov=0.2&max_frames=102
+    GET /api/series?ra=&dec=&fov=0.2&max_frames=102     (fov: 0.1, 0.2, 0.5 or 1; only 0.2 is cached)
     GET /api/targets
     GET /api/frames/<id>/NN.png            (also s_<band>_<visit>.png and d_<band>_<visit>.png for stacks)
     web/dist (when it exists) is served at /
@@ -18,6 +18,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from pipeline import targets as targets_mod
+from pipeline.grid import FOVS_DEG, allowed_fov
 from pipeline.live import LiveBuilder, LiveBusy
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -81,10 +82,12 @@ def create_app(series_dir: Optional[Path] = None, web_dist: Optional[Path] = Non
                 raise ValueError("ra must satisfy 0 <= ra < 360 and dec -90 to 90 (ICRS degrees)")
         except ValueError as e:
             return JSONResponse(error_doc(str(e)))
-        if abs(fov - CACHED_FOV) > 1e-9 or not (1 <= max_frames <= CACHED_MAX_FRAMES):
+        fov = allowed_fov(fov)
+        if fov is None or not (1 <= max_frames <= CACHED_MAX_FRAMES):
             return JSONResponse(error_doc(
-                f"This prototype serves only fov={CACHED_FOV} and 1 <= max_frames <= {CACHED_MAX_FRAMES}."))
-        for _id, doc in cached():
+                f"fov must be one of {', '.join(f'{f:g}' for f in FOVS_DEG)} (degrees) and 1 <= max_frames <= {CACHED_MAX_FRAMES}."))
+        # The static cache holds fov=0.2 only; every other size is built live, also at a cached position.
+        for _id, doc in (cached() if fov == CACHED_FOV else []):
             c = doc["grid"]["center"]
             if targets_mod.sep_arcsec(ra, dec, c["ra"], c["dec"]) <= MATCH_ARCSEC:
                 if doc["progress"]["total"] > max_frames:
@@ -93,9 +96,12 @@ def create_app(series_dir: Optional[Path] = None, web_dist: Optional[Path] = Non
                 return JSONResponse(doc)
         if live is not None:
             try:
-                return JSONResponse(live.get_or_start(ra, dec, CACHED_FOV, max_frames).doc())
+                return JSONResponse(live.get_or_start(ra, dec, fov, max_frames).doc())
             except LiveBusy as e:
                 return JSONResponse(error_doc(str(e)))
+        if fov != CACHED_FOV:
+            return JSONResponse(error_doc(
+                f"Only fov={CACHED_FOV:g} is cached, and this server does not build series live."))
         return JSONResponse(error_doc(
             "No cached series within 1 arcsec of this position. This prototype serves only its cached targets "
             "(see /api/targets); nothing is built live."))

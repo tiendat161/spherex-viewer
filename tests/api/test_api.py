@@ -52,7 +52,8 @@ def test_cached_position_returns_file_content(client):
 @pytest.mark.parametrize("params", [
     {"ra": RA + 2 / 3600, "dec": DEC},          # 2 arcsec away
     {"ra": 10, "dec": 10},                      # not cached
-    {"ra": RA, "dec": DEC, "fov": 0.1},
+    {"ra": RA, "dec": DEC, "fov": 0.3},          # not one of 0.1, 0.2, 0.5, 1
+    {"ra": RA, "dec": DEC, "fov": 0.5},          # allowed, but not cached and this client has no live builder
     {"ra": RA, "dec": DEC, "max_frames": 103},      # above the 102 ceiling
     {"dec": DEC},                               # missing ra
     {"ra": "abc", "dec": DEC},
@@ -119,10 +120,33 @@ def test_uncached_position_is_built_live_when_a_builder_is_given(tmp_path):
     r = c.get(body["frames"][-1]["url"])
     assert r.status_code == 200 and r.headers["content-type"] == "image/png" and r.content.startswith(b"\x89PNG")
     assert c.get(body["frames"][-1]["url"].replace("39.png", "77.png")).status_code == 404
-    assert c.get("/api/series", params={"ra": 10, "dec": 10, "fov": 0.1}).json()["status"] == "error"
+    assert c.get("/api/series", params={"ra": 10, "dec": 10, "fov": 0.3}).json()["status"] == "error"
     assert body["background"] == "median_subtracted"
     st = body["stacks"]  # the fake archive's 40 dates are one visit of one detector
     assert [b["id"] for b in st["bands"]] == ["all"] and st["images"][0]["n_images"] == 40
     r = c.get(st["images"][0]["url"])
     assert r.status_code == 200 and r.content.startswith(b"\x89PNG")
     assert c.get("/api/frames/wise0855/s_all_0.png").status_code == 404  # cached series in this test has no stacks
+
+
+def test_other_fov_is_built_live_even_at_a_cached_position(tmp_path):
+    import time
+    from unittest import mock
+    from pipeline.live import LiveBuilder
+    from tests.pipeline.test_build import FakeClient
+    series, doc = make_cache(tmp_path)
+    with mock.patch("pipeline.cutout.wavelength_um_at", return_value=2.5):
+        c = TestClient(create_app(series_dir=series, web_dist=tmp_path / "nodist", live=LiveBuilder(FakeClient())))
+        end = time.time() + 30
+        while True:
+            body = c.get("/api/series", params={"ra": RA, "dec": DEC, "fov": "0.50", "max_frames": 3}).json()
+            valid(body)
+            if body["status"] != "loading" or time.time() > end:
+                break
+            time.sleep(0.05)
+    assert body["status"] == "ready" and body != doc
+    assert body["grid"]["shape"] == [290, 290] and body["grid"]["center"] == {"ra": RA, "dec": DEC}
+    assert body["progress"]["total"] == 3
+    im = Image.open(__import__("io").BytesIO(c.get(body["frames"][0]["url"]).content))
+    assert im.size == (290, 290)
+    assert c.get("/api/series", params={"ra": RA, "dec": DEC, "fov": 0.2}).json() == doc  # 0.2 is still the cache

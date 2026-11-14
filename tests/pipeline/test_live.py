@@ -100,6 +100,7 @@ def test_builder_shares_a_job_within_one_arcsec_and_caps_frames():
     client = FakeClient()
     b = LiveBuilder(client)
     j1 = b.get_or_start(RA, DEC, 0.2, 102)
+    assert b.get_or_start(RA, DEC, 0.5, 102) is not j1  # another field of view is another series
     j2 = b.get_or_start(RA + 0.5 / 3600, DEC, 0.2, 102)
     j3 = b.get_or_start(RA + 5 / 3600, DEC, 0.2, 102)
     assert j1 is j2 and j3 is not j1 and j1.cap == 40

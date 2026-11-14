@@ -10,8 +10,10 @@ from tests.pipeline.synth import synthetic_cutout_bytes
 RA, DEC = 133.795129, -7.245147
 
 
-def test_shape_for_default_fov():
-    assert grid_shape(0.2) == (116, 116)
+def test_shape_for_each_allowed_fov():
+    from pipeline.grid import FOVS_DEG, allowed_fov
+    assert [grid_shape(f) for f in FOVS_DEG] == [(58, 58), (116, 116), (290, 290), (581, 581)]
+    assert allowed_fov(0.50) == 0.5 and allowed_fov(1) == 1.0 and allowed_fov(0.3) is None and allowed_fov(2) is None
 
 
 def run(offset):
