@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SPHEREx blink viewer</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <header>
+    <h1>SPHEREx blink viewer</h1>
+    <div id="badge" class="badge badge-unknown" role="status" aria-label="Data origin">NO DATA YET</div>
+  </header>
+  <main>
+    <aside>
+      <h2>Cached targets</h2>
+      <ul id="targets" class="targets"><li class="muted">Loading targets…</li></ul>
+      <form id="coords">
+        <h2>Position (ICRS, degrees)</h2>
+        <label>RA <input id="ra" name="ra" inputmode="decimal" autocomplete="off" /></label>
+        <label>Dec <input id="dec" name="dec" inputmode="decimal" autocomplete="off" /></label>
+        <button type="submit">Load series</button>
+        <p class="muted small">The prototype serves cached targets only; other positions return an error.</p>
+      </form>
+    </aside>
+    <section id="viewer">
+      <div id="progress" class="progress" aria-live="polite"><span id="progress-text">Choose a target.</span><progress id="bar" max="1" value="0"></progress></div>
+      <div id="message" class="message" hidden></div>
+      <div class="stage">
+        <div id="frame-box" class="frame-box" hidden>
+          <canvas id="canvas"></canvas>
+          <div id="marker" class="marker" title="Requested position (grid centre)"></div>
+          <div id="compass" class="compass">N&nbsp;↑ &nbsp;E&nbsp;←</div>
+          <div id="scalebar" class="scalebar" hidden><span id="scalebar-label"></span></div>
+          <div id="skipped" class="skipped" hidden></div>
+        </div>
+      </div>
+      <div class="controls">
+        <button id="prev" type="button" aria-label="Step back">◀︎ Step</button>
+        <button id="play" type="button">Play</button>
+        <button id="next" type="button" aria-label="Step forward">Step ▶︎</button>
+        <input id="slider" type="range" min="0" max="0" value="0" aria-label="Frame" />
+        <label class="speed">Speed
+          <select id="fps"><option value="2">2 fps</option><option value="5" selected>5 fps</option><option value="10">10 fps</option></select>
+        </label>
+      </div>
+      <dl id="readout" class="readout">
+        <div><dt>Frame</dt><dd id="r-frame">—</dd></div>
+        <div><dt>Observed</dt><dd id="r-date">—</dd></div>
+        <div><dt>Wavelength</dt><dd id="r-wave">—</dd></div>
+        <div><dt>Flagged</dt><dd id="r-flag">—</dd></div>
+      </dl>
+      <p id="legend" class="muted small"></p>
+      <p class="muted small">Marker (circle) = requested position at grid centre. North is up, east is left; frames are not rotated or flipped. A moving target can be off-centre and shifts between frames: look for something that hops across the field while the stars stay put. Images are shown pixel-for-pixel with nearest-neighbour scaling.</p>
+    </section>
+  </main>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
