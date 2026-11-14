@@ -1,0 +1,45 @@
+== CUTOUT GET (Origin) ==
+HTTP/2 503 
+server: nginx
+date: Sat, 14 Nov 2026 03:40:07 GMT
+content-length: 25
+retry-after: 5
+x-request-id: b101627845efefb6f43a3d8f758df8cf
+
+== CUTOUT size=30arcsec ==
+503 25B
+== TAP POST (Origin) ==
+HTTP/2 200 
+server: nginx
+date: Sat, 14 Nov 2026 03:40:36 GMT
+content-type: text/csv
+content-length: 45
+server-timing: main;dur=26863.696, prepare_internal;dur=1.324, generate_adql;dur=0.006, query_delegate;dur=26857.973, oversee_sync;dur=26853.913, submit_sync;dur=1234.684, spinoff_queued;dur=13407.936, spinoff_running;dur=12206.849, TAP_main;dur=69.846, query_execute;dur=44.548, database_query;dur=44.130, get_postgres_connection;dur=5.519, run_postgres;dur=36.708
+set-cookie: anonymous=f9/c1/80bdf3a2b3be267f116bd108da86
+
+== TAP GET (Origin) ==
+HTTP/2 200 
+server: nginx
+date: Sat, 14 Nov 2026 03:40:54 GMT
+content-type: text/csv
+content-length: 45
+server-timing: main;dur=17852.802, prepare_internal;dur=1.378, generate_adql;dur=0.007, query_delegate;dur=17846.529, oversee_sync;dur=17840.688, submit_sync;dur=5385.367, spinoff_queued;dur=12448.979, TAP_main;dur=84.338, query_execute;dur=56.760, database_query;dur=56.338, get_postgres_connection;dur=10.074, run_postgres;dur=43.750
+set-cookie: anonymous=91/c3/3e22670f4e9e0623eb8542c8de4e
+
+== PREFLIGHT TAP ==
+HTTP/2 200 
+server: nginx
+date: Sat, 14 Nov 2026 03:40:55 GMT
+content-type: text/xml
+content-length: 493
+server-timing: main;dur=4.406, prepare_internal;dur=0.092, generate_adql;dur=0.046
+
+== PREFLIGHT CUTOUT ==
+HTTP/2 405 
+server: nginx
+date: Sat, 14 Nov 2026 03:40:56 GMT
+content-type: text/plain; charset=utf-8
+content-length: 18
+allow: GET
+x-request-id: 753be64237e3a4c61038781604b1dda9
+

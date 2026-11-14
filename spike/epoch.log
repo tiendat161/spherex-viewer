@@ -1,0 +1,8 @@
+window 373.6 d = 1.023 yr
+motion over window: dRA*cosD=-8.37"  dDec=0.70"  total=8.40"
+total rate 8.216"/yr; SPHEREx pixel ~6.2" (36"/6px from size=0.01 cutout)
+window midpoint year 2025.85
+if challenge coords are epoch J2000.0: offset at SPHEREx epoch = 212" (25.9 yr)
+if challenge coords are epoch WISE ~2010.5: offset at SPHEREx epoch = 126" (15.4 yr)
+if challenge coords are epoch Gaia 2016.0: offset at SPHEREx epoch = 81" (9.9 yr)
+Barnard total pm 10.393"/yr -> 10.6" over the same window; offset from 2016.0 pos at 2025.8: 102"

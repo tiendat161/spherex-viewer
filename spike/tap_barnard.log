@@ -1,0 +1,27 @@
+{
+ "target": "barnard",
+ "ra": 269.4462683558175,
+ "dec": 4.768204479463931,
+ "rows": 358,
+ "seconds": [
+  13.49,
+  9.73,
+  20.07
+ ],
+ "first": {
+  "planeid": "01a0d96c-ca6d-7b40-8535-933e762c376d",
+  "time_bounds_lower": "60902.864715",
+  "time_bounds_upper": "60902.866047",
+  "energy_bandpassname": "SPHEREx-D6",
+  "uri": "ibe/data/spherex/dr1/level2/2025W33_2C/l2b-v27-2026-228/6/level2_2025W33_2C_0321_1D6_spx_l2b-v27-2026-228.fits",
+  "contentlength": "64952640"
+ },
+ "last": {
+  "planeid": "01a0db40-e124-799b-909f-6079d056caca",
+  "time_bounds_lower": "61305.628021",
+  "time_bounds_upper": "61305.629353",
+  "energy_bandpassname": "SPHEREx-D5",
+  "uri": "ibe/data/spherex/qr3/level2/2026W39_1A/l2b-v27-2026-268/5/level2_2026W39_1A_0371_1D5_spx_l2b-v27-2026-268.fits",
+  "contentlength": "64094400"
+ }
+}

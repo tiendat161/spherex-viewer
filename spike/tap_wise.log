@@ -1,0 +1,27 @@
+{
+ "target": "wise0855",
+ "ra": 133.79512916666667,
+ "dec": -7.245147222222222,
+ "rows": 258,
+ "seconds": [
+  44.8,
+  18.68,
+  12.69
+ ],
+ "first": {
+  "planeid": "01a0cf66-8399-7bc9-9b30-048a421d938b",
+  "time_bounds_lower": "60800.700028",
+  "time_bounds_upper": "60800.701361",
+  "energy_bandpassname": "SPHEREx-D3",
+  "uri": "ibe/data/spherex/dr1/level2/2025W19_1B/l2b-v27-2026-197/3/level2_2025W19_1B_0116_1D3_spx_l2b-v27-2026-197.fits",
+  "contentlength": "65790720"
+ },
+ "last": {
+  "planeid": "01a0f7c5-d876-7c11-b572-cb25d909a6dd",
+  "time_bounds_lower": "61174.287218",
+  "time_bounds_upper": "61174.288550",
+  "energy_bandpassname": "SPHEREx-D5",
+  "uri": "ibe/data/spherex/dr1/level2/2026W20_1A/l2b-v27-2026-246/5/level2_2026W20_1A_1166_1D5_spx_l2b-v27-2026-246.fits",
+  "contentlength": "66692160"
+ }
+}

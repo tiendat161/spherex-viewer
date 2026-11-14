@@ -1,0 +1,33 @@
+== size=0.01 attempts=2 code=200
+HTTP/2 200 
+content-type: application/fits
+content-disposition: attachment; filename=level2_2025W19_1B_0116_1D3_spx_l2b-v27-2026-197.fits
+0 PRIMARY [] 0.000MB
+1 'IMAGE   ' [6, 6] 0.000MB
+2 'FLAGS   ' [6, 6] 0.000MB
+3 'VARIANCE' [6, 6] 0.000MB
+4 'ZODI    ' [6, 6] 0.000MB
+5 'EPSF    ' [8752, 451] 3.947MB
+6 'WCS-WAVE' [1100, 1] 0.001MB
+== size=30arcsec attempts=3 code=200
+HTTP/2 200 
+content-type: application/fits
+content-disposition: attachment; filename=level2_2025W19_1B_0116_1D3_spx_l2b-v27-2026-197.fits
+0 PRIMARY [] 0.000MB
+1 'IMAGE   ' [5, 5] 0.000MB
+2 'FLAGS   ' [5, 5] 0.000MB
+3 'VARIANCE' [5, 5] 0.000MB
+4 'ZODI    ' [5, 5] 0.000MB
+5 'EPSF    ' [8752, 451] 3.947MB
+6 'WCS-WAVE' [1100, 1] 0.001MB
+== size=0.05 attempts=2 code=200
+HTTP/2 200 
+content-type: application/fits
+content-disposition: attachment; filename=level2_2025W19_1B_0116_1D3_spx_l2b-v27-2026-197.fits
+0 PRIMARY [] 0.000MB
+1 'IMAGE   ' [29, 29] 0.003MB
+2 'FLAGS   ' [29, 29] 0.003MB
+3 'VARIANCE' [29, 29] 0.003MB
+4 'ZODI    ' [29, 29] 0.003MB
+5 'EPSF    ' [8752, 451] 3.947MB
+6 'WCS-WAVE' [1100, 1] 0.001MB
