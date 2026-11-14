@@ -29,7 +29,7 @@
       <div class="stage">
         <div id="frame-box" class="frame-box" hidden>
           <canvas id="canvas"></canvas>
-          <div id="marker" class="marker" title="Requested position (grid centre)"></div>
+          <div id="marker" class="marker" title="Requested position (grid centre)" hidden></div>
           <div id="compass" class="compass">N&nbsp;↑ &nbsp;E&nbsp;←</div>
           <div id="scalebar" class="scalebar" hidden><span id="scalebar-label"></span></div>
           <div id="skipped" class="skipped" hidden></div>
@@ -41,12 +41,23 @@
         <button id="next" type="button" aria-label="Step forward">Step ▶︎</button>
         <input id="slider" type="range" min="0" max="0" value="0" aria-label="Frame" />
         <label class="speed">Speed
-          <select id="fps"><option value="2">2 fps</option><option value="5" selected>5 fps</option><option value="10">10 fps</option></select>
+          <select id="fps"><option value="1">1 fps</option><option value="2">2 fps</option><option value="5" selected>5 fps</option><option value="10">10 fps</option></select>
         </label>
         <label class="speed">Zoom
           <select id="zoom"><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select>
         </label>
         <label class="speed" title="Blink two frames far apart in time and close in wavelength"><input id="pair" type="checkbox" /> Blink widest pair</label>
+        <label class="speed" title="Draw a circle on the requested position (the centre of the image)"><input id="mark" type="checkbox" /> Mark centre</label>
+      </div>
+      <div class="controls">
+        <label class="speed" title="Stacked visits: all images from one group of dates combined, so only time changes between frames. Individual frames: every archive image on its own.">View
+          <select id="view"><option value="stack">Stacked visits</option><option value="frames" selected>Individual frames</option></select>
+        </label>
+        <label class="speed" id="band-wrap" hidden>Band <select id="band"></select></label>
+        <label class="speed" id="diff-wrap" hidden title="Show each later visit minus the earliest visit. Things that did not change cancel to grey; a moving object leaves a dark and a bright spot."><input id="diff" type="checkbox" /> Difference from first visit</label>
+        <label class="speed" id="order-wrap">Order
+          <select id="order"><option value="time" selected>Time</option><option value="wavelength">Wavelength</option></select>
+        </label>
       </div>
       <p id="pair-note" class="muted small" hidden></p>
       <dl id="readout" class="readout">
@@ -56,7 +67,7 @@
         <div><dt>Flagged</dt><dd id="r-flag">—</dd></div>
       </dl>
       <p id="legend" class="muted small"></p>
-      <p class="muted small">Marker (circle) = requested position at grid centre. North is up, east is left; frames are not rotated or flipped. A moving target can be off-centre and shifts between frames: look for something that hops across the field while the stars stay put. Images are shown pixel-for-pixel with nearest-neighbour scaling; zoom magnifies the centre of the same pixels and does not resample or restretch them.</p>
+      <p class="muted small">The requested position is the centre of the image; tick "Mark centre" to circle it. North is up, east is left; frames are not rotated or flipped. A moving target can be off-centre and shifts between frames: look for something that hops across the field while the stars stay put. Images are shown pixel-for-pixel with nearest-neighbour scaling; zoom magnifies the centre of the same pixels and does not resample or restretch them.</p>
     </section>
   </main>
   <script type="module" src="/src/main.js"></script>

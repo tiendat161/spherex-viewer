@@ -101,3 +101,51 @@ describe('blink pair', () => {
     expect(blinkPair([])).toBeNull();
   });
 });
+
+import { bandLabel, orderSlots, stackSlots } from '../src/model.js';
+
+describe('orderSlots', () => {
+  const f = (index, obs_mjd, wavelength_um) => ({ index, obs_mjd, wavelength_um, url: `/f/${index}` });
+  it('leaves an already ordered series untouched, failed slots in place', () => {
+    const slots = [f(0, 1, 5), { skipped: true, index: 1 }, f(2, 2, 3)];
+    expect(orderSlots(slots, 'time')).toBe(slots);
+  });
+  it('sorts by the other key and puts failed slots last', () => {
+    const slots = [f(0, 1, 5), { skipped: true, index: 1 }, f(2, 2, 3)];
+    expect(orderSlots(slots, 'wavelength').map((s) => s.index)).toEqual([2, 0, 1]);
+  });
+  it('puts a wavelength-ordered series into time order', () => {
+    const slots = [f(0, 9, 1), f(1, 3, 2), f(2, 6, 3)];
+    expect(orderSlots(slots, 'time').map((s) => s.index)).toEqual([1, 2, 0]);
+  });
+});
+
+describe('stackSlots', () => {
+  const stretch = { kind: 'asinh', vmin: 0, vmax: 1, unit: 'MJy / sr' };
+  const resp = { stacks: {
+    visits: [{ index: 0, start_mjd: 60800, end_mjd: 60801 }, { index: 1, start_mjd: 60980, end_mjd: 61020 }],
+    bands: [{ id: 'all', wavelength_min_um: 0.74, wavelength_max_um: 5.0, stretch, diff_limit: 0.1 }, { id: 'D6', wavelength_min_um: 4.41, wavelength_max_um: 5.0, stretch }],
+    images: [
+      { visit: 1, band: 'all', url: '/s1', diff_url: '/d1', n_images: 9, flag_fraction: 0 },
+      { visit: 0, band: 'all', url: '/s0', n_images: 4, flag_fraction: 0.1 },
+      { visit: 1, band: 'D6', url: '/s6', n_images: 2, flag_fraction: 0 },
+    ] } };
+  it('gives one slot per visit of the band, in visit order', () => {
+    const s = stackSlots(resp, 'all');
+    expect(s.map((x) => [x.url, x.visit, x.n_images, x.visits])).toEqual([['/s0', 0, 4, 2], ['/s1', 1, 9, 2]]);
+    expect(s[1].start_mjd).toBe(60980);
+    expect(stackSlots(resp, 'D6').map((x) => x.url)).toEqual(['/s6']);
+  });
+  it('difference mode keeps only visits with a difference image', () => {
+    expect(stackSlots(resp, 'all', true).map((x) => x.url)).toEqual(['/d1']);
+    expect(stackSlots(resp, 'D6', true)).toEqual([]);
+  });
+  it('falls back to the first band and tolerates no stacks', () => {
+    expect(stackSlots(resp, 'nope').length).toBe(2);
+    expect(stackSlots({ frames: [] }, 'all')).toEqual([]);
+  });
+  it('labels bands', () => {
+    expect(bandLabel(resp.stacks.bands[0])).toBe('All detectors (0.74–5.00 µm)');
+    expect(bandLabel(resp.stacks.bands[1])).toBe('D6 (4.41–5.00 µm)');
+  });
+});

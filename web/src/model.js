@@ -59,6 +59,42 @@ export function buildSlots(resp) {
   return slots;
 }
 
+/**
+ * Individual frames in the chosen order ('time' or 'wavelength'). If the frames already are in that
+ * order the slots are returned untouched, failed ones in place; otherwise failed slots go last.
+ */
+export function orderSlots(slots, order) {
+  const key = order === 'wavelength' ? 'wavelength_um' : 'obs_mjd';
+  const live = slots.filter((s) => !s.skipped);
+  if (live.every((s, i) => i === 0 || live[i - 1][key] <= s[key])) return slots;
+  return [...live].sort((a, b) => a[key] - b[key] || a.index - b.index).concat(slots.filter((s) => s.skipped));
+}
+
+/**
+ * Playback slots for the stacked view: one per visit that has an image in the band, in visit order.
+ * With `diff`, only visits that have a difference image (every visit after the band's earliest).
+ */
+export function stackSlots(resp, bandId, diff = false) {
+  const st = resp?.stacks;
+  if (!st) return [];
+  const band = st.bands.find((b) => b.id === bandId) ?? st.bands[0];
+  if (!band) return [];
+  return st.images
+    .filter((e) => e.band === band.id && (!diff || e.diff_url))
+    .sort((a, b) => a.visit - b.visit)
+    .map((e) => {
+      const v = st.visits.find((x) => x.index === e.visit);
+      return {
+        stack: true, diff, url: diff ? e.diff_url : e.url, visit: e.visit, visits: st.visits.length,
+        start_mjd: v.start_mjd, end_mjd: v.end_mjd, n_images: e.n_images, flag_fraction: e.flag_fraction, band,
+      };
+    });
+}
+
+export function bandLabel(b) {
+  return `${b.id === 'all' ? 'All detectors' : b.id} (${b.wavelength_min_um.toFixed(2)}–${b.wavelength_max_um.toFixed(2)} µm)`;
+}
+
 /** Next slot to show. Playback skips failed frames; manual stepping does not. */
 export function nextSlot(slots, current, dir, { skipFailed = false } = {}) {
   const n = slots.length;

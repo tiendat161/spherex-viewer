@@ -1,5 +1,5 @@
 import { fetchTargets, pollSeries } from './api.js';
-import { blinkPair, buildSlots, formatFlag, locationQuery, mjdToUtc, nextSlot, parseLocation, progressText, zoomRect } from './model.js';
+import { bandLabel, blinkPair, buildSlots, formatFlag, locationQuery, mjdToUtc, nextSlot, orderSlots, parseLocation, progressText, stackSlots, zoomRect } from './model.js';
 
 const $ = (id) => document.getElementById(id);
 const el = {
@@ -7,6 +7,8 @@ const el = {
   progressText: $('progress-text'), bar: $('bar'), message: $('message'),
   frameBox: $('frame-box'), canvas: $('canvas'), scalebar: $('scalebar'), scalebarLabel: $('scalebar-label'), skipped: $('skipped'),
   prev: $('prev'), play: $('play'), next: $('next'), slider: $('slider'), fps: $('fps'), zoom: $('zoom'), pair: $('pair'), pairNote: $('pair-note'),
+  view: $('view'), band: $('band'), bandWrap: $('band-wrap'), diff: $('diff'), diffWrap: $('diff-wrap'), order: $('order'), orderWrap: $('order-wrap'),
+  mark: $('mark'), marker: $('marker'),
   rFrame: $('r-frame'), rDate: $('r-date'), rWave: $('r-wave'), rFlag: $('r-flag'), legend: $('legend'),
 };
 
@@ -24,6 +26,29 @@ function preload(url) {
 }
 
 const currentSlot = () => state.slots[state.current];
+const stackView = () => el.view.value === 'stack' && !!state.resp?.stacks;
+
+/** Slots for the current view: stacked visits of one band, or the individual frames in the chosen order. */
+function computeSlots() {
+  if (!state.resp) return [];
+  if (stackView()) return stackSlots(state.resp, el.band.value, el.diff.checked);
+  return orderSlots(buildSlots(state.resp), el.order.value);
+}
+
+/** Rebuild the slots after a view, band, difference or order change. */
+function reslot() {
+  stopPlaying();
+  state.pair = null;
+  state.slots = computeSlots();
+  state.current = 0;
+  for (const s of state.slots) if (!s.skipped) preload(s.url);
+  render();
+}
+
+function setView(view) {
+  el.view.value = view;
+  el.fps.value = view === 'stack' ? '1' : '5'; // a few deep images: blink slowly
+}
 const currentFrameUrl = () => (currentSlot() && !currentSlot().skipped ? currentSlot().url : null);
 
 function setBadge(resp) {
@@ -36,7 +61,7 @@ function drawCurrent() {
   const slot = currentSlot();
   el.skipped.hidden = !slot?.skipped;
   if (slot?.skipped) {
-    el.skipped.textContent = `Frame ${slot.index + 1} was skipped (the API could not build it).`;
+    el.skipped.textContent = `Frame ${slot.index + 1} of the planned series was skipped (the API could not build it).`;
     return;
   }
   const img = slot && images.get(slot.url);
@@ -59,7 +84,14 @@ function renderReadout() {
     for (const k of ['rFrame', 'rDate', 'rWave', 'rFlag']) el[k].textContent = '—';
     return;
   }
-  el.rFrame.textContent = `${slot.index + 1} of ${Math.max(n, state.resp.progress.total)}`;
+  if (slot.stack) {
+    el.rFrame.textContent = `Visit ${slot.visit + 1} of ${slot.visits}${slot.diff ? ' minus first' : ''}`;
+    el.rDate.textContent = `${mjdToUtc(slot.start_mjd).slice(0, 10)} to ${mjdToUtc(slot.end_mjd).slice(0, 10)} UTC`;
+    el.rWave.textContent = `${slot.band.wavelength_min_um.toFixed(2)}–${slot.band.wavelength_max_um.toFixed(2)} µm, ${slot.n_images} image${slot.n_images === 1 ? '' : 's'} combined`;
+    el.rFlag.textContent = formatFlag(slot.flag_fraction);
+    return;
+  }
+  el.rFrame.textContent = `${state.current + 1} of ${Math.max(n, state.resp.progress.total)}`;
   if (slot.skipped) {
     el.rDate.textContent = el.rWave.textContent = el.rFlag.textContent = 'skipped';
     return;
@@ -75,6 +107,12 @@ function render() {
   const has = state.slots.length > 0;
   el.frameBox.hidden = !has;
   for (const b of [el.prev, el.play, el.next, el.slider, el.pair]) b.disabled = !has;
+  const stacked = stackView();
+  el.pair.disabled = !has || stacked;
+  el.view.disabled = !r?.stacks;
+  el.bandWrap.hidden = el.diffWrap.hidden = !stacked;
+  el.orderWrap.hidden = stacked;
+  el.marker.hidden = !el.mark.checked;
   el.pair.checked = !!state.pair;
   renderPairNote();
   el.slider.max = String(Math.max(0, state.slots.length - 1));
@@ -93,9 +131,18 @@ function render() {
       el.scalebar.style.setProperty('--w', `${((arcsec / g.pixel_scale_arcsec) / g.shape[1]) * 100 * Number(el.zoom.value)}%`);
       el.scalebarLabel.textContent = `${arcsec}″`;
     }
-    el.legend.textContent = s
-      ? `Stretch (already applied to every PNG, shown for reference only): ${s.kind}, ${s.vmin} to ${s.vmax} ${s.unit} mapped to 0 to 255.`
-      : '';
+    const bg = r.background === 'median_subtracted' ? ' Each image had its own median background subtracted first.' : '';
+    const slot = currentSlot();
+    if (stacked && slot?.diff) {
+      el.legend.textContent = `Difference image: this visit minus the earliest visit in this band. Linear, −${slot.band.diff_limit} to +${slot.band.diff_limit} ${slot.band.stretch.unit} mapped to black to white; mid-grey means no change.${bg}`;
+    } else if (stacked && slot) {
+      const b = slot.band.stretch;
+      el.legend.textContent = `Each frame is the sigma-clipped mean of the images taken in one visit in this band. Stretch (shared by all visits of the band): ${b.kind}, ${b.vmin} to ${b.vmax} ${b.unit} mapped to 0 to 255.${bg}`;
+    } else {
+      el.legend.textContent = s
+        ? `Stretch (already applied to every PNG, shown for reference only): ${s.kind}, ${s.vmin} to ${s.vmax} ${s.unit} mapped to 0 to 255.${bg}`
+        : '';
+    }
   }
   renderReadout();
   drawCurrent();
@@ -135,7 +182,14 @@ function go(i) {
 
 function onUpdate(resp) {
   state.resp = resp;
-  state.slots = buildSlots(resp);
+  if (resp.stacks && !state.stacksSeen) {
+    // Stacks arrive with the finished series: fill the band list and show the stacked view first.
+    state.stacksSeen = true;
+    el.band.replaceChildren(...resp.stacks.bands.map((b) => new Option(bandLabel(b), b.id)));
+    setView('stack');
+    state.current = 0;
+  }
+  state.slots = computeSlots();
   if (state.pair && resp.status !== 'ready') state.pair = null;
   for (const s of state.slots) if (!s.skipped) preload(s.url);
   if (state.current >= state.slots.length) state.current = 0;
@@ -153,6 +207,9 @@ async function load(ra, dec, { push = false } = {}) {
   state.abort = new AbortController();
   state.pos = { ra, dec };
   state.autoStarted = false;
+  state.stacksSeen = false;
+  setView('frames');
+  el.diff.checked = false;
   state.resp = null;
   state.slots = [];
   state.current = 0;
@@ -201,6 +258,9 @@ el.prev.addEventListener('click', () => { stopPlaying(); go(advance(-1)); });
 el.next.addEventListener('click', () => { stopPlaying(); go(advance(1)); });
 el.slider.addEventListener('input', () => { stopPlaying(); state.pair = null; go(Number(el.slider.value)); });
 el.zoom.addEventListener('change', render);
+el.mark.addEventListener('change', render);
+el.view.addEventListener('change', () => { setView(el.view.value); reslot(); });
+for (const c of [el.band, el.diff, el.order]) c.addEventListener('change', reslot);
 el.pair.addEventListener('change', () => {
   state.pair = el.pair.checked ? blinkPair(state.slots) : null;
   if (state.pair) { go(state.pair[0]); startPlaying(); }

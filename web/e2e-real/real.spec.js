@@ -26,9 +26,26 @@ for (const t of targets) {
     await expect(page.locator('#targets button')).toHaveCount(targets.length);
     await expect(page.locator('#message')).toBeHidden();
 
-    // Pause on a middle frame so the screenshot is repeatable.
+    // A cached series opens in the stacked view: one deep image per visit, centre not marked.
+    await expect(page.locator('#view')).toHaveValue('stack');
+    await expect(page.locator('#r-frame')).toHaveText(/^Visit \d+ of \d+$/);
+    await expect(page.locator('#r-wave')).toContainText('combined');
+    await expect(page.locator('#marker')).toBeHidden();
     await expect(page.locator('#play')).toHaveText('Pause');
     await page.locator('#play').click();
+    await page.locator('#slider').fill('0');
+    await page.locator('#mark').check();
+    await expect(page.locator('#marker')).toBeVisible();
+    await page.locator('#diff').check();
+    await expect(page.locator('#r-frame')).toContainText('minus first');
+    await page.locator('#diff').uncheck();
+    await page.locator('#slider').fill('1');
+    mkdirSync(outDir, { recursive: true });
+    await expect.poll(() => page.evaluate(() => document.getElementById('canvas').width)).toBe(116);
+    await page.screenshot({ path: `${outDir}${t.id}-stack.png`, fullPage: true });
+
+    // Individual frames: pause on a middle frame so the screenshot is repeatable.
+    await page.locator('#view').selectOption('frames');
     const mid = Math.floor(t.done / 2);
     await page.locator('#slider').fill(String(mid));
     await expect(page.locator('#r-frame')).toContainText(` of ${t.total}`);
@@ -45,7 +62,7 @@ for (const t of targets) {
     })).toBe(true);
 
     // Every frame PNG was requested from our API, nothing failed, nothing left our origin.
-    const frames = requests.filter((u) => u.pathname.startsWith(`/api/frames/${t.id}/`));
+    const frames = requests.filter((u) => new RegExp(`^/api/frames/${t.id}/\\d+\\.png$`).test(u.pathname));
     expect(frames.length).toBe(t.done);
     expect(failed).toEqual([]);
     expect(requests.filter((u) => u.origin !== origin).map(String)).toEqual([]);
