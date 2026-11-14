@@ -1,4 +1,4 @@
-.PHONY: dev test test-backend test-web verify verify-contract verify-backend verify-web cache
+.PHONY: dev test test-backend test-web verify verify-contract verify-docs verify-backend verify-web cache
 
 PY := .venv/bin/python
 
@@ -12,6 +12,10 @@ cache:
 # Offline: schemas are valid; fixtures and every cached series match the contract.
 verify-contract:
 	$(PY) verify/check_contract.py
+
+# Offline: every source file is named in docs/structure.md, and every file it names exists.
+verify-docs:
+	$(PY) verify/check_docs.py
 
 test-backend:
 	$(PY) -m pytest tests
@@ -30,5 +34,5 @@ verify-web: verify-contract test-web
 # End-to-end check over every acceptance target in verify/targets.json.
 # Offline: builds web, serves it from the API, checks each target through the API and in a browser,
 # and saves verify/out/<id>.png.
-verify: verify-contract test
+verify: verify-contract verify-docs test
 	$(PY) verify/e2e.py

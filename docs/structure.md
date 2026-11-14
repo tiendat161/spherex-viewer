@@ -1,30 +1,68 @@
-# Folder structure
+# Project structure
 
-What each folder holds and what it does. Written 2026-11-14 against `main`.
+Where things are and how they connect. Read this before searching the code.
+
+**Keeping it current:** a commit that adds, moves or removes a source file updates this file in the same commit. `make verify-docs` (part of `make verify`) fails when a source file is not mentioned here, or when a file named here no longer exists. It cannot tell whether a description is still right, so when a file's job changes, change its line here too. Counts and sizes are left out on purpose because they go stale.
 
 ## How the pieces fit
 
 ```
-IRSA archive ──(make cache, the only network step)──▶ pipeline/ ──▶ static/series/
-                                                                        │ read only
-browser ◀── web/ (built into web/dist) ◀── served by ── api/ ◀──────────┘
+                 make cache (offline rebuild: --offline)
+IRSA archive ──────────────────────────────▶ pipeline/build.py ──▶ static/series/   (cached targets, in git)
+     ▲                                                                   │ read
+     │ live build for any other position or field of view                ▼
+     └──────────────── pipeline/live.py (in memory) ◀──────────────── api/main.py ◀── browser (web/, built into web/dist)
 ```
 
-`contracts/` defines the JSON that `pipeline/` writes, `api/` returns and `web/` reads. `verify/` and `tests/` check that all three agree.
+- `contracts/` defines the JSON that `pipeline/` writes, `api/` returns and `web/` reads.
+- `verify/` and `tests/` check that the three agree.
+- Two code paths contact IRSA, both through the one client in `pipeline/irsa.py`: `make cache`, and the API's live builds. Setting `SPHEREX_LIVE=0` turns live builds off, which is how `make verify` stays offline.
 
-## Tree
+## Request flow: what happens when a user asks for a position
+
+1. **Browser.** `web/src/main.js` reads `?ra=&dec=&fov=` from the page URL (`parseLocation` in `web/src/model.js`) or takes the form values, and calls `load`. `load` calls `pollSeries` in `web/src/api.js`, which requests `GET /api/series?ra=&dec=&fov=&max_frames=` (`seriesUrl`) and repeats every `POLL_MS` until the status is final.
+2. **API, cached path.** `series` in `api/main.py` validates the numbers (`allowed_fov` in `pipeline/grid.py`). For `fov` 0.2 it looks for a `static/series/<id>/series.json` whose grid centre is within `MATCH_ARCSEC` of the position and returns that file unchanged.
+3. **API, live path.** Any other position, and any other field of view, goes to `LiveBuilder.get_or_start` in `pipeline/live.py`. It starts (or finds) a `LiveSeries` running in a background thread and returns its current document at once. Too many series running or waiting raises `LiveBusy`, which the API returns as a `status: "error"` document. With live builds off the API returns an error document instead.
+4. **Live build.** `LiveSeries` queries the archive (`IrsaClient.tap_rows`), picks frames (`select_frames` in `pipeline/select.py`), then for each one downloads the cutout, reads it (`pipeline/cutout.py`), subtracts the background (`pipeline/stack.py`) and resamples it onto the shared grid (`pipeline/grid.py`). Frames are kept in memory only.
+5. **Stretch refresh.** The brightness mapping (`pipeline/stretch.py`) is recomputed as frames arrive (after 1, 2, 4, 8, … frames and once at the end). Each recompute re-renders every PNG and raises a counter that is added to frame URLs as `?v=<gen>`, so the browser fetches the new images. When all frames are in, `build_stacks` adds the stacked and difference images.
+6. **Frames.** The browser loads each `url` from the document: `GET /api/frames/<id>/<name>`. The API serves the file from `static/series/<id>/frames/` if it exists, otherwise the PNG held in memory by the live series (sent with `Cache-Control: no-cache`).
+7. **Display.** On every poll result `onUpdate` in `web/src/main.js` rebuilds the frame slots (`buildSlots`, `orderSlots`, `stackSlots` in `web/src/model.js`) and `render` / `drawCurrent` update the canvas, the progress text, the real or simulated badge and the per-frame readouts.
+
+The cached path runs the same steps as 4 and 5, once, in `pipeline/build.py`, and writes the result with `pipeline/writer.py`.
+
+## To change X, look in Y
+
+| To change | Look in |
+|---|---|
+| A field in the series or targets JSON | `contracts/series.schema.json` or `contracts/targets.schema.json` first (own commit), then `docs/contract.md`, `pipeline/writer.py` and `pipeline/live.py` (both produce the document), `web/src/model.js`, `fixtures/wise0855.json` |
+| Request parameters, validation, error messages, routes | `api/main.py` |
+| Allowed fields of view, pixel scale, grid size, which flag bits count | `pipeline/grid.py` (`FOVS_DEG`, `PIXEL_SCALE_ARCSEC`, `IGNORED_FLAG_BITS`); the frontend copy of the list is `FOVS_DEG` in `web/src/model.js` |
+| Which images are picked for a series | `pipeline/select.py` |
+| Archive queries, download limits, retries | `pipeline/irsa.py` (`MAX_IN_FLIGHT`, `CUTOUT_ATTEMPTS`, `TAP_ATTEMPTS`) |
+| Brightness mapping | `pipeline/stretch.py` |
+| Background subtraction, visit grouping, stacked and difference images | `pipeline/stack.py` |
+| Live build limits (how many at once, how many kept, frame count) | constants at the top of `pipeline/live.py` |
+| The cached targets, their positions, frame counts, proper motion | `verify/targets.json`, read by `pipeline/targets.py`; then `make cache` |
+| Player behaviour: controls, blink, zoom, frame order, badge, readouts | `web/src/main.js`; pure logic it uses is in `web/src/model.js` |
+| Page markup and styling | `web/index.html`, `web/src/style.css` |
+| How the frontend fetches and polls | `web/src/api.js` |
+| What the mock API returns in frontend development | `web/mock/plugin.js`, `web/mock/png.js`, `fixtures/wise0855.json` |
+| What `make verify` checks | `Makefile`, `verify/check_contract.py`, `verify/check_docs.py`, `verify/e2e.py`, `web/e2e-real/real.spec.js` |
+| Tasks and history | `docs/TASKS.md`, `docs/WORKLOG.md` |
+
+## Top level
 
 ```
 spherex-viewer/
 ├── contracts/        JSON schemas: the interface everyone builds against
-├── pipeline/         Python: fetches real SPHEREx data and builds the cache
-├── api/              Python: FastAPI service that serves the cache and the web app
+├── pipeline/         Python: fetches SPHEREx data, builds the cache and live series
+├── api/              Python: FastAPI service that serves series, frames and the web app
 ├── web/              JavaScript: the blink viewer the user sees
-├── static/series/    Generated: the cached series for the five targets
+├── static/series/    Generated: the cached series for the acceptance targets
 ├── tests/            Python unit tests for pipeline/ and api/
-├── verify/           Acceptance targets and the offline contract and end-to-end checks
+├── verify/           Acceptance targets and the offline checks
 ├── fixtures/         A simulated example response for frontend development
-├── docs/             Plans, the contract write-up, spike notes
+├── docs/             Task board, work log, contract write-up, plans, this guide
 ├── spike/            Day-one feasibility scripts and their logs
 ├── .claude/          Claude Code agents and the preview launch config
 ├── Makefile          dev, cache, test and verify commands
@@ -34,7 +72,7 @@ spherex-viewer/
 └── REFERENCES.md     Data sources, tools and AI-usage notes for the submission
 ```
 
-Not in git: `.venv/` (Python environment), `.cache/` (raw downloads), `web/node_modules/`, `web/dist/` (built frontend) and `verify/out/` (screenshots).
+Not in git: `.venv/` (Python environment), `.cache/` (raw downloads), `web/node_modules/`, `web/dist/` (built frontend), `verify/out/` (screenshots), `.claude/worktrees/`.
 
 ## Source folders
 
@@ -44,35 +82,41 @@ The source of truth for every interface. Read it before changing anything that c
 
 | File | Defines |
 |---|---|
-| `series.schema.json` | Response of `GET /api/series`: status, real or simulated label, progress, the shared grid, the stretch, and the list of frames |
+| `series.schema.json` | Response of `GET /api/series`: status, real or simulated label, progress, the shared grid, the stretch, the list of frames, and the optional stacks |
 | `targets.schema.json` | Response of `GET /api/targets`: the cached targets and where each position comes from |
 
-The prose explanation, including the choices made for the prototype, is in `docs/contract.md`.
+The prose explanation, with the choices made and the open decisions, is in `docs/contract.md`.
 
 ### `pipeline/`
 
-Turns archive data into the static cache. This is the only code that contacts IRSA, and only when run through `make cache`.
+Turns archive data into series. Used in two ways: `build.py` writes the static cache, and `live.py` builds a series in memory for the API.
 
 | File | Does |
 |---|---|
-| `irsa.py` | The one IRSA client: archive query and cutout download, limited to 4 requests in flight, with retries on HTTP 503 |
-| `targets.py` | Reads `verify/targets.json`, converts positions to degrees and applies proper motion where the target asks for it |
-| `select.py` | Picks 40 frames evenly spaced in time, de-duplicating across data releases |
+| `irsa.py` | The one IRSA client (`IrsaClient`): archive query and cutout download, a process-wide limit on requests in flight, retries on HTTP 503, de-duplication across data releases |
+| `targets.py` | Reads `verify/targets.json`, converts positions to degrees, applies proper motion where the target asks for it; `sep_arcsec` |
+| `select.py` | Picks which images make a series: evenly spaced in time (`select_frames`) or one per wavelength band (`select_per_wavelength`); prefers the `dr1` release |
 | `cutout.py` | Reads one downloaded cutout: image, flags, sky coordinates, unit and wavelength |
-| `grid.py` | Defines the shared north-up grid and resamples every frame onto it; decides which pixels count as flagged |
+| `grid.py` | The shared north-up grid: allowed fields of view, grid size, resampling every frame onto it, which pixels count as flagged |
 | `stretch.py` | Computes one brightness mapping per series and converts frames to 8-bit |
-| `writer.py` | Writes `series.json` and the frame PNGs |
-| `build.py` | The command-line entry point that runs the steps above; `--offline` rebuilds from `.cache/` without any network |
+| `stack.py` | Median background subtraction, grouping dates into visits, stacking per visit and detector band, difference from the first visit |
+| `writer.py` | Writes `series.json` and the frame, stack and difference PNGs |
+| `build.py` | Command-line entry point for the cache: `python -m pipeline.build verify/targets.json [--only id] [--refresh-tap] [--offline]`. Resumes from `.cache/` |
+| `live.py` | Live series for positions or fields of view that are not cached: `LiveBuilder` (queue and limits) and `LiveSeries` (one build, in memory, with progress) |
 | `tapcount.py` | Small helper that prints how many archive images cover each target |
+
+Environment: `SPHEREX_CACHE_DIR` moves the raw download folder (default `.cache/`).
 
 ### `api/`
 
-`main.py` is the whole service. It reads `static/series/` and never contacts IRSA.
+`main.py` is the whole service (`create_app`).
 
 - `GET /api/targets` lists the cached targets.
-- `GET /api/series?ra=&dec=` returns the cached series within 1 arcsecond of that position, or a contract-valid error for anything else.
-- `GET /api/frames/<id>/NN.png` serves a frame image.
-- Everything else is served from `web/dist`, so the app and the API share one origin.
+- `GET /api/series?ra=&dec=&fov=&max_frames=` returns the cached series for that position, or starts and reports a live build. Every failure is a contract-valid `status: "error"` document, not an HTTP error.
+- `GET /api/frames/<id>/<name>` serves a frame (`NN.png`), stack (`s_<band>_<visit>.png`) or difference (`d_<band>_<visit>.png`) image, from disk or from a live series.
+- Any other `/api/` path is a 404. Everything else is served from `web/dist`, so the app and the API share one origin.
+
+Environment: `SPHEREX_LIVE=0` turns live builds off; `SPHEREX_SERIES_DIR` points at a different cache folder.
 
 ### `web/`
 
@@ -81,47 +125,63 @@ The frontend, built with Vite and no UI framework. It only ever calls relative `
 | Path | Holds |
 |---|---|
 | `index.html`, `src/style.css` | Page markup and styling |
-| `src/model.js` | Pure helpers: URL parsing, date conversion, frame slots, progress text |
-| `src/api.js` | Fetching targets and polling a series |
-| `src/main.js` | The player: target list, canvas, controls, badge, readouts |
-| `mock/` | Dev-only stand-in for the API that serves the fixture and generated placeholder frames, labelled simulated. Used by `npm run dev:mock`; never part of a build. |
-| `test/` | Vitest unit tests, including one that checks the built bundle contains no archive hostname |
-| `e2e/` | Playwright spec against the mock (`make verify-web`) |
-| `e2e-real/` | Playwright spec against the real API, one test per target (`make verify`) |
-| `vite.config.js`, `vitest.config.js`, `playwright*.config.js` | Tool configuration; the dev server proxies `/api` to port 8000 |
+| `src/model.js` | Pure helpers, no DOM: URL parsing and building, field-of-view list, frame slots and ordering, blink pair, zoom rectangle, scale bar, progress text, date conversion |
+| `src/api.js` | `fetchTargets` and `pollSeries` |
+| `src/main.js` | The player: target list, form, canvas, controls, badge, readouts |
+| `mock/plugin.js`, `mock/png.js` | Dev-only stand-in for the API (`npm run dev:mock`): serves the fixture and generated placeholder frames, labelled simulated. Never part of a build |
+| `test/model.test.js`, `test/api.test.js` | Vitest unit tests for the two modules |
+| `test/bundle.test.js` | Checks the built bundle contains no archive hostname |
+| `test/helpers.js` | Schema validators for the tests, built from `contracts/` |
+| `e2e/web-mock.spec.js` | Playwright spec against the mock (`make verify-web`); config `playwright.config.js` |
+| `e2e-real/real.spec.js` | Playwright spec against the real API, one test per target, run by `verify/e2e.py`; config `playwright.real.config.js` |
+| `vite.config.js`, `vitest.config.js` | Build and test configuration; the dev server proxies `/api` to port 8000 |
+| `package.json` | Scripts: `dev`, `dev:mock`, `build`, `test`, `e2e` |
 
 ## Data folders
 
 ### `static/series/`
 
-Generated by `pipeline/` and committed, about 2 MB. One folder per target (`wise0855`, `barnard`, `epsindb`, `rwaur`, `rdra`), each with:
+Generated by `pipeline/build.py` and committed. One folder per target id from `verify/targets.json`, each with:
 
 - `series.json`: the exact response the API returns for that target, marked `data_origin: "real"`;
-- `frames/NN.png`: 116×116 8-bit images, 192 in total. A missing number is a frame that failed to download (3 for Barnard's Star, 5 for R Draconis).
+- `frames/`: 8-bit PNGs. `NN.png` is one frame, `s_<band>_<visit>.png` a stack, `d_<band>_<visit>.png` a difference image. A missing frame number is an image that failed to download.
 
-Do not edit by hand; rebuild with `make cache`.
+The cache holds the 0.2° field of view only. Do not edit by hand; rebuild with `make cache`.
 
 ### `fixtures/`
 
-`wise0855.json` is an example `ready` response marked `data_origin: "simulated"`. Only its observation times and grid centre are real; `README.md` there lists every placeholder field. It exists so the frontend and the contract check have something to run against without the backend.
+`wise0855.json` is an example `ready` response marked `data_origin: "simulated"`. `fixtures/README.md` lists which of its fields are real and which are placeholders. It exists so the frontend and the contract check can run without the backend.
 
 ### `.cache/` (not in git)
 
-Raw material, about 855 MB: archive query results (`tap/`), downloaded cutout files (`cutouts/<id>/`), the SPHEREx Explanatory Supplement (`expsupp/`), and leftovers from the spike. Safe to delete, but the next `make cache` would download everything again.
+Raw material: archive query results (`tap/`), downloaded cutout files (`cutouts/<id>/`), the SPHEREx Explanatory Supplement (`expsupp/`), and leftovers from the spike. Safe to delete, but the next `make cache` would download everything again.
 
 ## Checking folders
 
 ### `tests/`
 
-Pytest unit tests; none touches the network. `tests/pipeline/synth.py` builds synthetic cutouts, labelled simulated, so reprojection, orientation, the flag mask, frame selection, the concurrency limit and retries can be tested offline. `tests/api/` tests the three endpoints.
+Pytest unit tests; none touches the network.
+
+| File | Covers |
+|---|---|
+| `pipeline/synth.py` | Builds synthetic cutouts, labelled simulated, for the tests below |
+| `pipeline/test_grid.py` | Resampling, orientation, the flag mask |
+| `pipeline/test_select.py` | Frame selection and release de-duplication |
+| `pipeline/test_irsa.py` | The concurrency limit and retries |
+| `pipeline/test_targets.py` | Position parsing and proper motion |
+| `pipeline/test_stack.py` | Background subtraction, visits, stacks, differences |
+| `pipeline/test_build.py` | The cache build end to end on synthetic data |
+| `pipeline/test_live.py` | Live series: progress, stretch refresh, limits |
+| `api/test_api.py` | The endpoints, cached and live |
 
 ### `verify/`
 
 | File | Does |
 |---|---|
-| `targets.json` | The five acceptance targets with their source positions, proper motions and the 30-frame minimum |
+| `targets.json` | The acceptance targets: source positions, proper motions, field of view, frame counts and minimums, selection rule |
 | `check_contract.py` | `make verify-contract`: validates the schemas, the fixture and every cached series, and that every frame PNG exists at the right size |
-| `e2e.py` | `make verify`: builds the web app, starts the API, checks each target through the API and in a browser, and saves `out/<id>.png` |
+| `check_docs.py` | `make verify-docs`: every source file is mentioned in this guide, and every file this guide names exists |
+| `e2e.py` | `make verify`: builds the web app, starts the API with live builds off, checks each target through the API and in a browser, saves `verify/out/<id>.png` |
 
 ## Documentation and history
 
@@ -129,13 +189,13 @@ Pytest unit tests; none touches the network. `tests/pipeline/synth.py` builds sy
 
 | File | Holds |
 |---|---|
+| `structure.md` | This file |
 | `TASKS.md` | The task board: todo, in progress, done, with the files each task touches |
 | `WORKLOG.md` | What was done, why, and what is still missing, newest first |
+| `contract.md` | The API contract in prose, the choices made and the open decisions |
 | `PLAN.md` | The pre-hackathon prep plan: goal, schedule, challenge text, open questions |
 | `spike.md` | Measurements from the feasibility spike: query times, cutout sizes, 503 rates, CORS, coordinate epoch |
-| `contract.md` | The API contract in prose, the prototype choices and the open decisions |
-| `build-plan.md` | The prototype build plan: session briefs, verify design, merge order, risks, cut list |
-| `structure.md` | This file |
+| `build-plan.md` | The Day 1 build plan: session briefs, verify design, merge order, risks, cut list. Historical |
 
 ### `spike/`
 
@@ -143,14 +203,18 @@ The throwaway scripts behind `docs/spike.md` and the logs they produced. Kept as
 
 ### `.claude/`
 
-`agents/` defines three helper agents (researcher, reviewer, verifier). `launch.json` tells the Claude desktop preview pane how to start the API. `worktrees/` (not in git) holds the two build sessions' working copies.
+`agents/` defines three helper agents (researcher, reviewer, verifier). `launch.json` tells the Claude desktop preview pane how to start the API.
 
 ## Commands
 
 | Command | Does | Network |
 |---|---|---|
-| `make dev` | Starts the API on port 8000, serving `web/dist` (build it first with `cd web && npm run build`) | No |
+| `make dev` | Starts the API on port 8000, serving `web/dist` (build it first with `cd web && npm run build`). Live builds are on | IRSA, for uncached positions |
+| `cd web && npm run dev` | Vite dev server on port 5173, proxying `/api` to port 8000 | No |
+| `cd web && npm run dev:mock` | Vite dev server with the mock API, no backend needed | No |
 | `make cache` | Rebuilds `static/series/` from the archive | Yes, IRSA |
 | `make test` | Backend and frontend unit tests | No |
 | `make verify-contract` | Schema and cache consistency check | No |
-| `make verify` | Everything above except `cache`, plus the end-to-end run on all five targets | No |
+| `make verify-docs` | This guide against the files on disk | No |
+| `make verify-backend`, `make verify-web` | Contract check plus one side's tests (the web one also runs the mock Playwright spec) | No |
+| `make verify` | Contract, docs and unit checks, then the end-to-end run on every acceptance target | No |
