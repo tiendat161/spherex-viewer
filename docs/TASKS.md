@@ -15,7 +15,7 @@ Details of finished work (what, why, what is still missing) are in [`WORKLOG.md`
 
 | ID | Task | Owner | Touches |
 |---|---|---|---|
-| | *(none)* | | |
+| T27 | Bring `docs/structure.md` up to date, point `CLAUDE.md` at it, and add a check that fails when a source file is missing from it | `t27-structure-guide` | `docs/structure.md`, `CLAUDE.md`, `docs/contract.md` (status line only), `Makefile`, new `verify/check_docs.py` |
 
 ## Todo
 
