@@ -96,3 +96,33 @@ def test_serves_web_dist_when_present(tmp_path):
 
 def test_no_web_dist_means_no_root_route(client):
     assert client.get("/").status_code == 404
+
+
+def test_uncached_position_is_built_live_when_a_builder_is_given(tmp_path):
+    import time
+    from unittest import mock
+    from pipeline.live import LiveBuilder
+    from tests.pipeline.test_build import FakeClient
+    series, doc = make_cache(tmp_path)
+    with mock.patch("pipeline.cutout.wavelength_um_at", return_value=2.5):
+        c = TestClient(create_app(series_dir=series, web_dist=tmp_path / "nodist", live=LiveBuilder(FakeClient())))
+        assert c.get("/api/series", params={"ra": RA, "dec": DEC}).json() == doc  # the cache still wins
+        end = time.time() + 30
+        while True:
+            body = c.get("/api/series", params={"ra": 10, "dec": 10}).json()
+            valid(body)
+            if body["status"] != "loading" or time.time() > end:
+                break
+            time.sleep(0.05)
+    assert body["status"] == "ready" and body["data_origin"] == "real"
+    assert body["progress"] == {"done": 40, "total": 40, "failed": 0}
+    r = c.get(body["frames"][-1]["url"])
+    assert r.status_code == 200 and r.headers["content-type"] == "image/png" and r.content.startswith(b"\x89PNG")
+    assert c.get(body["frames"][-1]["url"].replace("39.png", "77.png")).status_code == 404
+    assert c.get("/api/series", params={"ra": 10, "dec": 10, "fov": 0.1}).json()["status"] == "error"
+    assert body["background"] == "median_subtracted"
+    st = body["stacks"]  # the fake archive's 40 dates are one visit of one detector
+    assert [b["id"] for b in st["bands"]] == ["all"] and st["images"][0]["n_images"] == 40
+    r = c.get(st["images"][0]["url"])
+    assert r.status_code == 200 and r.content.startswith(b"\x89PNG")
+    assert c.get("/api/frames/wise0855/s_all_0.png").status_code == 404  # cached series in this test has no stacks

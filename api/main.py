@@ -4,7 +4,7 @@ set SPHEREX_LIVE=0 to serve the cache only, in which case nothing here contacts 
 
     GET /api/series?ra=&dec=&fov=0.2&max_frames=102
     GET /api/targets
-    GET /api/frames/<id>/NN.png
+    GET /api/frames/<id>/NN.png            (also s_<band>_<visit>.png and d_<band>_<visit>.png for stacks)
     web/dist (when it exists) is served at /
 """
 import json
@@ -25,7 +25,7 @@ MATCH_ARCSEC = 1.0
 CACHED_FOV = 0.2
 CACHED_MAX_FRAMES = 102  # default and ceiling; a cached series is returned if max_frames >= its frame count
 ID_RE = re.compile(r"^[a-z0-9]+$")
-FRAME_RE = re.compile(r"^\d{2,3}\.png$")
+FRAME_RE = re.compile(r"^(\d{2,3}|[sd]_[A-Za-z0-9]+_\d{1,3})\.png$")  # frame NN.png, stack s_<band>_<visit>.png, difference d_...
 
 
 def error_doc(message: str) -> dict:
@@ -119,7 +119,7 @@ def create_app(series_dir: Optional[Path] = None, web_dist: Optional[Path] = Non
         path = series_dir / series_id / "frames" / name
         if not path.is_file():
             job = live.find(series_id) if live is not None else None
-            png = job.png(int(name[:-4])) if job is not None else None
+            png = job.png(name) if job is not None else None
             if png is None:
                 raise HTTPException(404, "not found")
             # The same path is re-rendered when the stretch is refined; URLs carry ?v=<gen>.

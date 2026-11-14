@@ -19,6 +19,7 @@ from .cutout import CutoutError, read_cutout
 from .grid import grid_shape, make_grid_wcs, reproject_frame
 from .irsa import MAX_IN_FLIGHT, IrsaClient, IrsaError
 from .select import dedupe_prefer_dr1, select_frames, select_per_wavelength
+from .stack import band_id, build_stacks, subtract_background
 from .writer import write_series
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -74,8 +75,15 @@ def build_target(client, t, cfg, out_root, refresh_tap=False, log=print):
     if rule == "per_wavelength":
         # Wavelength is only known from each cutout, so every distinct image is read first.
         chosen = sorted(dedupe_prefer_dr1(rows), key=lambda r: (float(r["time_bounds_lower"]), r["uri"]))
+        shown = None
     else:
-        chosen = select_frames(rows, max_frames)
+        # `stack_images` (optional, per target or top level): read this many images, evenly spaced in time,
+        # for the visit stacks; the individual frames are an evenly spaced `max_frames` of them.
+        n_read = max(max_frames, int(raw.get("stack_images", cfg.get("stack_images", 0))))
+        chosen = select_frames(rows, n_read)
+        n = len(chosen)
+        pick = range(n) if n <= max_frames else sorted({round(k * (n - 1) / (max_frames - 1)) for k in range(max_frames)})
+        shown = {i: k for k, i in enumerate(pick)}  # position in `chosen` -> frame index
     total = len(chosen)
     log(f"[{t.id}] {len(rows)} TAP rows, {total} images to read, rule={rule}")
     shape = grid_shape(fov)
@@ -89,9 +97,11 @@ def build_target(client, t, cfg, out_root, refresh_tap=False, log=print):
             pix, flagged = reproject_frame(c["image"], c["wcs"], c["flags"], gwcs, shape)
             if not np.isfinite(pix).any():
                 raise CutoutError("no coverage on the grid")
+            pix = subtract_background(pix, flagged)
             log(f"[{t.id}] frame {i:02d} ok  {c['wavelength_um']:.3f} um")
             return i, {"index": i, "obs_mjd": float(row["time_bounds_lower"]), "wavelength_um": c["wavelength_um"],
-                       "pix": pix, "flagged": flagged, "bunit": c["bunit"]}, None
+                       "pix": pix, "flagged": flagged, "bunit": c["bunit"],
+                       "band": band_id(row.get("energy_bandpassname", ""))}, None
         except (IrsaError, CutoutError) as e:
             log(f"[{t.id}] frame {i:02d} FAILED: {e}")
             return i, None, str(e)
@@ -99,7 +109,11 @@ def build_target(client, t, cfg, out_root, refresh_tap=False, log=print):
     with ThreadPoolExecutor(MAX_IN_FLIGHT) as ex:
         results = list(ex.map(work, enumerate(chosen)))
     good = [r for _, r, _ in results if r is not None]
+    readable = good  # every image read: the visit stacks use all of them
     failed = total - len(good)
+    if shown is not None:
+        good = [dict(g, index=shown[g["index"]]) for g in good if g["index"] in shown]
+        total, failed = len(shown), len(shown) - len(good)
     if rule == "per_wavelength":
         picked = select_per_wavelength(
             [{"wavelength_um": g["wavelength_um"], "flag_fraction": float(g["flagged"].mean()), "obs_mjd": g["obs_mjd"], "g": g}
@@ -120,7 +134,11 @@ def build_target(client, t, cfg, out_root, refresh_tap=False, log=print):
     frames = [{"index": g["index"], "obs_mjd": g["obs_mjd"], "wavelength_um": g["wavelength_um"],
                "flag_fraction": float(g["flagged"].mean()),
                "png": stretch_mod.apply(g["pix"], st["vmin"], st["vmax"])} for g in good]
-    write_series(Path(out_root) / t.id, t.id, t.ra, t.dec, shape, st, frames, total, failed)
+    stacks, stack_pngs = build_stacks(readable, st["unit"], [float(r["time_bounds_lower"]) for r in dedupe_prefer_dr1(rows)])
+    write_series(Path(out_root) / t.id, t.id, t.ra, t.dec, shape, st, frames, total, failed,
+                 background="median_subtracted", stacks=stacks, stack_pngs=stack_pngs)
+    if stacks:
+        log(f"[{t.id}] stacks: {len(stacks['visits'])} visits x {[b['id'] for b in stacks['bands']]} from {len(readable)} images")
     log(f"[{t.id}] done={len(good)} failed={failed} total={total} stretch={st}")
     return len(good), failed, st
 
