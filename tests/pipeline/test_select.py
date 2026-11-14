@@ -27,3 +27,31 @@ def test_prefers_dr1_when_same_observation_in_both_releases():
     b = row(5, "dr1")
     sel = select_frames([a, b], 40)
     assert len(sel) == 1 and "/dr1/" in sel[0]["uri"]
+
+
+from pipeline.select import select_per_wavelength
+
+
+def fr(wl, flag=0.1, mjd=60000.0):
+    return {"wavelength_um": wl, "flag_fraction": flag, "obs_mjd": mjd}
+
+
+def test_one_frame_per_band_lowest_flag_wins():
+    out = select_per_wavelength([fr(1.0392, 0.2, 1), fr(1.0403, 0.05, 2), fr(2.5, 0.1, 3)], cap=102)
+    assert [f["wavelength_um"] for f in out] == [1.0403, 2.5]
+
+
+def test_bands_chain_within_tolerance():
+    # 0.0015 steps chain into one band even though the ends are 0.006 apart
+    out = select_per_wavelength([fr(1.000), fr(1.0015), fr(1.003), fr(1.0045), fr(1.006)], cap=102)
+    assert len(out) == 1
+
+
+def test_cap_drops_the_most_flagged_bands_and_keeps_wavelength_order():
+    frames = [fr(1.0, 0.5), fr(2.0, 0.1), fr(3.0, 0.2), fr(4.0, 0.9)]
+    out = select_per_wavelength(frames, cap=2)
+    assert [f["wavelength_um"] for f in out] == [2.0, 3.0]
+
+
+def test_empty_input():
+    assert select_per_wavelength([], cap=102) == []

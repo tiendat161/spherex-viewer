@@ -53,7 +53,7 @@ def test_cached_position_returns_file_content(client):
     {"ra": RA + 2 / 3600, "dec": DEC},          # 2 arcsec away
     {"ra": 10, "dec": 10},                      # not cached
     {"ra": RA, "dec": DEC, "fov": 0.1},
-    {"ra": RA, "dec": DEC, "max_frames": 20},
+    {"ra": RA, "dec": DEC, "max_frames": 103},      # above the 102 ceiling
     {"dec": DEC},                               # missing ra
     {"ra": "abc", "dec": DEC},
     {"ra": 400, "dec": DEC},

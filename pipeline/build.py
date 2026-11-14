@@ -18,7 +18,7 @@ from . import targets as targets_mod
 from .cutout import CutoutError, read_cutout
 from .grid import grid_shape, make_grid_wcs, reproject_frame
 from .irsa import MAX_IN_FLIGHT, IrsaClient, IrsaError
-from .select import select_frames
+from .select import dedupe_prefer_dr1, select_frames, select_per_wavelength
 from .writer import write_series
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -66,11 +66,18 @@ def fetch_raw(client, t, row, fov):
 
 
 def build_target(client, t, cfg, out_root, refresh_tap=False, log=print):
-    fov, max_frames, min_frames = cfg["fov"], cfg["max_frames"], cfg["min_frames"]
+    fov, min_frames = cfg["fov"], cfg["min_frames"]
+    raw = next((x for x in cfg.get("targets", []) if x.get("id") == t.id), {})
+    max_frames = raw.get("max_frames", cfg["max_frames"])
+    rule = raw.get("select", "time_evenly")  # contract: "time_evenly" (default) or "per_wavelength"
     rows = tap_rows_cached(client, t, refresh_tap)
-    chosen = select_frames(rows, max_frames)
+    if rule == "per_wavelength":
+        # Wavelength is only known from each cutout, so every distinct image is read first.
+        chosen = sorted(dedupe_prefer_dr1(rows), key=lambda r: (float(r["time_bounds_lower"]), r["uri"]))
+    else:
+        chosen = select_frames(rows, max_frames)
     total = len(chosen)
-    log(f"[{t.id}] {len(rows)} TAP rows, {total} frames selected")
+    log(f"[{t.id}] {len(rows)} TAP rows, {total} images to read, rule={rule}")
     shape = grid_shape(fov)
     gwcs = make_grid_wcs(t.ra, t.dec, shape)
 
@@ -93,6 +100,15 @@ def build_target(client, t, cfg, out_root, refresh_tap=False, log=print):
         results = list(ex.map(work, enumerate(chosen)))
     good = [r for _, r, _ in results if r is not None]
     failed = total - len(good)
+    if rule == "per_wavelength":
+        picked = select_per_wavelength(
+            [{"wavelength_um": g["wavelength_um"], "flag_fraction": float(g["flagged"].mean()), "obs_mjd": g["obs_mjd"], "g": g}
+             for g in good], max_frames)
+        good = [p["g"] for p in picked]
+        for k, g in enumerate(good):
+            g["index"] = k
+        log(f"[{t.id}] {len(picked)} wavelength bands kept of {total - failed} readable images; {failed} failed to read")
+        total, failed = len(good), 0
     if len(good) < min_frames:
         raise SystemExit(f"{t.id}: only {len(good)} usable frames (< {min_frames}); not writing a series. "
                          f"Failures: " + "; ".join(f"{i}: {e}" for i, r, e in results if e))

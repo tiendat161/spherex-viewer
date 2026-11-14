@@ -88,7 +88,7 @@ def check_api(base, cfg):
             failures.append(f"{tid}: not listed by /api/targets")
             print(f"FAIL {tid}: not listed")
             continue
-        q = f"/api/series?ra={t['ra']}&dec={t['dec']}&fov={cfg['fov']}&max_frames={cfg['max_frames']}"
+        q = f"/api/series?ra={t['ra']}&dec={t['dec']}&fov={cfg['fov']}&max_frames=102"  # the API ceiling; each series returns its own frame count
         status, doc = get_json(base, q)
         if status != 200:
             errs.append(f"HTTP {status}")
@@ -150,6 +150,7 @@ def main():
     proc = subprocess.Popen(
         [sys.executable, "-m", "uvicorn", "api.main:app", "--port", str(port), "--log-level", "warning"],
         cwd=ROOT,
+        env=dict(os.environ, SPHEREX_LIVE="0"),  # cache only: this check must not contact IRSA
     )
     try:
         wait_until_up(base, proc)

@@ -10,7 +10,9 @@
       "name": "WISE 0855",
       "position": { "ra_deg": 133.795129, "dec_deg": -7.245147 },
       "position_source": "Challenge text coordinates 08h55m10.831s -7d14m42.53s, used as given (docs/spike.md, Targets). Epoch not stated by the challenge; prep work found they match about 2010.45.",
-      "propagate": false
+      "propagate": false,
+      "select": "per_wavelength",
+      "max_frames": 102
     },
     {
       "id": "barnard",
