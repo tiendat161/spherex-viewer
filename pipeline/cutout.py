@@ -3,10 +3,12 @@ import io
 import threading
 import warnings
 
+from astropy import log as astropy_log
 from astropy.io import fits
 from astropy.wcs import WCS
 
 
+astropy_log.setLevel("WARNING")  # silences the per-frame SIP/CTYPE INFO text
 _WCS_LOCK = threading.Lock()  # wcslib is not thread-safe
 
 
