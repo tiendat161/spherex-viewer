@@ -15,7 +15,7 @@ Details of finished work (what, why, what is still missing) are in [`WORKLOG.md`
 
 | ID | Task | Owner | Touches |
 |---|---|---|---|
-| T13 | Field-of-view selector: 0.1°, 0.2° (default), 0.5°, 1°, also as `&fov=` in the URL | `t13-fov-selector` | `contracts/`, `docs/contract.md`, `api/main.py`, `pipeline/live.py`, `web/src/main.js`, `web/src/model.js`, `web/src/api.js`, `web/index.html`, `web/mock/` |
+| | *(none)* | | |
 
 ## Todo
 
@@ -59,3 +59,4 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 | T08 | Stacked visits per detector band, difference from first visit, time or wavelength frame order | "add together all the data taken by each of the six detector arrays", "add together or subtract images taken at different times" | `d1b0575`, `6727df2`, `c17c5bb`, `cf89aa9`, `b6f9771` |
 | T09 | "Mark centre" toggle (circle hidden by default) | none | `cf89aa9` |
 | T11 | Push `main` to `origin` | none | pushed up to `ac6e722` |
+| T13 | Field-of-view selector: 0.1°, 0.2° (default), 0.5°, 1°; `&fov=` in the URL; wide-field wavelength note | "Let users choose the field of view" | `07fc9f5` (contract), `1703a89`, `cb845e5` |

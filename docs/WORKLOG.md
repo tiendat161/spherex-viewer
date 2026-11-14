@@ -15,6 +15,27 @@ Commits: abc1234, def5678
 
 ---
 
+## 2026-11-14: Field-of-view selector (T13)
+Commits: `07fc9f5` (contract), `1703a89`, `cb845e5`
+
+**What:**
+- `/api/series` accepts `fov` 0.1, 0.2, 0.5 or 1 (degrees); anything else is `status: "error"`. Grid sizes are 58, 116, 290 and 581 pixels.
+- The cache is 0.2° only, so every other size is built live, also at a cached target's position. With `SPHEREX_LIVE=0` those sizes return an error.
+- The form has a "Field of view" selector. Changing it reloads the position on screen at that size. The page URL carries `&fov=` (left out for 0.2°, so old links are unchanged); an unsupported `fov` in a link falls back to 0.2°. Cached-target buttons always load the cached 0.2° series.
+- The scale bar is 60″, 2′ or 5′ depending on the field. From 0.5° up a note says the wavelength shown is exact only at the centre.
+- The mock API returns placeholder frames of the matching size (SIMULATED).
+
+**Why:** The schema needed no structural change (`grid.shape` was already free), so the contract commit only states the allowed values. A fixed list keeps series identity simple and bounds the cost. The selector reloads at once, like the other selectors; target buttons reset to 0.2° so one click never starts a multi-minute live build by accident.
+
+**Checked with real data:** 4-frame live builds at the WISE 0855 position: 0.5° gave 4 of 4 frames in 37 s, 1° gave 3 of 4 in 54 s (one archive failure). One PNG of each was inspected and shows a star field. Screenshot of the UI at 0.5° (mock data): `verify/out/web-mock-fov05.png`.
+
+**Gaps:**
+- A full 40-frame series at 0.5° or 1° was not run through the browser against the real archive; only the 4-frame builds above and the mock.
+- How much the wavelength changes across a 0.5° or 1° field is not measured; the note gives no number.
+- At 0.5° and 1° some frames have an empty corner where the field runs off the detector (flagged fraction up to 0.22 in the test builds). The stacked view was not inspected at these sizes.
+- Memory: a finished 1° live series keeps about 40 PNGs of 581 × 581 plus stacks, and up to 30 series are kept. Not measured; relevant for T10 and T22.
+- `make verify` still covers only the cached 0.2° targets (it must not contact IRSA).
+
 ## 2026-11-14: Task board and work log
 Commits: this commit
 
