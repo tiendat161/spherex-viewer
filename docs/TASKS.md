@@ -24,7 +24,6 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 | ID | P | Task | Challenge item | Touches | Notes |
 |---|---|---|---|---|---|
 | T10 | P1 | Deploy a public link | "public-facing web tool" | new `Dockerfile` or hosting config, `README.md` | Not deployed anywhere. Live builds need a running Python backend; a static-only host would be cached targets only. Independent of all other tasks. |
-| T11 | P1 | Push `main` to `origin` | none | git only | `main` is ahead of `origin`; the only copy is this machine. Needs Dat's go-ahead. |
 | T12 | P1 | Submission paperwork: rewrite `README.md`, finish `REFERENCES.md`, demo video | submission | `README.md`, `REFERENCES.md` | README still says "generic scaffolding only". Submission deadline is still unknown: check first. Independent of code tasks. |
 | T13 | P2 | Field-of-view selector: 0.1°, 0.2° (default), 0.5°, 1°, also as `&fov=` in the URL | "Let users choose the field of view" | `contracts/`, `docs/contract.md`, `api/main.py`, `pipeline/live.py`, `web/src/main.js`, `web/src/model.js`, `web/index.html` | API currently rejects anything but 0.2. Cached targets exist only at 0.2; other sizes build live. Timings measured, see WORKLOG 2026-11-14 "FOV timing". At 0.5° and 1° the UI must say the wavelength shown is only exact at the centre. |
 | T14 | P2 | Spectrum on click: brightness of the clicked point across all bands | "Extra kudos if your tool can generate spectra on the fly" | `contracts/`, `pipeline/` (new per-frame flux data), `api/main.py`, `web/src/main.js` | Needs per-frame flux values, which the 8-bit PNGs do not carry. Clashes with T13 and T15 in `main.js`. |
@@ -60,3 +59,4 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 | T07 | Median background subtraction per image | less flicker in a time-ordered blink | `6727df2`, `c17c5bb` |
 | T08 | Stacked visits per detector band, difference from first visit, time or wavelength frame order | "add together all the data taken by each of the six detector arrays", "add together or subtract images taken at different times" | `d1b0575`, `6727df2`, `c17c5bb`, `cf89aa9`, `b6f9771` |
 | T09 | "Mark centre" toggle (circle hidden by default) | none | `cf89aa9` |
+| T11 | Push `main` to `origin` | none | pushed up to `ac6e722` |
