@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "targets.schema.json",
   "title": "Targets response",
-  "description": "Response body of GET /api/targets: the targets whose series are cached. Requesting GET /api/series with a target's ra and dec (fov=0.2, max_frames=40) returns its cached series. See docs/build-plan.md.",
+  "description": "Response body of GET /api/targets: the targets whose series are cached. Requesting GET /api/series with a target's ra and dec (fov=0.2, the default, and max_frames at least the series' frame count) returns its cached series. See docs/build-plan.md.",
   "type": "array",
   "items": {
     "type": "object",

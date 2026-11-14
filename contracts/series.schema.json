@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "series.schema.json",
   "title": "Series response",
-  "description": "Response body of GET /api/series?ra=&dec=&fov=0.2&max_frames=40. See docs/contract.md. DRAFT: several definitions are open decisions listed there.",
+  "description": "Response body of GET /api/series?ra=&dec=&fov=&max_frames=. fov is one of 0.1, 0.2 (default), 0.5, 1 degrees; any other value gives status error. See docs/contract.md. DRAFT: several definitions are open decisions listed there.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -194,7 +194,7 @@
           "const": 6.2
         },
         "shape": {
-          "description": "[ny, nx] in pixels.",
+          "description": "[ny, nx] in pixels: round(fov * 3600 / 6.2) on each side, so [58, 58], [116, 116], [290, 290] or [581, 581] for fov 0.1, 0.2, 0.5 or 1.",
           "type": "array",
           "minItems": 2,
           "maxItems": 2,

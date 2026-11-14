@@ -13,14 +13,14 @@ So the API fetches and resamples in the background, serves small images from its
 ## Request
 
 ```
-GET /api/series?ra=<deg>&dec=<deg>&fov=0.2&max_frames=102
+GET /api/series?ra=<deg>&dec=<deg>&fov=<deg>&max_frames=102
 ```
 
 | Parameter | Required | Default | Meaning |
 |---|---|---|---|
 | `ra` | yes | none | Right ascension, ICRS, decimal degrees, 0 ≤ ra < 360 |
 | `dec` | yes | none | Declination, ICRS, decimal degrees, −90 to 90 |
-| `fov` | no | `0.2` | Full width of the square field, degrees |
+| `fov` | no | `0.2` | Full width of the square field, degrees. One of `0.1`, `0.2`, `0.5`, `1` (2026-11-14, T13: was `0.2` only); any other value returns `status: "error"` |
 | `max_frames` | no | `102` | Upper limit on frames in the series. A cached series is returned only when its frame count is at most `max_frames` (2026-11-14: was a fixed 40; raised so the WISE 0855 per-wavelength series fits) |
 
 The coordinates are used as given: no epoch or proper-motion correction (open decision 1).
@@ -61,7 +61,9 @@ Every frame is resampled onto the same grid, so frame *n* pixel (y, x) is the sa
 - tangent-plane (TAN) projection in ICRS, centred on `grid.center`;
 - north up, east left;
 - square pixels of 6.2″;
-- size from `fov`: for `fov=0.2`, 720″ / 6.2″ = 116.1, so `[116, 116]` (open decision 9).
+- size from `fov`: `round(fov × 3600 / 6.2)` pixels on each side. For `fov=0.2`, 720″ / 6.2″ = 116.1, so `[116, 116]` (open decision 9); `[58, 58]` for 0.1, `[290, 290]` for 0.5, `[581, 581]` for 1.
+
+`frames[].wavelength_um` is evaluated at `grid.center` only. The archive gives the wavelength per detector position (the `WCS-WAVE` lookup, prototype choice 4), so other positions in the field were observed at other wavelengths; how much it changes across a 0.5° or 1° field has not been measured here (UNVERIFIED). Clients must say so for `fov` of 0.5 and above.
 
 The source images are ICRS with a `TAN-SIP` WCS tied to each image's own observation epoch (spike §4, verified from headers). A moving target therefore shifts across the fixed grid from frame to frame: for WISE 0855 about 8.4″ (about 1.4 px) over the 373.6-day observation period, using a proper motion the spike marks UNVERIFIED (spike §4).
 
@@ -110,7 +112,7 @@ Provisional answers adopted for the prototype so the build sessions are not bloc
 | 10 | Bilinear (`reproject.reproject_interp`). |
 | 11 | Honour `retry-after`; up to 4 attempts per cutout, then the frame counts as failed. |
 | 12 | Always HTTP 200 with `status` in the body; poll every 2 s; no machine-readable error code. |
-| 13 | Cached targets first: a request matches if within 1″ of a cached position with `fov=0.2` and `max_frames` at least the series' frame count (at most 102). **Any other position is built live (2026-11-14, `pipeline/live.py`):** min(`max_frames`, 40) frames, evenly spaced in time, same grid, flag and stretch rules as the cache. Requests within 1″ of a live series share it. Live series are held in memory only (lost on restart; the 30 most recent are kept); 2 are built at a time and 6 more may wait, beyond that the response is `status: "error"`. A failed live series is retried when requested again after 60 s. `fov` other than 0.2 still returns `status: "error"`. With `SPHEREX_LIVE=0` the API serves the cache only. |
+| 13 | Cached targets first: a request matches if within 1″ of a cached position with `fov=0.2` and `max_frames` at least the series' frame count (at most 102). **Any other position is built live (2026-11-14, `pipeline/live.py`):** min(`max_frames`, 40) frames, evenly spaced in time, same grid, flag and stretch rules as the cache. Requests within 1″ of a live series share it. Live series are held in memory only (lost on restart; the 30 most recent are kept); 2 are built at a time and 6 more may wait, beyond that the response is `status: "error"`. A failed live series is retried when requested again after 60 s. **`fov` (2026-11-14, T13):** the cache holds `fov=0.2` only, so a request with `fov` 0.1, 0.5 or 1 is always built live, also at a cached position; requests share a live series only when `fov` is the same. Any other `fov` returns `status: "error"`. At 1° the archive cutout can be clipped at the detector edge, leaving part of the grid without data (counted in `flag_fraction`). With `SPHEREX_LIVE=0` the API serves the cache only. |
 | 14 | Prefer `dr1` when the same observation appears under both release paths. |
 | 15 | `url` = `/api/frames/<id>/NN.png`, a path on the API origin, kept as long as the cache is deployed. |
 
@@ -130,6 +132,6 @@ Each item gives the provisional choice in the current schema or fixture. See [Pr
 10. **Resampling method.** Nearest neighbour, bilinear or flux-conserving, from a `TAN-SIP` source.
 11. **Failed frames.** How many 503 retries before a frame counts as failed (the spike's probes succeeded within 2 to 3 attempts at 5 s spacing, §2). Provisional: failed frames are left out of `frames` and `index` keeps the planned position.
 12. **Loading and error transport.** Provisional: always HTTP 200 with `status` in the body. Alternatives: 202 while loading, 4xx/5xx on error. Also the recommended poll interval and whether `error` needs a machine-readable code.
-13. **Parameter limits and series identity.** Maximum `fov` and `max_frames`, and how `ra`/`dec` are rounded so repeated polls map to the same series.
+13. **Parameter limits and series identity.** Maximum `fov` (now the fixed list 0.1, 0.2, 0.5, 1) and `max_frames`, and how `ra`/`dec` are rounded so repeated polls map to the same series.
 14. **Mixed data releases.** Rows can span `dr1` and `qr3` release paths (spike §1); decide whether to prefer one or de-duplicate. The cached WISE 0855 rows are all `dr1`.
 15. **`url` form.** Provisional: a path on the API origin. Alternative: absolute URL. Also how long frame PNGs stay available.
