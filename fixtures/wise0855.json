@@ -1,0 +1,308 @@
+{
+  "status": "ready",
+  "data_origin": "simulated",
+  "progress": {
+    "done": 40,
+    "total": 40,
+    "failed": 0
+  },
+  "grid": {
+    "center": {
+      "ra": 133.795129,
+      "dec": -7.245147
+    },
+    "pixel_scale_arcsec": 6.2,
+    "shape": [
+      116,
+      116
+    ]
+  },
+  "stretch": {
+    "kind": "asinh",
+    "vmin": 0.0,
+    "vmax": 1.0,
+    "unit": "placeholder"
+  },
+  "frames": [
+    {
+      "index": 0,
+      "obs_mjd": 60800.700028,
+      "wavelength_um": 0.75,
+      "url": "/api/frames/placeholder/00.png",
+      "flag_fraction": 0.0
+    },
+    {
+      "index": 1,
+      "obs_mjd": 60801.106596,
+      "wavelength_um": 0.859,
+      "url": "/api/frames/placeholder/01.png",
+      "flag_fraction": 0.07
+    },
+    {
+      "index": 2,
+      "obs_mjd": 60801.111073,
+      "wavelength_um": 0.968,
+      "url": "/api/frames/placeholder/02.png",
+      "flag_fraction": 0.14
+    },
+    {
+      "index": 3,
+      "obs_mjd": 60801.448624,
+      "wavelength_um": 1.077,
+      "url": "/api/frames/placeholder/03.png",
+      "flag_fraction": 0.01
+    },
+    {
+      "index": 4,
+      "obs_mjd": 60801.515669,
+      "wavelength_um": 1.186,
+      "url": "/api/frames/placeholder/04.png",
+      "flag_fraction": 0.08
+    },
+    {
+      "index": 5,
+      "obs_mjd": 60979.722677,
+      "wavelength_um": 1.295,
+      "url": "/api/frames/placeholder/05.png",
+      "flag_fraction": 0.15
+    },
+    {
+      "index": 6,
+      "obs_mjd": 60979.727154,
+      "wavelength_um": 1.404,
+      "url": "/api/frames/placeholder/06.png",
+      "flag_fraction": 0.02
+    },
+    {
+      "index": 7,
+      "obs_mjd": 60979.788638,
+      "wavelength_um": 1.513,
+      "url": "/api/frames/placeholder/07.png",
+      "flag_fraction": 0.09
+    },
+    {
+      "index": 8,
+      "obs_mjd": 60979.793115,
+      "wavelength_um": 1.622,
+      "url": "/api/frames/placeholder/08.png",
+      "flag_fraction": 0.16
+    },
+    {
+      "index": 9,
+      "obs_mjd": 60982.442188,
+      "wavelength_um": 1.731,
+      "url": "/api/frames/placeholder/09.png",
+      "flag_fraction": 0.03
+    },
+    {
+      "index": 10,
+      "obs_mjd": 60982.50957,
+      "wavelength_um": 1.84,
+      "url": "/api/frames/placeholder/10.png",
+      "flag_fraction": 0.1
+    },
+    {
+      "index": 11,
+      "obs_mjd": 60986.240989,
+      "wavelength_um": 1.949,
+      "url": "/api/frames/placeholder/11.png",
+      "flag_fraction": 0.17
+    },
+    {
+      "index": 12,
+      "obs_mjd": 60986.245466,
+      "wavelength_um": 2.058,
+      "url": "/api/frames/placeholder/12.png",
+      "flag_fraction": 0.04
+    },
+    {
+      "index": 13,
+      "obs_mjd": 60986.782802,
+      "wavelength_um": 2.167,
+      "url": "/api/frames/placeholder/13.png",
+      "flag_fraction": 0.11
+    },
+    {
+      "index": 14,
+      "obs_mjd": 60986.787279,
+      "wavelength_um": 2.276,
+      "url": "/api/frames/placeholder/14.png",
+      "flag_fraction": 0.18
+    },
+    {
+      "index": 15,
+      "obs_mjd": 60986.856669,
+      "wavelength_um": 2.385,
+      "url": "/api/frames/placeholder/15.png",
+      "flag_fraction": 0.05
+    },
+    {
+      "index": 16,
+      "obs_mjd": 60986.924229,
+      "wavelength_um": 2.494,
+      "url": "/api/frames/placeholder/16.png",
+      "flag_fraction": 0.12
+    },
+    {
+      "index": 17,
+      "obs_mjd": 60989.296807,
+      "wavelength_um": 2.603,
+      "url": "/api/frames/placeholder/17.png",
+      "flag_fraction": 0.19
+    },
+    {
+      "index": 18,
+      "obs_mjd": 60989.301533,
+      "wavelength_um": 2.712,
+      "url": "/api/frames/placeholder/18.png",
+      "flag_fraction": 0.06
+    },
+    {
+      "index": 19,
+      "obs_mjd": 60989.367761,
+      "wavelength_um": 2.821,
+      "url": "/api/frames/placeholder/19.png",
+      "flag_fraction": 0.13
+    },
+    {
+      "index": 20,
+      "obs_mjd": 60989.978484,
+      "wavelength_um": 2.929,
+      "url": "/api/frames/placeholder/20.png",
+      "flag_fraction": 0.0
+    },
+    {
+      "index": 21,
+      "obs_mjd": 60993.508093,
+      "wavelength_um": 3.038,
+      "url": "/api/frames/placeholder/21.png",
+      "flag_fraction": 0.07
+    },
+    {
+      "index": 22,
+      "obs_mjd": 60993.575742,
+      "wavelength_um": 3.147,
+      "url": "/api/frames/placeholder/22.png",
+      "flag_fraction": 0.14
+    },
+    {
+      "index": 23,
+      "obs_mjd": 60993.912885,
+      "wavelength_um": 3.256,
+      "url": "/api/frames/placeholder/23.png",
+      "flag_fraction": 0.01
+    },
+    {
+      "index": 24,
+      "obs_mjd": 61021.282827,
+      "wavelength_um": 3.365,
+      "url": "/api/frames/placeholder/24.png",
+      "flag_fraction": 0.08
+    },
+    {
+      "index": 25,
+      "obs_mjd": 61021.8922,
+      "wavelength_um": 3.474,
+      "url": "/api/frames/placeholder/25.png",
+      "flag_fraction": 0.15
+    },
+    {
+      "index": 26,
+      "obs_mjd": 61022.368105,
+      "wavelength_um": 3.583,
+      "url": "/api/frames/placeholder/26.png",
+      "flag_fraction": 0.02
+    },
+    {
+      "index": 27,
+      "obs_mjd": 61151.200918,
+      "wavelength_um": 3.692,
+      "url": "/api/frames/placeholder/27.png",
+      "flag_fraction": 0.09
+    },
+    {
+      "index": 28,
+      "obs_mjd": 61152.760288,
+      "wavelength_um": 3.801,
+      "url": "/api/frames/placeholder/28.png",
+      "flag_fraction": 0.16
+    },
+    {
+      "index": 29,
+      "obs_mjd": 61153.439442,
+      "wavelength_um": 3.91,
+      "url": "/api/frames/placeholder/29.png",
+      "flag_fraction": 0.03
+    },
+    {
+      "index": 30,
+      "obs_mjd": 61156.152716,
+      "wavelength_um": 4.019,
+      "url": "/api/frames/placeholder/30.png",
+      "flag_fraction": 0.1
+    },
+    {
+      "index": 31,
+      "obs_mjd": 61156.494673,
+      "wavelength_um": 4.128,
+      "url": "/api/frames/placeholder/31.png",
+      "flag_fraction": 0.17
+    },
+    {
+      "index": 32,
+      "obs_mjd": 61161.58836,
+      "wavelength_um": 4.237,
+      "url": "/api/frames/placeholder/32.png",
+      "flag_fraction": 0.04
+    },
+    {
+      "index": 33,
+      "obs_mjd": 61161.655174,
+      "wavelength_um": 4.346,
+      "url": "/api/frames/placeholder/33.png",
+      "flag_fraction": 0.11
+    },
+    {
+      "index": 34,
+      "obs_mjd": 61162.336956,
+      "wavelength_um": 4.455,
+      "url": "/api/frames/placeholder/34.png",
+      "flag_fraction": 0.18
+    },
+    {
+      "index": 35,
+      "obs_mjd": 61162.673655,
+      "wavelength_um": 4.564,
+      "url": "/api/frames/placeholder/35.png",
+      "flag_fraction": 0.05
+    },
+    {
+      "index": 36,
+      "obs_mjd": 61163.217209,
+      "wavelength_um": 4.673,
+      "url": "/api/frames/placeholder/36.png",
+      "flag_fraction": 0.12
+    },
+    {
+      "index": 37,
+      "obs_mjd": 61163.286314,
+      "wavelength_um": 4.782,
+      "url": "/api/frames/placeholder/37.png",
+      "flag_fraction": 0.19
+    },
+    {
+      "index": 38,
+      "obs_mjd": 61164.63899,
+      "wavelength_um": 4.891,
+      "url": "/api/frames/placeholder/38.png",
+      "flag_fraction": 0.06
+    },
+    {
+      "index": 39,
+      "obs_mjd": 61165.588651,
+      "wavelength_um": 5.0,
+      "url": "/api/frames/placeholder/39.png",
+      "flag_fraction": 0.13
+    }
+  ]
+}
