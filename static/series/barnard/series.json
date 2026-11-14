@@ -19,8 +19,8 @@
  },
  "stretch": {
   "kind": "asinh",
-  "vmin": 0.115365,
-  "vmax": 7.056813,
+  "vmin": -0.083987,
+  "vmax": 6.787018,
   "unit": "MJy / sr"
  },
  "frames": [
@@ -283,5 +283,266 @@
    "url": "/api/frames/barnard/39.png",
    "flag_fraction": 0.0282
   }
- ]
+ ],
+ "background": "median_subtracted",
+ "stacks": {
+  "visits": [
+   {
+    "index": 0,
+    "start_mjd": 60902.864715,
+    "end_mjd": 60948.653237
+   },
+   {
+    "index": 1,
+    "start_mjd": 61110.091403,
+    "end_mjd": 61165.082972
+   },
+   {
+    "index": 2,
+    "start_mjd": 61269.037895,
+    "end_mjd": 61305.628021
+   }
+  ],
+  "bands": [
+   {
+    "id": "all",
+    "wavelength_min_um": 0.76358,
+    "wavelength_max_um": 5.00232,
+    "stretch": {
+     "kind": "asinh",
+     "vmin": -0.056219,
+     "vmax": 8.933838,
+     "unit": "MJy / sr"
+    },
+    "diff_limit": 2.416625
+   },
+   {
+    "id": "D1",
+    "wavelength_min_um": 0.76358,
+    "wavelength_max_um": 1.0398,
+    "stretch": {
+     "kind": "asinh",
+     "vmin": -0.071733,
+     "vmax": 9.677275,
+     "unit": "MJy / sr"
+    },
+    "diff_limit": 4.9284
+   },
+   {
+    "id": "D2",
+    "wavelength_min_um": 1.10946,
+    "wavelength_max_um": 1.5763,
+    "stretch": {
+     "kind": "asinh",
+     "vmin": -0.080349,
+     "vmax": 13.150626,
+     "unit": "MJy / sr"
+    },
+    "diff_limit": 3.797223
+   },
+   {
+    "id": "D3",
+    "wavelength_min_um": 1.8048,
+    "wavelength_max_um": 2.29949,
+    "stretch": {
+     "kind": "asinh",
+     "vmin": -0.06975,
+     "vmax": 12.470961,
+     "unit": "MJy / sr"
+    },
+    "diff_limit": 5.862002
+   },
+   {
+    "id": "D4",
+    "wavelength_min_um": 2.42635,
+    "wavelength_max_um": 3.60188,
+    "stretch": {
+     "kind": "asinh",
+     "vmin": -0.046064,
+     "vmax": 14.039759,
+     "unit": "MJy / sr"
+    },
+    "diff_limit": 15.556757
+   },
+   {
+    "id": "D5",
+    "wavelength_min_um": 3.96821,
+    "wavelength_max_um": 4.36989,
+    "stretch": {
+     "kind": "asinh",
+     "vmin": -0.070117,
+     "vmax": 8.866686,
+     "unit": "MJy / sr"
+    },
+    "diff_limit": 14.749509
+   },
+   {
+    "id": "D6",
+    "wavelength_min_um": 4.39458,
+    "wavelength_max_um": 5.00232,
+    "stretch": {
+     "kind": "asinh",
+     "vmin": -0.082692,
+     "vmax": 13.161612,
+     "unit": "MJy / sr"
+    },
+    "diff_limit": 35.668067
+   }
+  ],
+  "images": [
+   {
+    "visit": 0,
+    "band": "all",
+    "url": "/api/frames/barnard/s_all_0.png",
+    "n_images": 12,
+    "flag_fraction": 0.0005
+   },
+   {
+    "visit": 0,
+    "band": "D1",
+    "url": "/api/frames/barnard/s_D1_0.png",
+    "n_images": 1,
+    "flag_fraction": 0.0201
+   },
+   {
+    "visit": 0,
+    "band": "D2",
+    "url": "/api/frames/barnard/s_D2_0.png",
+    "n_images": 3,
+    "flag_fraction": 0.003
+   },
+   {
+    "visit": 0,
+    "band": "D3",
+    "url": "/api/frames/barnard/s_D3_0.png",
+    "n_images": 2,
+    "flag_fraction": 0.0044
+   },
+   {
+    "visit": 0,
+    "band": "D4",
+    "url": "/api/frames/barnard/s_D4_0.png",
+    "n_images": 4,
+    "flag_fraction": 0.0039
+   },
+   {
+    "visit": 0,
+    "band": "D5",
+    "url": "/api/frames/barnard/s_D5_0.png",
+    "n_images": 1,
+    "flag_fraction": 0.0213
+   },
+   {
+    "visit": 0,
+    "band": "D6",
+    "url": "/api/frames/barnard/s_D6_0.png",
+    "n_images": 1,
+    "flag_fraction": 0.0188
+   },
+   {
+    "visit": 1,
+    "band": "all",
+    "url": "/api/frames/barnard/s_all_1.png",
+    "n_images": 13,
+    "flag_fraction": 0.0004,
+    "diff_url": "/api/frames/barnard/d_all_1.png"
+   },
+   {
+    "visit": 1,
+    "band": "D1",
+    "url": "/api/frames/barnard/s_D1_1.png",
+    "n_images": 2,
+    "flag_fraction": 0.0077,
+    "diff_url": "/api/frames/barnard/d_D1_1.png"
+   },
+   {
+    "visit": 1,
+    "band": "D2",
+    "url": "/api/frames/barnard/s_D2_1.png",
+    "n_images": 2,
+    "flag_fraction": 0.0035,
+    "diff_url": "/api/frames/barnard/d_D2_1.png"
+   },
+   {
+    "visit": 1,
+    "band": "D3",
+    "url": "/api/frames/barnard/s_D3_1.png",
+    "n_images": 2,
+    "flag_fraction": 0.0437,
+    "diff_url": "/api/frames/barnard/d_D3_1.png"
+   },
+   {
+    "visit": 1,
+    "band": "D4",
+    "url": "/api/frames/barnard/s_D4_1.png",
+    "n_images": 2,
+    "flag_fraction": 0.0164,
+    "diff_url": "/api/frames/barnard/d_D4_1.png"
+   },
+   {
+    "visit": 1,
+    "band": "D5",
+    "url": "/api/frames/barnard/s_D5_1.png",
+    "n_images": 1,
+    "flag_fraction": 0.014,
+    "diff_url": "/api/frames/barnard/d_D5_1.png"
+   },
+   {
+    "visit": 1,
+    "band": "D6",
+    "url": "/api/frames/barnard/s_D6_1.png",
+    "n_images": 4,
+    "flag_fraction": 0.0006,
+    "diff_url": "/api/frames/barnard/d_D6_1.png"
+   },
+   {
+    "visit": 2,
+    "band": "all",
+    "url": "/api/frames/barnard/s_all_2.png",
+    "n_images": 12,
+    "flag_fraction": 0.0008,
+    "diff_url": "/api/frames/barnard/d_all_2.png"
+   },
+   {
+    "visit": 2,
+    "band": "D1",
+    "url": "/api/frames/barnard/s_D1_2.png",
+    "n_images": 2,
+    "flag_fraction": 0.0066,
+    "diff_url": "/api/frames/barnard/d_D1_2.png"
+   },
+   {
+    "visit": 2,
+    "band": "D2",
+    "url": "/api/frames/barnard/s_D2_2.png",
+    "n_images": 4,
+    "flag_fraction": 0.0025,
+    "diff_url": "/api/frames/barnard/d_D2_2.png"
+   },
+   {
+    "visit": 2,
+    "band": "D3",
+    "url": "/api/frames/barnard/s_D3_2.png",
+    "n_images": 2,
+    "flag_fraction": 0.0056,
+    "diff_url": "/api/frames/barnard/d_D3_2.png"
+   },
+   {
+    "visit": 2,
+    "band": "D4",
+    "url": "/api/frames/barnard/s_D4_2.png",
+    "n_images": 1,
+    "flag_fraction": 0.0304,
+    "diff_url": "/api/frames/barnard/d_D4_2.png"
+   },
+   {
+    "visit": 2,
+    "band": "D5",
+    "url": "/api/frames/barnard/s_D5_2.png",
+    "n_images": 3,
+    "flag_fraction": 0.0008,
+    "diff_url": "/api/frames/barnard/d_D5_2.png"
+   }
+  ]
+ }
 }

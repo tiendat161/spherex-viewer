@@ -19,8 +19,8 @@
  },
  "stretch": {
   "kind": "asinh",
-  "vmin": 0.111318,
-  "vmax": 1.46753,
+  "vmin": -0.073891,
+  "vmax": 1.199541,
   "unit": "MJy / sr"
  },
  "frames": [
@@ -738,5 +738,274 @@
    "url": "/api/frames/wise0855/101.png",
    "flag_fraction": 0.0289
   }
- ]
+ ],
+ "background": "median_subtracted",
+ "stacks": {
+  "visits": [
+   {
+    "index": 0,
+    "start_mjd": 60800.700028,
+    "end_mjd": 60801.518654
+   },
+   {
+    "index": 1,
+    "start_mjd": 60979.722677,
+    "end_mjd": 61022.368105
+   },
+   {
+    "index": 2,
+    "start_mjd": 61151.197933,
+    "end_mjd": 61174.287218
+   }
+  ],
+  "bands": [
+   {
+    "id": "all",
+    "wavelength_min_um": 0.74248,
+    "wavelength_max_um": 5.00451,
+    "stretch": {
+     "kind": "asinh",
+     "vmin": -0.012963,
+     "vmax": 0.999372,
+     "unit": "MJy / sr"
+    },
+    "diff_limit": 0.097943
+   },
+   {
+    "id": "D1",
+    "wavelength_min_um": 0.74248,
+    "wavelength_max_um": 1.11472,
+    "stretch": {
+     "kind": "asinh",
+     "vmin": -0.145526,
+     "vmax": 1.612468,
+     "unit": "MJy / sr"
+    },
+    "diff_limit": 0.431966
+   },
+   {
+    "id": "D2",
+    "wavelength_min_um": 1.09524,
+    "wavelength_max_um": 1.62876,
+    "stretch": {
+     "kind": "asinh",
+     "vmin": -0.014818,
+     "vmax": 1.754482,
+     "unit": "MJy / sr"
+    },
+    "diff_limit": 0.210976
+   },
+   {
+    "id": "D3",
+    "wavelength_min_um": 1.6237,
+    "wavelength_max_um": 2.4139,
+    "stretch": {
+     "kind": "asinh",
+     "vmin": -0.018844,
+     "vmax": 1.333966,
+     "unit": "MJy / sr"
+    },
+    "diff_limit": 0.35982
+   },
+   {
+    "id": "D4",
+    "wavelength_min_um": 2.42373,
+    "wavelength_max_um": 3.83064,
+    "stretch": {
+     "kind": "asinh",
+     "vmin": -0.014341,
+     "vmax": 1.179081,
+     "unit": "MJy / sr"
+    },
+    "diff_limit": 2.458136
+   },
+   {
+    "id": "D5",
+    "wavelength_min_um": 3.8135,
+    "wavelength_max_um": 4.407,
+    "stretch": {
+     "kind": "asinh",
+     "vmin": -0.025152,
+     "vmax": 0.49948,
+     "unit": "MJy / sr"
+    },
+    "diff_limit": 0.195775
+   },
+   {
+    "id": "D6",
+    "wavelength_min_um": 4.4109,
+    "wavelength_max_um": 5.00451,
+    "stretch": {
+     "kind": "asinh",
+     "vmin": -0.062198,
+     "vmax": 0.4288,
+     "unit": "MJy / sr"
+    },
+    "diff_limit": 0.959367
+   }
+  ],
+  "images": [
+   {
+    "visit": 0,
+    "band": "all",
+    "url": "/api/frames/wise0855/s_all_0.png",
+    "n_images": 30,
+    "flag_fraction": 0.0
+   },
+   {
+    "visit": 0,
+    "band": "D1",
+    "url": "/api/frames/wise0855/s_D1_0.png",
+    "n_images": 4,
+    "flag_fraction": 0.0007
+   },
+   {
+    "visit": 0,
+    "band": "D2",
+    "url": "/api/frames/wise0855/s_D2_0.png",
+    "n_images": 8,
+    "flag_fraction": 0.0001
+   },
+   {
+    "visit": 0,
+    "band": "D3",
+    "url": "/api/frames/wise0855/s_D3_0.png",
+    "n_images": 3,
+    "flag_fraction": 0.004
+   },
+   {
+    "visit": 0,
+    "band": "D4",
+    "url": "/api/frames/wise0855/s_D4_0.png",
+    "n_images": 4,
+    "flag_fraction": 0.0002
+   },
+   {
+    "visit": 0,
+    "band": "D5",
+    "url": "/api/frames/wise0855/s_D5_0.png",
+    "n_images": 8,
+    "flag_fraction": 0.0
+   },
+   {
+    "visit": 0,
+    "band": "D6",
+    "url": "/api/frames/wise0855/s_D6_0.png",
+    "n_images": 3,
+    "flag_fraction": 0.0004
+   },
+   {
+    "visit": 1,
+    "band": "all",
+    "url": "/api/frames/wise0855/s_all_1.png",
+    "n_images": 128,
+    "flag_fraction": 0.0,
+    "diff_url": "/api/frames/wise0855/d_all_1.png"
+   },
+   {
+    "visit": 1,
+    "band": "D1",
+    "url": "/api/frames/wise0855/s_D1_1.png",
+    "n_images": 18,
+    "flag_fraction": 0.0,
+    "diff_url": "/api/frames/wise0855/d_D1_1.png"
+   },
+   {
+    "visit": 1,
+    "band": "D2",
+    "url": "/api/frames/wise0855/s_D2_1.png",
+    "n_images": 25,
+    "flag_fraction": 0.0,
+    "diff_url": "/api/frames/wise0855/d_D2_1.png"
+   },
+   {
+    "visit": 1,
+    "band": "D3",
+    "url": "/api/frames/wise0855/s_D3_1.png",
+    "n_images": 21,
+    "flag_fraction": 0.0001,
+    "diff_url": "/api/frames/wise0855/d_D3_1.png"
+   },
+   {
+    "visit": 1,
+    "band": "D4",
+    "url": "/api/frames/wise0855/s_D4_1.png",
+    "n_images": 18,
+    "flag_fraction": 0.0,
+    "diff_url": "/api/frames/wise0855/d_D4_1.png"
+   },
+   {
+    "visit": 1,
+    "band": "D5",
+    "url": "/api/frames/wise0855/s_D5_1.png",
+    "n_images": 25,
+    "flag_fraction": 0.0,
+    "diff_url": "/api/frames/wise0855/d_D5_1.png"
+   },
+   {
+    "visit": 1,
+    "band": "D6",
+    "url": "/api/frames/wise0855/s_D6_1.png",
+    "n_images": 21,
+    "flag_fraction": 0.0,
+    "diff_url": "/api/frames/wise0855/d_D6_1.png"
+   },
+   {
+    "visit": 2,
+    "band": "all",
+    "url": "/api/frames/wise0855/s_all_2.png",
+    "n_images": 100,
+    "flag_fraction": 0.0,
+    "diff_url": "/api/frames/wise0855/d_all_2.png"
+   },
+   {
+    "visit": 2,
+    "band": "D1",
+    "url": "/api/frames/wise0855/s_D1_2.png",
+    "n_images": 14,
+    "flag_fraction": 0.0,
+    "diff_url": "/api/frames/wise0855/d_D1_2.png"
+   },
+   {
+    "visit": 2,
+    "band": "D2",
+    "url": "/api/frames/wise0855/s_D2_2.png",
+    "n_images": 15,
+    "flag_fraction": 0.0,
+    "diff_url": "/api/frames/wise0855/d_D2_2.png"
+   },
+   {
+    "visit": 2,
+    "band": "D3",
+    "url": "/api/frames/wise0855/s_D3_2.png",
+    "n_images": 21,
+    "flag_fraction": 0.0001,
+    "diff_url": "/api/frames/wise0855/d_D3_2.png"
+   },
+   {
+    "visit": 2,
+    "band": "D4",
+    "url": "/api/frames/wise0855/s_D4_2.png",
+    "n_images": 14,
+    "flag_fraction": 0.0,
+    "diff_url": "/api/frames/wise0855/d_D4_2.png"
+   },
+   {
+    "visit": 2,
+    "band": "D5",
+    "url": "/api/frames/wise0855/s_D5_2.png",
+    "n_images": 15,
+    "flag_fraction": 0.0,
+    "diff_url": "/api/frames/wise0855/d_D5_2.png"
+   },
+   {
+    "visit": 2,
+    "band": "D6",
+    "url": "/api/frames/wise0855/s_D6_2.png",
+    "n_images": 21,
+    "flag_fraction": 0.0,
+    "diff_url": "/api/frames/wise0855/d_D6_2.png"
+   }
+  ]
+ }
 }

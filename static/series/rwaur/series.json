@@ -19,8 +19,8 @@
  },
  "stretch": {
   "kind": "asinh",
-  "vmin": 0.182072,
-  "vmax": 7.129968,
+  "vmin": -0.331137,
+  "vmax": 6.715548,
   "unit": "MJy / sr"
  },
  "frames": [
@@ -304,5 +304,274 @@
    "url": "/api/frames/rwaur/39.png",
    "flag_fraction": 0.0292
   }
- ]
+ ],
+ "background": "median_subtracted",
+ "stacks": {
+  "visits": [
+   {
+    "index": 0,
+    "start_mjd": 60919.419647,
+    "end_mjd": 60938.232058
+   },
+   {
+    "index": 1,
+    "start_mjd": 61092.397775,
+    "end_mjd": 61109.443889
+   },
+   {
+    "index": 2,
+    "start_mjd": 61285.100154,
+    "end_mjd": 61299.895897
+   }
+  ],
+  "bands": [
+   {
+    "id": "all",
+    "wavelength_min_um": 0.76999,
+    "wavelength_max_um": 4.96913,
+    "stretch": {
+     "kind": "asinh",
+     "vmin": -0.036998,
+     "vmax": 7.922338,
+     "unit": "MJy / sr"
+    },
+    "diff_limit": 2.149422
+   },
+   {
+    "id": "D1",
+    "wavelength_min_um": 0.76999,
+    "wavelength_max_um": 1.0685,
+    "stretch": {
+     "kind": "asinh",
+     "vmin": -0.272288,
+     "vmax": 10.711522,
+     "unit": "MJy / sr"
+    },
+    "diff_limit": 3.757833
+   },
+   {
+    "id": "D2",
+    "wavelength_min_um": 1.25838,
+    "wavelength_max_um": 1.6463,
+    "stretch": {
+     "kind": "asinh",
+     "vmin": -0.057362,
+     "vmax": 12.286692,
+     "unit": "MJy / sr"
+    },
+    "diff_limit": 6.567871
+   },
+   {
+    "id": "D3",
+    "wavelength_min_um": 1.62723,
+    "wavelength_max_um": 2.2435,
+    "stretch": {
+     "kind": "asinh",
+     "vmin": -0.044553,
+     "vmax": 11.556363,
+     "unit": "MJy / sr"
+    },
+    "diff_limit": 3.18624
+   },
+   {
+    "id": "D4",
+    "wavelength_min_um": 2.48406,
+    "wavelength_max_um": 3.48861,
+    "stretch": {
+     "kind": "asinh",
+     "vmin": -0.037595,
+     "vmax": 12.85125,
+     "unit": "MJy / sr"
+    },
+    "diff_limit": 11.205068
+   },
+   {
+    "id": "D5",
+    "wavelength_min_um": 3.87079,
+    "wavelength_max_um": 4.35726,
+    "stretch": {
+     "kind": "asinh",
+     "vmin": -0.059246,
+     "vmax": 9.877435,
+     "unit": "MJy / sr"
+    },
+    "diff_limit": 11.019042
+   },
+   {
+    "id": "D6",
+    "wavelength_min_um": 4.39998,
+    "wavelength_max_um": 4.96913,
+    "stretch": {
+     "kind": "asinh",
+     "vmin": -0.129099,
+     "vmax": 8.901661,
+     "unit": "MJy / sr"
+    },
+    "diff_limit": 14.699065
+   }
+  ],
+  "images": [
+   {
+    "visit": 0,
+    "band": "all",
+    "url": "/api/frames/rwaur/s_all_0.png",
+    "n_images": 14,
+    "flag_fraction": 0.0
+   },
+   {
+    "visit": 0,
+    "band": "D1",
+    "url": "/api/frames/rwaur/s_D1_0.png",
+    "n_images": 3,
+    "flag_fraction": 0.0094
+   },
+   {
+    "visit": 0,
+    "band": "D2",
+    "url": "/api/frames/rwaur/s_D2_0.png",
+    "n_images": 1,
+    "flag_fraction": 0.0184
+   },
+   {
+    "visit": 0,
+    "band": "D3",
+    "url": "/api/frames/rwaur/s_D3_0.png",
+    "n_images": 2,
+    "flag_fraction": 0.006
+   },
+   {
+    "visit": 0,
+    "band": "D4",
+    "url": "/api/frames/rwaur/s_D4_0.png",
+    "n_images": 2,
+    "flag_fraction": 0.0054
+   },
+   {
+    "visit": 0,
+    "band": "D5",
+    "url": "/api/frames/rwaur/s_D5_0.png",
+    "n_images": 3,
+    "flag_fraction": 0.0005
+   },
+   {
+    "visit": 0,
+    "band": "D6",
+    "url": "/api/frames/rwaur/s_D6_0.png",
+    "n_images": 3,
+    "flag_fraction": 0.0007
+   },
+   {
+    "visit": 1,
+    "band": "all",
+    "url": "/api/frames/rwaur/s_all_1.png",
+    "n_images": 13,
+    "flag_fraction": 0.0,
+    "diff_url": "/api/frames/rwaur/d_all_1.png"
+   },
+   {
+    "visit": 1,
+    "band": "D1",
+    "url": "/api/frames/rwaur/s_D1_1.png",
+    "n_images": 2,
+    "flag_fraction": 0.0068,
+    "diff_url": "/api/frames/rwaur/d_D1_1.png"
+   },
+   {
+    "visit": 1,
+    "band": "D2",
+    "url": "/api/frames/rwaur/s_D2_1.png",
+    "n_images": 3,
+    "flag_fraction": 0.0019,
+    "diff_url": "/api/frames/rwaur/d_D2_1.png"
+   },
+   {
+    "visit": 1,
+    "band": "D3",
+    "url": "/api/frames/rwaur/s_D3_1.png",
+    "n_images": 3,
+    "flag_fraction": 0.0027,
+    "diff_url": "/api/frames/rwaur/d_D3_1.png"
+   },
+   {
+    "visit": 1,
+    "band": "D4",
+    "url": "/api/frames/rwaur/s_D4_1.png",
+    "n_images": 2,
+    "flag_fraction": 0.0139,
+    "diff_url": "/api/frames/rwaur/d_D4_1.png"
+   },
+   {
+    "visit": 1,
+    "band": "D5",
+    "url": "/api/frames/rwaur/s_D5_1.png",
+    "n_images": 2,
+    "flag_fraction": 0.0008,
+    "diff_url": "/api/frames/rwaur/d_D5_1.png"
+   },
+   {
+    "visit": 1,
+    "band": "D6",
+    "url": "/api/frames/rwaur/s_D6_1.png",
+    "n_images": 1,
+    "flag_fraction": 0.0247,
+    "diff_url": "/api/frames/rwaur/d_D6_1.png"
+   },
+   {
+    "visit": 2,
+    "band": "all",
+    "url": "/api/frames/rwaur/s_all_2.png",
+    "n_images": 13,
+    "flag_fraction": 0.0,
+    "diff_url": "/api/frames/rwaur/d_all_2.png"
+   },
+   {
+    "visit": 2,
+    "band": "D1",
+    "url": "/api/frames/rwaur/s_D1_2.png",
+    "n_images": 2,
+    "flag_fraction": 0.0111,
+    "diff_url": "/api/frames/rwaur/d_D1_2.png"
+   },
+   {
+    "visit": 2,
+    "band": "D2",
+    "url": "/api/frames/rwaur/s_D2_2.png",
+    "n_images": 1,
+    "flag_fraction": 0.1051,
+    "diff_url": "/api/frames/rwaur/d_D2_2.png"
+   },
+   {
+    "visit": 2,
+    "band": "D3",
+    "url": "/api/frames/rwaur/s_D3_2.png",
+    "n_images": 3,
+    "flag_fraction": 0.0025,
+    "diff_url": "/api/frames/rwaur/d_D3_2.png"
+   },
+   {
+    "visit": 2,
+    "band": "D4",
+    "url": "/api/frames/rwaur/s_D4_2.png",
+    "n_images": 2,
+    "flag_fraction": 0.0044,
+    "diff_url": "/api/frames/rwaur/d_D4_2.png"
+   },
+   {
+    "visit": 2,
+    "band": "D5",
+    "url": "/api/frames/rwaur/s_D5_2.png",
+    "n_images": 3,
+    "flag_fraction": 0.0001,
+    "diff_url": "/api/frames/rwaur/d_D5_2.png"
+   },
+   {
+    "visit": 2,
+    "band": "D6",
+    "url": "/api/frames/rwaur/s_D6_2.png",
+    "n_images": 2,
+    "flag_fraction": 0.001,
+    "diff_url": "/api/frames/rwaur/d_D6_2.png"
+   }
+  ]
+ }
 }
