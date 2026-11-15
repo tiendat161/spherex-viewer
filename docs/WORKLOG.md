@@ -16,7 +16,7 @@ Commits: abc1234, def5678
 ---
 
 ## 2026-11-15: Data-release updates (T21)
-Commit: see the T21 row.
+Commit: `d26ff13`.
 
 **What:** `make refresh` asks the archive again for the image list and rebuilds the cached targets (it runs `pipeline.build --refresh-tap`). The release choice is one list, `RELEASE_PREFERENCE` in `pipeline/select.py` (was hard-coded to `dr1`; `dedupe_prefer_dr1` is now `dedupe_prefer_release`, same default behaviour, new test). `docs/data-updates.md` explains the steps.
 
