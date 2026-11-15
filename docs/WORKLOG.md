@@ -39,7 +39,7 @@ Commits: `32492ed` (contract, own commit), `7c83325` (pipeline), `3e4dc80` (cach
 - The light curve exists only where several visits have a frame within 5% of the wavelength; elsewhere it says so. The 5% window is a guess. Whether `mjd_avg` and `obs_mjd` differ by more than minutes was not compared.
 - Stacks have no flux. A moving target is not followed (the aperture is fixed on the request position).
 - Live series carry flux too, tested with simulated cutouts only: the archive was not answering searches when this was written, so it was not run against real live data.
-- The side-by-side layout needs a window about 1040 px wide; the page is now up to 1240 px wide.
+- The side-by-side layout needs a window about 820 px wide (it first needed 1040 px, and the panel then sat under the image and below the fold in a 930 px window, which looked like the charts were missing; found by the user, fixed in the commit after `8283816`); below 820 px the panel is under the image. The page is up to 1240 px wide. The visit slider's margins were widened so its end labels no longer overflow a 930 px window.
 - The demo targets (T41) were built before this change and will need an offline rebuild to carry flux.
 
 ## 2026-11-15: Remembered archive searches and a slow-archive message (T42); demo targets started (T41)
