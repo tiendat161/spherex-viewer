@@ -252,7 +252,7 @@ export function progressText(resp, elapsedS = null) {
 function progressLine(resp, elapsedS) {
   const { done, total, failed, available } = resp.progress;
   if (resp.status === 'error') return 'Error';
-  const fail = failed > 0 ? `, ${failed} failed` : '';
+  const fail = failed > 0 ? `, ${failed} skipped` : '';
   if (resp.status === 'loading' && total === 0) {
     if (elapsedS == null) return 'Waiting for the archive query (0 / 0)';
     const s = Math.round(elapsedS);

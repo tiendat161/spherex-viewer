@@ -7,7 +7,7 @@ import { FOV_DEG, SPECTRUM_LOAD, clickToImage, imageToBox, pixelToSky, skyToPixe
 const $ = (id) => document.getElementById(id);
 const el = {
   badge: $('badge'), targets: $('targets'), ra: $('ra'), dec: $('dec'), fov: $('fov'), fovNote: $('fov-note'), coords: $('coords'),
-  progressText: $('progress-text'), bar: $('bar'), more: $('more'), moreText: $('more-text'), moreBtn: $('more-btn'), moreAll: $('more-all'), message: $('message'),
+  progressText: $('progress-text'), bar: $('bar'), more: $('more'), moreText: $('more-text'), moreBtn: $('more-btn'), moreAll: $('more-all'), message: $('message'), messageText: $('message-text'), messageDetail: $('message-detail'), chartMessageText: $('chart-message-text'), chartMessageDetail: $('chart-message-detail'),
   frameBox: $('frame-box'), canvas: $('canvas'), scalebar: $('scalebar'), scalebarLabel: $('scalebar-label'), skipped: $('skipped'),
   prev: $('prev'), play: $('play'), next: $('next'), slider: $('slider'), visitBar: $('visit-bar'), vtrack: $('visit-track'), vmarks: $('visit-marks'), vhandle: $('visit-handle'), vlabels: $('visit-labels'), vaxis: $('vaxis'), segDate: $('seg-date'), segWl: $('seg-wl'), caption: $('caption'), targetsMenu: $('targets-menu'), targetsCurrent: $('targets-current'), vTrack: $('vaxis-track'), vTicks: $('vaxis-ticks'), vHandle: $('vaxis-handle'), vLabels: $('vaxis-labels'), fps: $('fps'), zoom: $('zoom'), pair: $('pair'), pairNote: $('pair-note'), playNote: $('play-note'), wdown: $('wdown'), wup: $('wup'), playWl: $('play-wl'),
   view: $('view'), band: $('band'), bandWrap: $('band-wrap'), diff: $('diff'), diffWrap: $('diff-wrap'),
@@ -69,7 +69,7 @@ function drawCurrent() {
   const slot = currentSlot();
   el.skipped.hidden = !slot?.skipped;
   if (slot?.skipped) {
-    el.skipped.textContent = `Frame ${slot.index + 1} of the planned series was skipped (the API could not build it).`;
+    el.skipped.textContent = `Frame ${slot.index + 1} was skipped: the archive did not return a usable image for it.`;
     return;
   }
   const img = slot && images.get(slot.url);
@@ -139,7 +139,7 @@ function render() {
     el.bar.max = Math.max(1, r.progress.total);
     el.bar.value = r.progress.done + r.progress.failed;
     el.message.hidden = r.status !== 'error';
-    if (r.status === 'error') el.message.textContent = r.error.message;
+    if (r.status === 'error') { el.messageText.textContent = r.error.message; el.messageDetail.textContent = r.error.detail ?? ''; } // the technical text is in the "i" only
     const g = r.grid, s = r.stretch;
     el.scalebar.hidden = !g;
     if (g) {
@@ -363,7 +363,8 @@ function renderCharts() {
   const sim = !onPoint && r.data_origin === 'simulated' ? 'SIMULATED. ' : '';
   if (!lay) {
     el.chartTitle.textContent = curve ? 'Light curve' : onPoint ? 'Clicked point' : 'Spectrum';
-    el.chartMessage.textContent = onPoint ? pointMessage(pt, points.length, sum) : !points.length
+    el.chartMessageDetail.textContent = onPoint && pt?.resp?.status === 'error' ? pt.resp.error?.detail ?? '' : '';
+    el.chartMessageText.textContent = onPoint ? pointMessage(pt, points.length, sum) : !points.length
       ? `No flux could be measured in any of the ${sum.total} frames at this position. Reason: ${reasonWords(sum.reasons)}. This is not zero flux.`
       : `Fewer than two measured frames near ${wl0.toFixed(2)} µm on different dates. Move the wavelength slider to a wavelength that several epochs observed.`;
   } else {
@@ -418,7 +419,7 @@ function renderCharts() {
 function pointMessage(pt, measured, sum) {
   if (!pt) return 'Click a point on the image to measure its brightness in every frame.';
   const resp = pt.resp;
-  if (resp?.status === 'error') return resp.error?.message ?? 'The spectrum could not be measured.';
+  if (resp?.status === 'error') return resp.error?.message ?? 'The brightness at this point could not be measured. Try again in a few minutes.';
   if (!resp || (resp.status === 'loading' && !measured)) {
     const p = resp?.progress;
     return pt.cached
@@ -474,7 +475,7 @@ function renderCatalogue() {
   const cx = c.getContext('2d');
   cx.clearRect(0, 0, c.width, c.height);
   if (!doc) { setCat('WISE catalogue sources: asking the catalogue service (IRSA)…'); return; }
-  if (doc.status === 'error') { setCat(`WISE catalogue sources unavailable. ${doc.error.message}`); return; }
+  if (doc.status === 'error') { setCat(doc.error.message, doc.error.detail ?? ''); return; }
   const zoom = Number(el.zoom.value);
   let shown = 0;
   const drawn = state.catDrawn = [];
@@ -789,7 +790,8 @@ el.coords.addEventListener('submit', (e) => {
   const ra = parseAngle(el.ra.value, 'ra'), dec = parseAngle(el.dec.value, 'dec');
   if (ra === null || dec === null) {
     el.message.hidden = false;
-    el.message.textContent = 'Enter RA below 360 and Dec from -90 to 90, as decimal degrees (133.795129, -7.245147) or as hours and degrees (08h55m10.831s, -7d14m42.53s).';
+    el.messageDetail.textContent = '';
+    el.messageText.textContent = 'Enter RA below 360 and Dec from -90 to 90, as decimal degrees (133.795129, -7.245147) or as hours and degrees (08h55m10.831s, -7d14m42.53s).';
     return;
   }
   load(Number(ra.toFixed(6)), Number(dec.toFixed(6)), { fov: parseFov(el.fov.value), push: true });
@@ -822,7 +824,7 @@ idleSky();
   } catch (e) {
     el.targets.innerHTML = '';
     const li = document.createElement('li');
-    li.textContent = `Could not load targets: ${e.message}`;
+    li.textContent = 'The list of targets could not be loaded. Reload the page in a few minutes.'; li.title = e.message;
     el.targets.append(li);
   }
   const p = parseLocation(location.search);

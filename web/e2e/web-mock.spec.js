@@ -436,7 +436,7 @@ test('mock: catalogue service failure gives a message and keeps the images', asy
   await page.goto('/?ra=0&dec=0');
   await openAdvanced(page);
   await page.locator('#catalogue').check();
-  await expect(page.locator('#cat-note')).toContainText('unavailable');
+  await expect(page.locator('#cat-note')).toContainText('could not be fetched');
   await expect(page.locator('#badge')).not.toHaveText('NO DATA YET');
 });
 
@@ -634,7 +634,7 @@ test('mock: the i icon opens with the keyboard and only one is pinned at a time'
   await expect(popA).toBeVisible();
   await page.goto(wise);
   await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
-  const c = page.locator('#charts .info-btn');
+  const c = page.locator('#charts .info-btn[aria-label^="How to read"]');
   const popC = page.locator('#' + (await c.getAttribute('aria-describedby')));
   await c.click();
   await expect(popC).toBeVisible();
@@ -679,4 +679,36 @@ test('mock: the i texts are in place: sky label short, wide-field note short, ca
   await pop.click(); // a tap
   await expect(page.locator('#' + (await pop.getAttribute('aria-describedby')))).toContainText('has not been measured');
   await page.screenshot({ path: outDir + 'web-mock-info-phone.png' });
+});
+
+// T56: the archive being down is one short sentence; the long technical text is only in the "i".
+const LONG = 'The archive query failed: TAP query failed after retries: HTTP 502; the SIA2 fallback also failed: SIA2 query spherex_dr1 failed after retries: HTTP 502';
+const FRIENDLY = "The search failed because NASA's data archive (IRSA) is not available right now. Try again in a few minutes. The cached targets still work.";
+test('mock: archive down shows a short friendly message, the technical text only in the "i"', async ({ page }) => {
+  await page.route('**/api/series*', (route) => route.fulfill({ json: {
+    status: 'error', data_origin: 'real', progress: { done: 0, total: 0, failed: 0 }, grid: null, stretch: null, frames: [],
+    error: { message: FRIENDLY, detail: LONG } } }));
+  await page.goto('/?ra=10&dec=20');
+  const box = page.locator('#message');
+  await expect(box).toBeVisible();
+  await expect(page.locator('#message-text')).toHaveText(FRIENDLY);
+  await expect(box).not.toContainText('502');
+  await expect(box).not.toContainText('SIA2');
+  await expect(page.locator('#message-detail')).toHaveText(LONG); // in the popover, which is not shown until asked for
+  await expect(page.locator('#message-detail')).toBeHidden();
+  await box.locator('.info-btn').click();
+  await expect(page.locator('#message-detail')).toBeVisible();
+  await expect(page.locator('#message-detail')).toContainText('HTTP 502');
+  await page.screenshot({ path: `${outDir}error-archive-down.png` }); // popover open
+  await page.setViewportSize({ width: 390, height: 800 });
+  await expect(page.locator('#message-detail')).toBeVisible();
+  await page.screenshot({ path: `${outDir}error-archive-down-narrow.png` });
+});
+
+test('mock: a raw HTTP 502 from the server reads as a plain sentence too', async ({ page }) => {
+  await page.route('**/api/series*', (route) => route.fulfill({ status: 502, body: '<html>Bad gateway</html>', contentType: 'text/html' }));
+  await page.goto('/?ra=10&dec=20');
+  await expect(page.locator('#message-text')).toHaveText('The server could not answer right now. Try again in a few minutes. The cached targets still work.');
+  await expect(page.locator('#message')).not.toContainText('502');
+  await expect(page.locator('#message-detail')).toContainText('HTTP 502');
 });

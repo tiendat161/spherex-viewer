@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { pollSeries, pollSpectrum } from '../src/api.js';
+import { clientError, pollSeries, pollSpectrum } from '../src/api.js';
 import { errorResponse, fixture, loadingResponse } from './helpers.js';
 
 const ok = (body) => ({ ok: true, status: 200, json: async () => body });
@@ -30,9 +30,12 @@ describe('pollSeries', () => {
   it('turns HTTP and network failures into a client-side error', async () => {
     const http = await pollSeries(1, 2, { fetchFn: async () => ({ ok: false, status: 502 }) });
     expect(http.status).toBe('error');
-    expect(http.error.message).toContain('502');
-    const net = await pollSeries(1, 2, { fetchFn: async () => { throw new Error('offline'); } });
-    expect(net.error.message).toBe('offline');
+    expect(http.error.message).not.toMatch(/502|HTTP/);
+    expect(http.error.message).toContain('cached targets still work');
+    expect(http.error.detail).toBe('GET /api/series returned HTTP 502');
+    const net = await pollSeries(1, 2, { fetchFn: async () => { throw new TypeError('offline'); } });
+    expect(net.error.message).toBe('This page could not reach the server. Check your internet connection and try again.');
+    expect(net.error.detail).toContain('offline');
     const junk = await pollSeries(1, 2, { fetchFn: async () => ok({ hello: 1 }) });
     expect(junk.status).toBe('error');
   });
@@ -50,7 +53,7 @@ describe('pollSpectrum', () => {
     expect(sleep).toHaveBeenCalledTimes(2);
   });
   it('turns failures into a client-side error', async () => {
-    expect((await pollSpectrum(1, 2, 0.2, { ra: 1, dec: 2 }, { fetchFn: async () => ({ ok: false, status: 500 }) })).error.message).toContain('500');
+    expect((await pollSpectrum(1, 2, 0.2, { ra: 1, dec: 2 }, { fetchFn: async () => ({ ok: false, status: 500 }) })).error.detail).toContain('500');
     expect((await pollSpectrum(1, 2, 0.2, { ra: 1, dec: 2 }, { fetchFn: async () => ok({ hello: 1 }) })).status).toBe('error');
   });
 });
@@ -69,8 +72,36 @@ describe('fetchCatalogue', () => {
     const { fetchCatalogue } = await import('../src/api.js');
     const down = await fetchCatalogue(1, 2, 0.2, { fetchFn: async () => { throw new Error('offline'); } });
     expect(down.status).toBe('error');
-    expect(down.error.message).toContain('offline');
+    expect(down.error.detail).toContain('offline');
     const html = await fetchCatalogue(1, 2, 0.2, { fetchFn: async () => ({ status: 502, json: async () => { throw new SyntaxError('x'); } }) });
     expect(html.status).toBe('error');
+  });
+});
+
+describe('error texts for a visitor (T56)', () => {
+  const jargon = /HTTP|\b[45]\d\d\b|TAP|SIA|retries|fetch|JSON/i;
+  it('keeps the server\'s own error document when it sends one with a 429', async () => {
+    const body = { ...errorResponse('You are sending requests too fast. Wait a minute and try again.'), error: { message: 'You are sending requests too fast. Wait a minute and try again.', detail: 'per-client rate limit (HTTP 429)' } };
+    const r = await pollSeries(1, 2, { fetchFn: async () => ({ ok: false, status: 429, json: async () => body }) });
+    expect(r.error.message).toMatch(/too fast/);
+    expect(r.error.detail).toContain('429');
+  });
+  it('maps each client-side kind to one plain sentence with the technical text in detail', () => {
+    for (const [args, text] of [
+      [{ status: 502 }, 'The server could not answer right now. Try again in a few minutes. The cached targets still work.'],
+      [{ status: 429 }, 'You are sending requests too fast. Wait a minute and try again.'],
+      [{ cause: new TypeError('Failed to fetch') }, 'This page could not reach the server. Check your internet connection and try again.'],
+      [{ cause: { kind: 'unreadable', message: 'x' } }, 'The server sent an answer this page cannot read. Try again in a few minutes. The cached targets still work.'],
+    ]) {
+      const e = clientError('/api/series', args);
+      expect(e.message).toBe(text);
+      expect(e.message).not.toMatch(jargon);
+      expect(e.detail).toContain('/api/series');
+    }
+  });
+  it('treats a body that is not JSON as an unreadable answer, not a crash', async () => {
+    const r = await pollSeries(1, 2, { fetchFn: async () => ({ ok: true, status: 200, json: async () => { throw new SyntaxError('Unexpected token <'); } }) });
+    expect(r.error.message).toMatch(/cannot read/);
+    expect(r.error.detail).toContain('Unexpected token');
   });
 });

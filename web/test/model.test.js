@@ -53,7 +53,7 @@ describe('index gap', () => {
     expect(slots.map((s) => !!s.skipped)).toEqual([false, true, false, false, true]);
     expect(slots[1]).toEqual({ skipped: true, index: 1 });
   });
-  it('reports failures in the progress text', () => expect(progressText(gapResponse())).toBe('3 / 5 frames, 2 failed'));
+  it('reports skipped frames in the progress text', () => expect(progressText(gapResponse())).toBe('3 / 5 frames, 2 skipped'));
   it('playback jumps over skipped frames, stepping does not', () => {
     expect(nextSlot(slots, 0, 1, { skipFailed: true })).toBe(2);
     expect(nextSlot(slots, 3, 1, { skipFailed: true })).toBe(0);
@@ -325,7 +325,7 @@ describe('staged loading helpers', () => {
     const found = { status: 'loading', progress: { done: 3, total: 8, failed: 0, available: 269 } };
     expect(progressText(found)).toBe('Loading: 3 / 8 frames · 269 images found');
     expect(progressText(resp({ total: 8, available: 269 }))).toBe('8 of 269 images loaded');
-    expect(progressText({ status: 'ready', progress: { done: 7, total: 8, failed: 1, available: 269 } })).toBe('7 of 269 images loaded, 1 failed');
+    expect(progressText({ status: 'ready', progress: { done: 7, total: 8, failed: 1, available: 269 } })).toBe('7 of 269 images loaded, 1 skipped');
   });
 });
 

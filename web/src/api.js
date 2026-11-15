@@ -16,7 +16,31 @@ export async function fetchTargets(fetchFn = fetch) {
   return res.json();
 }
 
-function errorResponse(message) {
+export const CACHED_STILL_WORK = 'The cached targets still work.';
+
+/**
+ * What a visitor reads when the request itself failed (T56): one plain sentence, no status codes; `detail` keeps the technical text
+ * for the "i". `status` is the HTTP status when the server answered with one; `cause` is a network error or a parse problem.
+ */
+export function clientError(path, { status = null, cause = null } = {}) {
+  const detail = status ? `GET ${path} returned HTTP ${status}` : `GET ${path}: ${cause?.message || 'request failed'}`;
+  if (status === 429) return { message: 'You are sending requests too fast. Wait a minute and try again.', detail };
+  if (status) return { message: `The server could not answer right now. Try again in a few minutes. ${CACHED_STILL_WORK}`, detail };
+  if (cause && cause.kind === 'unreadable') return { message: `The server sent an answer this page cannot read. Try again in a few minutes. ${CACHED_STILL_WORK}`, detail };
+  return { message: 'This page could not reach the server. Check your internet connection and try again.', detail };
+}
+
+/** The body of a non-OK reply, when the server sent one of its own error documents (for example the 429 of its per-client limit). */
+async function serverErrorBody(res) {
+  try {
+    const body = await res.json();
+    return isSeriesResponse(body) && body.status === 'error' && body.error?.message ? body : null;
+  } catch {
+    return null;
+  }
+}
+
+function errorResponse(message, detail) {
   return {
     status: 'error',
     data_origin: null, // unknown: not a server response, so not schema-valid; UI shows UNKNOWN
@@ -24,7 +48,7 @@ function errorResponse(message) {
     grid: null,
     stretch: null,
     frames: [],
-    error: { message },
+    error: detail ? { message, detail } : { message },
     clientSide: true,
   };
 }
@@ -40,12 +64,17 @@ export async function pollSeries(ra, dec, { fov, load = null, fetchFn = fetch, s
     let resp;
     try {
       const res = await fetchFn(url, { signal });
-      if (!res.ok) throw new Error(`GET /api/series returned HTTP ${res.status}`);
-      resp = await res.json();
-      if (!isSeriesResponse(resp)) throw new Error('Unexpected response from /api/series');
+      if (!res.ok) {
+        const own = await serverErrorBody(res);
+        if (own) { resp = own; } else { const c = clientError('/api/series', { status: res.status }); resp = errorResponse(c.message, c.detail); }
+      } else {
+        resp = await res.json();
+        if (!isSeriesResponse(resp)) throw Object.assign(new Error('Unexpected response from /api/series'), { kind: 'unreadable' });
+      }
     } catch (e) {
       if (e?.name === 'AbortError') throw e;
-      resp = errorResponse(e?.message || 'Request failed');
+      const c = clientError('/api/series', { cause: e?.name === 'SyntaxError' ? { kind: 'unreadable', message: e.message } : e });
+      resp = errorResponse(c.message, c.detail);
     }
     onUpdate?.(resp);
     if (resp.status !== 'loading') return resp;
@@ -63,12 +92,17 @@ export async function pollSpectrum(ra, dec, fov, point, { load, fetchFn = fetch,
     let resp;
     try {
       const res = await fetchFn(url, { signal });
-      if (!res.ok) throw new Error(`GET /api/spectrum returned HTTP ${res.status}`);
-      resp = await res.json();
-      if (!isSeriesResponse(resp)) throw new Error('Unexpected response from /api/spectrum');
+      if (!res.ok) {
+        const own = await serverErrorBody(res);
+        if (own) { resp = own; } else { const c = clientError('/api/spectrum', { status: res.status }); resp = { ...errorResponse(c.message, c.detail), data_origin: null }; }
+      } else {
+        resp = await res.json();
+        if (!isSeriesResponse(resp)) throw Object.assign(new Error('Unexpected response from /api/spectrum'), { kind: 'unreadable' });
+      }
     } catch (e) {
       if (e?.name === 'AbortError') throw e;
-      resp = { status: 'error', data_origin: null, progress: { done: 0, total: 0, failed: 0 }, frames: [], error: { message: e?.message || 'Request failed' }, clientSide: true };
+      const c = clientError('/api/spectrum', { cause: e?.name === 'SyntaxError' ? { kind: 'unreadable', message: e.message } : e });
+      resp = errorResponse(c.message, c.detail);
     }
     onUpdate?.(resp);
     if (resp.status !== 'loading') return resp;
@@ -85,6 +119,6 @@ export async function fetchCatalogue(ra, dec, fov, { signal, fetchFn = fetch } =
     throw new Error(`HTTP ${res.status}`);
   } catch (e) {
     if (e?.name === 'AbortError') throw e;
-    return { status: 'error', sources: [], error: { message: `The catalogue could not be fetched (${e.message}). The images are not affected.` } };
+    return { status: 'error', sources: [], error: { message: 'The WISE star catalogue could not be fetched right now. The images are not affected.', detail: `GET /api/catalogue: ${e.message}` } };
   }
 }
