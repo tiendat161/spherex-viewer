@@ -2,13 +2,13 @@
 
 A web tool for NASA Space Apps 2026, challenge "Planet X and SPHEREx". Enter a sky position (RA/Dec), and blink through real infrared images of that patch taken by the SPHEREx space telescope, by date or by wavelength, to spot things that move or change. It also shows the visits stacked together and the difference between visits.
 
-**Status:** runs locally. It is not deployed anywhere yet, so there is no public link (task T10 in `docs/TASKS.md`). The submission paperwork is still in progress.
+**Status:** deployed on one AWS EC2 instance at https://16-179-73-6.sslip.io (see `docs/deploy.md`); the cached targets were checked from outside. The live path (any other position) was **not** verified on that server: the archive's search service answered HTTP 502 at the time. The submission paperwork is still in progress.
 
 ## What it does
 
-- **Any position.** Type RA/Dec in decimal degrees (sexagesimal input is not supported yet) or pick a target. Positions are also read from the URL: `/?ra=133.795129&dec=-7.245147&fov=0.2`.
+- **Any position.** Type RA/Dec in decimal degrees or sexagesimal, or paste "RA Dec" together, or pick a target. Positions are also read from the URL: `/?ra=133.795129&dec=-7.245147&fov=0.2`.
 - **Five test targets are cached** and open at once: WISE 0855, Barnard's Star, Epsilon Indi B, RW Aurigae, R Draconis. They are the ones named in the challenge.
-- **Any other position is built live** from the IRSA archive: a first batch of 8 frames spread over dates and bands (about a minute, mostly the archive search), then "Load more" or "Load up to 102".
+- **Any other position is built live** from the IRSA archive: a first batch of 8 frames spread over dates and bands (the archive search is the slow part: usually under a few minutes, depending on the archive), then "Load more" or "Load up to 102".
 - **Views:** individual frames (step through visits at one wavelength, or through the wavelengths), stacked visits per detector band, and the difference from the first visit. Background is subtracted per image.
 - **Field of view:** 0.1°, 0.2° (default), 0.5° or 1°. Cached targets are 0.2° only; other sizes are built live.
 - **Metadata** per frame: date, wavelength, flagged-pixel fraction, and a REAL / SIMULATED badge. Everything built from the archive is real; the simulated badge appears only for the mock data used in frontend development.
@@ -37,9 +37,9 @@ make cache          # rebuild the cached targets from the archive (contacts IRSA
 
 ## Known limits
 
-- The first batch for a new position waits about a minute for the archive search, and live series are kept in memory only.
+- The first batch for a new position waits for the archive search (not timed on the deployed server), and live series are kept in memory only.
 - Not checked outside Chromium. The submission deadline and WISE 0855's proper motion are unverified (see `docs/WORKLOG.md`, "Not verified").
-- Not yet built: spectra, Gaia/WISE catalogue overlays, per-pixel flag detail. The task board lists them.
+- Flux charts (Spectrum, Light curve) use a first-choice aperture that is not yet validated (T32). Not yet built: spectrum at a clicked point, Gaia/WISE catalogue overlays, per-pixel flag detail. The task board lists them.
 
 ## Data and credits
 
