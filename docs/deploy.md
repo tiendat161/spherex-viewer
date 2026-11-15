@@ -46,7 +46,7 @@ Any container host that runs a Dockerfile and keeps one instance running fits. W
 
 ## Deploying on AWS EC2 (what was actually done for T10)
 
-Chosen for learning and for the CV: EC2 is the AWS service most job postings name. Deployed 2026-11-15 and checked from outside: `https://16-179-73-6.sslip.io` serves the page, the five cached targets and their frames over HTTPS with a valid certificate. A live build (M42) did **not** complete: the archive's search service answered HTTP 502 from both the server and a laptop at the time, so the live path is not verified on this server.
+Chosen for learning and for the CV: EC2 is the AWS service most job postings name. Deployed 2026-11-15 and checked from outside: `https://16-179-73-6.sslip.io` serves the page, the five cached targets and their frames over HTTPS with a valid certificate. A live build (M42) did **not** complete on the first deploy: the archive's search service answered HTTP 502 from both the server and a laptop at the time, so the live path is not verified on this server.
 
 What was used, and why it differs from the first plan:
 
@@ -72,4 +72,6 @@ Update later: `git pull && docker build -t spherex-viewer .`, then `docker rm -f
 
 Tear down when finished: terminate the instance (the disk is deleted with it), **release the Elastic IP** (an unattached one still costs), check the bill the next day.
 
-Not yet checked: a live build to the end on this server (archive was down), memory under load (about 466 MB used of 1.9 GB at idle), `make verify` against the server, a stop and start of the instance.
+Re-deployed 2026-11-15 with the SIA2 backup (T43): a live build of M42 (`ra=83.8221 dec=-5.3911 fov=0.2 load=8`) finished through the public URL in about 252 s with `progress.search: "sia2"`, 8 of 8 frames, and a frame PNG served. TAP was still down; most of the time was the two 90 s TAP waits before the fallback (one run, so indicative only).
+
+Not yet checked: a live build to the end with TAP answering, a second live build while the first runs, memory under load (about 466 MB used of 1.9 GB at idle), `make verify` against the server, a stop and start of the instance.

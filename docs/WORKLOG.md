@@ -30,6 +30,15 @@ Commits: branch `t46-claims`, messages start "T46".
 
 **Gaps:** not verified: that bit N means 2**N (the table gives bit numbers only); the proper-motion adequacy (no full propagation was done); `IMAGES_PER_MIN` and `MB_PER_IMAGE` are still from one run and only labelled as rough. The "proper motion negligible" note for RW Aurigae in `targets.py` was not reviewed. The index text was screenshotted in the Advanced panel; `make test` and `make verify` passed.
 
+## 2026-11-15: Live build verified on the EC2 server through SIA2 (T10, T43)
+Commit: see `git log` (message starts "Deploy: record").
+
+**What:** pulled `origin/main` on the server, rebuilt the image, restarted the viewer. A live M42 build (`load=8`) through `https://16-179-73-6.sslip.io` finished in about 252 s: 8 of 8 frames, `progress.search: "sia2"`, frames fetchable. TAP was still returning 502.
+
+**Why:** the live path was the largest unverified risk for the demo.
+
+**Gaps:** one run. About 180 s of the 252 s were the two 90 s TAP waits before the fallback; a visitor waits that long while TAP is down (idea, not done: skip TAP for a few minutes after it has failed). SIA2 may list fewer images than TAP (539 of 2493 for R Draconis, T43). Not checked in a browser or with TAP up.
+
 ## 2026-11-15: Small review items (T47)
 Commit: on branch `t47-review-items`.
 
