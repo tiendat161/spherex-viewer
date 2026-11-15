@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "catalogue.schema.json",
+  "title": "Catalogue sources around a position",
+  "description": "Response of GET /api/catalogue (T15): sources of the AllWISE Source Catalog (WISE, NASA/IPAC IRSA) inside a field. Always real catalogue data, never simulated. Positions are the catalogue's own, ICRS degrees, at the catalogue's reference epoch, not corrected for proper motion: a moving object is where the catalogue saw it, not where it is now. `mjd` is the catalogue's own mean observation date of the source in W1 (column w1mjdmean); no proper motion is applied or invented.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "catalogue", "sources"],
+  "properties": {
+    "status": {"enum": ["ok", "error"]},
+    "catalogue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "table", "service"],
+      "properties": {
+        "name": {"type": "string"},
+        "table": {"type": "string"},
+        "service": {"type": "string", "description": "The TAP service the sources were read from."}
+      }
+    },
+    "sources": {
+      "description": "Brightest first (by W1). Empty when status is error or the field holds no source.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["designation", "ra", "dec", "w1_mag", "mjd"],
+        "properties": {
+          "designation": {"type": "string"},
+          "ra": {"type": "number"},
+          "dec": {"type": "number"},
+          "w1_mag": {"type": ["number", "null"], "description": "W1 (3.4 um) profile-fit magnitude, Vega system (w1mpro); null when the catalogue has none."},
+          "mjd": {"type": ["number", "null"], "description": "Mean MJD of the W1 observations of this source (w1mjdmean); null when the catalogue has none."}
+        }
+      }
+    },
+    "truncated": {"type": "boolean", "description": "True when the field holds more sources than were returned (the brightest are kept)."},
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["message"],
+      "properties": {"message": {"type": "string"}}
+    }
+  },
+  "if": {"properties": {"status": {"const": "error"}}},
+  "then": {"required": ["error"]}
+}
