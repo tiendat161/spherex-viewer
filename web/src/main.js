@@ -89,7 +89,7 @@ function renderReadout() {
     return;
   }
   if (slot.stack) {
-    el.rFrame.textContent = `Visit ${slot.visit + 1} of ${slot.visits}${slot.diff ? ' minus first' : ''}`;
+    el.rFrame.textContent = `Epoch ${slot.visit + 1} of ${slot.visits}${slot.diff ? ' minus first' : ''}`;
     el.rDate.textContent = `${mjdToUtc(slot.start_mjd).slice(0, 10)} to ${mjdToUtc(slot.end_mjd).slice(0, 10)} UTC`;
     el.rWave.textContent = `${slot.band.wavelength_min_um.toFixed(2)}–${slot.band.wavelength_max_um.toFixed(2)} µm, ${slot.n_images} image${slot.n_images === 1 ? '' : 's'} combined`;
     el.rFlag.textContent = formatFlag(slot.flag_fraction);
@@ -146,10 +146,10 @@ function render() {
     const bg = r.background === 'median_subtracted' ? ' Each image had its own median background subtracted first.' : '';
     const slot = currentSlot();
     if (stacked && slot?.diff) {
-      el.legend.textContent = `Difference image: this visit minus the earliest visit in this band. Linear, −${slot.band.diff_limit} to +${slot.band.diff_limit} ${slot.band.stretch.unit} mapped to black to white; mid-grey means no change.${bg}`;
+      el.legend.textContent = `Difference image: this epoch minus the earliest epoch in this band. Linear, −${slot.band.diff_limit} to +${slot.band.diff_limit} ${slot.band.stretch.unit} mapped to black to white; mid-grey means no change.${bg}`;
     } else if (stacked && slot) {
       const b = slot.band.stretch;
-      el.legend.textContent = `Each frame is the sigma-clipped mean of the images taken in one visit in this band. Stretch (shared by all visits of the band): ${b.kind}, ${b.vmin} to ${b.vmax} ${b.unit} mapped to 0 to 255.${bg}`;
+      el.legend.textContent = `Each frame is the sigma-clipped mean of the images taken in one epoch in this band. Stretch (shared by all epochs of the band): ${b.kind}, ${b.vmin} to ${b.vmax} ${b.unit} mapped to 0 to 255.${bg}`;
     } else {
       el.legend.textContent = s
         ? `Stretch (already applied to every PNG, shown for reference only): ${s.kind}, ${s.vmin} to ${s.vmax} ${s.unit} mapped to 0 to 255.${bg}`
@@ -160,7 +160,7 @@ function render() {
   el.fovNote.hidden = !(r?.grid ? isWideField(r.grid) : state.pos?.fov >= WIDE_FOV_DEG);
   renderReadout();
   const at = padActive() && padPosition(padActive(), state.current);
-  el.caption.textContent = captionText(currentSlot(), at && padActive().visits.length > 1 ? `visit ${at.visit + 1} of ${padActive().visits.length}` : '');
+  el.caption.textContent = captionText(currentSlot(), at && padActive().visits.length > 1 ? `epoch ${at.visit + 1} of ${padActive().visits.length}` : '');
   drawCurrent();
 }
 
@@ -208,7 +208,7 @@ function renderPad() {
       d.dataset.visit = String(i);
       d.style.left = `${vx(i)}%`;
       const b = document.createElement('b');
-      b.textContent = `Visit ${v.n}`;
+      b.textContent = `Epoch ${v.n}`;
       const span = `${mjdToUtc(v.start).slice(0, 10)}${v.end - v.start >= 1 ? ` to ${mjdToUtc(v.end).slice(0, 10)}` : ''}`;
       const sub = document.createElement('span');
       sub.className = 'sub'; // hidden on a narrow screen, where the caption already gives the dates
@@ -265,12 +265,12 @@ const padMode = () => (padActive() && !state.pair ? (padActive().visits.length >
 function renderButtons() {
   const m = padMode(), playing = state.playing;
   const set = (b, text) => { b.textContent = text; };
-  set(el.prev, m === 'multi' ? '◀︎ Visit' : 'Step ◀︎');
-  set(el.next, m === 'multi' ? 'Visit ▶︎' : 'Step ▶︎');
+  set(el.prev, m === 'multi' ? '◀︎ Epoch' : 'Step ◀︎');
+  set(el.next, m === 'multi' ? 'Epoch ▶︎' : 'Step ▶︎');
   el.prev.hidden = el.next.hidden = m === 'single';
   el.wdown.hidden = el.wup.hidden = el.playWl.hidden = m === 'classic';
   el.play.hidden = m === 'single';
-  set(el.play, playing && state.playMode !== 'wl' ? 'Pause' : m === 'classic' ? 'Play' : 'Play across visits');
+  set(el.play, playing && state.playMode !== 'wl' ? 'Pause' : m === 'classic' ? 'Play' : 'Play across epochs');
   set(el.playWl, playing && state.playMode === 'wl' ? 'Pause' : 'Play through wavelengths');
   const has = state.slots.length > 0;
   el.wdown.disabled = el.wup.disabled = !has;
@@ -283,8 +283,8 @@ function renderPlayNote() {
   el.playNote.hidden = !(state.playing && (state.playMode === 'visits' ? state.holdWl : state.playMode === 'wl' && at));
   if (el.playNote.hidden) return;
   el.playNote.textContent = state.playMode === 'visits'
-    ? `Playing across visits at about ${state.holdWl.toFixed(2)} µm: each visit shows its frame closest to that wavelength, and the readout gives the exact one.`
-    : `Playing through the wavelengths of visit ${at.visit + 1}, shortest to longest and back.`;
+    ? `Playing across epochs at about ${state.holdWl.toFixed(2)} µm: each epoch shows its frame closest to that wavelength, and the readout gives the exact one.`
+    : `Playing through the wavelengths of epoch ${at.visit + 1}, shortest to longest and back.`;
 }
 
 /** "Load more" and "Load all" for a finished live series that has more images in the archive than it has loaded. */
@@ -336,7 +336,7 @@ function renderCharts() {
   chartShown = { resp: r, tab: state.chartTab, index: curIndex, src, pt };
   for (const [tab, on] of [[el.tabSpectrum, state.chartTab === 'spectrum'], [el.tabPoint, onPoint], [el.tabCurve, state.chartTab === 'curve']]) tab.setAttribute('aria-selected', String(on));
 
-  // Visit of each frame, for the colour: the same grouping as the visit slider.
+  // Epoch of each frame, for the colour: the same grouping as the epoch slider.
   const slots = orderSlots(buildSlots(r), 'time');
   const pad = padSpec(slots, visitsOf(r, slots));
   const visitOf = new Map();
@@ -353,14 +353,14 @@ function renderCharts() {
   el.chartHelp.textContent = curve
     ? 'Frames within 5% of the wavelength on screen, by date. A change counts only if it is larger than the error bars. The measuring circle stays on the requested position, so a moving object can leave it.'
     : onPoint ? 'The brightness at the point you clicked, in each frame. The wavelength of a point is read at its own pixel, because it changes across the detector. Overlapping error bars cannot be told apart. A nearby source adds to the flux.'
-    : 'Each colour is one visit, a group of observation dates. A visit covers only some wavelengths, so the points are not joined. Overlapping error bars mean the visits cannot be told apart.';
+    : 'Each colour is one epoch, a group of observation dates. An epoch covers only some wavelengths, so the points are not joined. Overlapping error bars mean the epochs cannot be told apart.';
   el.chart.hidden = !lay; // no empty frame when there is nothing to draw
   const sim = !onPoint && r.data_origin === 'simulated' ? 'SIMULATED. ' : '';
   if (!lay) {
     el.chartTitle.textContent = curve ? 'Light curve' : onPoint ? 'Clicked point' : 'Spectrum';
     el.chartMessage.textContent = onPoint ? pointMessage(pt, points.length, sum) : !points.length
       ? `No flux could be measured in any of the ${sum.total} frames at this position. Reason: ${reasonWords(sum.reasons)}. This is not zero flux.`
-      : `Fewer than two measured frames near ${wl0.toFixed(2)} µm on different dates. Move the wavelength slider to a wavelength that several visits observed.`;
+      : `Fewer than two measured frames near ${wl0.toFixed(2)} µm on different dates. Move the wavelength slider to a wavelength that several epochs observed.`;
   } else {
     el.chartTitle.textContent = sim + (curve
       ? `Flux at about ${wl0.toFixed(2)} µm: ${lay.dots.length} frames within 5%`
@@ -386,7 +386,7 @@ function renderCharts() {
         ? svg('g', { class: 'chart-dot', 'data-index': d.index, tabindex: 0, role: 'button', 'aria-label': `Show the frame at ${d.wl.toFixed(3)} micrometres` })
         : svg('g', { class: 'chart-dot-static' });
       const when = mjdToUtc(d.mjd).slice(0, 10);
-      g.append(svg('title', {}, `${d.wl.toFixed(3)} µm · ${when} · ${d.flux.toFixed(1)} ± ${d.err.toFixed(1)} µJy · visit ${d.visit + 1}`));
+      g.append(svg('title', {}, `${d.wl.toFixed(3)} µm · ${when} · ${d.flux.toFixed(1)} ± ${d.err.toFixed(1)} µJy · epoch ${d.visit + 1}`));
       g.append(svg('line', { x1: d.cx, x2: d.cx, y1: d.y0, y2: d.y1, stroke: color, 'stroke-width': 1.2, opacity: 0.8 }));
       g.append(svg('circle', { cx: d.cx, cy: d.cy, r: d.index === curIndex ? 5.5 : 3.4, fill: color, stroke: d.index === curIndex ? '#fff' : 'none', 'stroke-width': 2 }));
       el.chart.append(g);
@@ -396,7 +396,7 @@ function renderCharts() {
       const item = document.createElement('span');
       const dot = document.createElement('i');
       dot.style.background = PALETTE[v % PALETTE.length];
-      item.append(dot, `Visit ${v + 1}`);
+      item.append(dot, `Epoch ${v + 1}`);
       el.chartLegend.append(item);
     }
   }
@@ -563,7 +563,7 @@ function currentWavelength() {
 function tick() {
   const spec = padActive();
   if (state.playMode === 'visits' && spec) {
-    state.holdWl ??= currentWavelength(); // held from the moment blinking across visits begins
+    state.holdWl ??= currentWavelength(); // held from the moment blinking across epochs begins
     if (state.holdWl) return go(cycleVisit(spec, state.current, state.holdWl));
   } else if (state.playMode === 'wl' && spec) {
     const next = pingPong(spec, state.current, state.dir);
@@ -579,7 +579,7 @@ function startPlaying(mode) {
   const m = padMode();
   state.playMode = mode ?? (m === 'multi' ? 'visits' : m === 'single' ? 'wl' : 'frames');
   state.playing = true;
-  state.holdWl = currentWavelength(); // the wavelength held while blinking across visits
+  state.holdWl = currentWavelength(); // the wavelength held while blinking across epochs
   state.dir = 1;
   clearInterval(state.timer);
   state.timer = setInterval(tick, 1000 / Number(el.fps.value));

@@ -36,7 +36,7 @@
         <div class="stage">
           <div id="vaxis" class="vaxis" hidden>
             <div id="vaxis-labels" class="vaxis-labels"></div>
-            <div id="vaxis-track" class="vaxis-track" title="Drag to change the wavelength within this visit; each mark is one frame, evenly spaced (the wavelengths are written beside it). Up and down arrow keys step by one frame">
+            <div id="vaxis-track" class="vaxis-track" title="Drag to change the wavelength within this epoch; each mark is one frame, evenly spaced (the wavelengths are written beside it). Up and down arrow keys step by one frame">
               <div id="vaxis-ticks"></div><div id="vaxis-handle" class="vaxis-handle"></div>
             </div>
           </div>
@@ -68,20 +68,20 @@
       <p id="caption" class="caption" aria-live="polite"></p>
       <div class="controls">
         <div class="seg" role="group" aria-label="Look at it">
-          <button id="seg-date" type="button" aria-pressed="false" title="One deep image per visit: all the images of a group of dates combined, so only time changes between frames">By date</button>
+          <button id="seg-date" type="button" aria-pressed="false" title="One deep image per epoch: all the images of a group of dates combined, so only time changes between frames">By date</button>
           <button id="seg-wl" type="button" aria-pressed="true" title="Every archive image on its own, at its own wavelength">By wavelength</button>
         </div>
-        <select id="view" class="visually-hidden" tabindex="-1" aria-hidden="true"><option value="stack">Stacked visits</option><option value="frames" selected>Individual frames</option></select>
+        <select id="view" class="visually-hidden" tabindex="-1" aria-hidden="true"><option value="stack">Stacked epochs</option><option value="frames" selected>Individual frames</option></select>
         <button id="prev" type="button" aria-label="Step back">◀︎ Step</button>
         <button id="next" type="button" aria-label="Step forward">Step ▶︎</button>
-        <button id="wdown" type="button" title="Next shorter wavelength in this visit (down arrow)" aria-label="Shorter wavelength" hidden>▼ λ</button>
-        <button id="wup" type="button" title="Next longer wavelength in this visit (up arrow)" aria-label="Longer wavelength" hidden>λ ▲</button>
-        <button id="play" type="button" title="Play: the same wavelength in each visit in turn, the way to see something move">Play</button>
-        <button id="play-wl" type="button" title="Play: through the wavelengths of this visit, shortest to longest and back" hidden>Play through wavelengths</button>
+        <button id="wdown" type="button" title="Next shorter wavelength in this epoch (down arrow)" aria-label="Shorter wavelength" hidden>▼ λ</button>
+        <button id="wup" type="button" title="Next longer wavelength in this epoch (up arrow)" aria-label="Longer wavelength" hidden>λ ▲</button>
+        <button id="play" type="button" title="Play: the same wavelength in each epoch in turn, the way to see something move">Play</button>
+        <button id="play-wl" type="button" title="Play: through the wavelengths of this epoch, shortest to longest and back" hidden>Play through wavelengths</button>
         <div class="axis-wrap">
           <input id="slider" type="range" min="0" max="0" value="0" aria-label="Frame" />
           <div id="visit-bar" class="visit-bar" hidden>
-            <div id="visit-track" class="visit-track" title="Drag to change visit; each mark is one visit. The wavelength is kept as nearly as possible">
+            <div id="visit-track" class="visit-track" title="Drag to change epoch; each mark is one epoch. The wavelength is kept as nearly as possible">
               <div id="visit-marks"></div><div id="visit-handle" class="hhandle"></div>
             </div>
             <div id="visit-labels" class="visit-labels"></div>
@@ -105,7 +105,7 @@
           <label class="speed" title="Draw a circle on the requested position (the centre of the image)"><input id="mark" type="checkbox" /> Mark centre</label>
           <label class="speed" title="Draw the positions of AllWISE catalogue sources (WISE, infrared) on the image"><input id="catalogue" type="checkbox" /> Show WISE catalogue sources</label>
           <label class="speed" id="band-wrap" hidden title="Which detector array the stacked images come from">Detector band <select id="band"></select></label>
-          <label class="speed" id="diff-wrap" hidden title="Show each later visit minus the earliest visit. Things that did not change cancel to grey; a moving object leaves a dark and a bright spot."><input id="diff" type="checkbox" /> Difference from first visit</label>
+          <label class="speed" id="diff-wrap" hidden title="Show each later epoch minus the earliest epoch. Things that did not change cancel to grey; a moving object leaves a dark and a bright spot."><input id="diff" type="checkbox" /> Difference from first epoch</label>
           <label class="speed" title="Width of the patch of sky. Wider fields are built live and take longer.">Field of view
             <select id="fov" name="fov"><option value="0.1">0.1°</option><option value="0.2" selected>0.2° (cached targets)</option><option value="0.5">0.5°</option><option value="1">1°</option></select>
           </label>

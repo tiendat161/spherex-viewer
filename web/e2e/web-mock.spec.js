@@ -162,7 +162,7 @@ test('field of view: selector, URL parameter, grid size, wide-field note', async
   await expect.poll(() => page.evaluate(() => document.getElementById('canvas').width)).toBe(116);
 });
 
-test('visit slider and the vertical wavelength slider', async ({ page }) => {
+test('epoch slider and the vertical wavelength slider', async ({ page }) => {
   await page.goto(wise);
   await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
   await expect(page.locator('#play')).toHaveText('Pause');
@@ -196,7 +196,7 @@ test('visit slider and the vertical wavelength slider', async ({ page }) => {
   await page.mouse.click(x, box.y + 1);
   const top = await wave();
 
-  // Visit slider: click the middle mark, drag to the last, keep the wavelength as nearly as possible.
+  // Epoch slider: click the middle mark, drag to the last, keep the wavelength as nearly as possible.
   const vbox = await page.locator('#visit-track').boundingBox();
   const vy = vbox.y + vbox.height / 2;
   const date = () => page.locator('#r-date').textContent();
@@ -215,12 +215,12 @@ test('visit slider and the vertical wavelength slider', async ({ page }) => {
   await page.screenshot({ path: outDir + 'web-mock-pad.png', fullPage: true });
 });
 
-test('two play buttons follow the two sliders: across visits holds the wavelength, through wavelengths holds the visit', async ({ page }) => {
+test('two play buttons follow the two sliders: across epochs holds the wavelength, through wavelengths holds the epoch', async ({ page }) => {
   await page.goto(wise);
   await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
   await expect(page.locator('#play')).toHaveText('Pause');
   await page.locator('#play').click();
-  await expect(page.locator('#play')).toHaveText('Play across visits');
+  await expect(page.locator('#play')).toHaveText('Play across epochs');
   await expect(page.locator('#play-wl')).toHaveText('Play through wavelengths');
   await expect(page.locator('#order')).toHaveCount(0); // no Order selector: the two sliders are the two orders
 
@@ -243,13 +243,13 @@ test('two play buttons follow the two sliders: across visits holds the wavelengt
   }
   expect(waveOf.size).toBe(3); // all three visits were shown
   await page.locator('#play').click();
-  await expect(page.locator('#play')).toHaveText('Play across visits');
+  await expect(page.locator('#play')).toHaveText('Play across epochs');
 
   // Through wavelengths: the visit stays, the wavelength goes up to the end and comes back.
   await page.locator('#play-wl').click();
   await expect(page.locator('#play-wl')).toHaveText('Pause');
   await expect(page.locator('#play')).toBeDisabled();
-  await expect(page.locator('#play-note')).toContainText('through the wavelengths of visit');
+  await expect(page.locator('#play-note')).toContainText('through the wavelengths of epoch');
   const visit = await page.locator('.visit-labels .cur').getAttribute('data-visit');
   const waves = [];
   for (let i = 0; i < 40; i++) {
@@ -379,7 +379,7 @@ test('flux charts: spectrum and light curve next to the image, coloured by visit
   await expect(page.locator('#chart-title')).toHaveText('SIMULATED. Flux at the requested position: 36 of 40 frames measured');
   await expect(page.locator('.chart-dot')).toHaveCount(36);
   await expect(page.locator('#chart-legend span')).toHaveCount(3); // one colour per visit
-  await expect(page.locator('#chart-help')).toContainText('Each colour is one visit');
+  await expect(page.locator('#chart-help')).toContainText('Each colour is one epoch');
   await expect(page.locator('#chart-note')).toContainText('not aperture-corrected');
   await expect(page.locator('#chart-note')).toContainText('4 of 40 frames have no flux');
   await expect(page.locator('#chart-note')).toContainText('first choices, not checked');

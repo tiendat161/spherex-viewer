@@ -273,13 +273,13 @@ describe('captionText', () => {
   const frame = { obs_mjd: 60800.5, wavelength_um: 1.2346, skipped: false };
   const stack = { stack: true, visit: 1, visits: 3, start_mjd: 60980, end_mjd: 61022, n_images: 56, band: { wavelength_min_um: 0.74, wavelength_max_um: 5 } };
   it('describes one image with its date, wavelength and visit', () => {
-    expect(captionText(frame, 'visit 2 of 3')).toBe(`One image · ${mjdToUtc(60800.5)} · 1.235 µm · visit 2 of 3`);
-    expect(captionText(frame)).not.toContain('visit');
+    expect(captionText(frame, 'epoch 2 of 3')).toBe(`One image · ${mjdToUtc(60800.5)} · 1.235 µm · epoch 2 of 3`);
+    expect(captionText(frame)).not.toContain('epoch');
   });
   it('describes a stack by visit, dates, how many images and the band', () => {
-    expect(captionText(stack)).toBe(`Visit 2 of 3 · ${mjdToUtc(60980).slice(0, 10)} to ${mjdToUtc(61022).slice(0, 10)} · 56 images combined, 0.74–5.00 µm`);
+    expect(captionText(stack)).toBe(`Epoch 2 of 3 · ${mjdToUtc(60980).slice(0, 10)} to ${mjdToUtc(61022).slice(0, 10)} · 56 images combined, 0.74–5.00 µm`);
     expect(captionText({ ...stack, diff: true, n_images: 1, end_mjd: 60980.2 })).toContain('1 image combined');
-    expect(captionText({ ...stack, diff: true })).toContain('minus the first visit');
+    expect(captionText({ ...stack, diff: true })).toContain('minus the first epoch');
   });
   it('is empty without a frame, or for a failed one', () => {
     expect(captionText(undefined)).toBe('');

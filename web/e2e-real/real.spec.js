@@ -29,15 +29,15 @@ for (const t of targets) {
     await expect(page.locator('#targets button')).toHaveCount(targets.length);
     await expect(page.locator('#message')).toBeHidden();
 
-    // A cached series opens in the stacked view: one deep image per visit, centre not marked.
+    // A cached series opens in the stacked view: one deep image per epoch, centre not marked.
     await expect(page.locator('#view')).toHaveValue('stack');
-    await expect(page.locator('#r-frame')).toHaveText(/^Visit \d+ of \d+$/);
+    await expect(page.locator('#r-frame')).toHaveText(/^Epoch \d+ of \d+$/);
     await expect(page.locator('#r-wave')).toContainText('combined');
     await expect(page.locator('#marker')).toBeHidden();
     await expect(page.locator('#vaxis')).toBeHidden(); // no wavelength slider for stacks
     await expect(page.locator('#seg-date')).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('#caption')).toContainText('images combined');
-    await expect(page.locator('.visit-mark').first()).toBeVisible(); // the visit slider is the same one as for the frames
+    await expect(page.locator('.visit-mark').first()).toBeVisible(); // the epoch slider is the same one as for the frames
     await expect(page.locator('#play')).toHaveText('Pause');
     await page.locator('#play').click();
     await page.locator('#slider').fill('0');

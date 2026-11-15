@@ -1,6 +1,6 @@
 # SPHEREx viewer
 
-A web tool for NASA Space Apps 2026, challenge "Planet X and SPHEREx". Enter a sky position (RA/Dec), and blink through real infrared images of that patch taken by the SPHEREx space telescope, by date or by wavelength, to spot things that move or change. It also shows the visits stacked together and the difference between visits.
+A web tool for NASA Space Apps 2026, challenge "Planet X and SPHEREx". Enter a sky position (RA/Dec), and blink through real infrared images of that patch taken by the SPHEREx space telescope, by date or by wavelength, to spot things that move or change. It also shows the epochs stacked together and the difference between visits.
 
 **Status:** deployed on one AWS EC2 instance (Sydney) at https://16-179-73-6.sslip.io (see `docs/deploy.md`). The five cached targets open at once and were checked from outside. A live position (any other) was built to the end once on that server: Orion M42, 8 frames in about 252 s, through the backup archive search (TAP was failing that day). Live builds depend on the IRSA archive, which was unreliable during the event, so for a demo use the cached targets or request a live position a few minutes beforehand.
 
@@ -9,7 +9,7 @@ A web tool for NASA Space Apps 2026, challenge "Planet X and SPHEREx". Enter a s
 - **Any position.** Type RA/Dec in decimal degrees or sexagesimal, or paste "RA Dec" together, or pick a target. Positions are also read from the URL: `/?ra=133.795129&dec=-7.245147&fov=0.2`.
 - **Five test targets are cached** and open at once: WISE 0855, Barnard's Star, Epsilon Indi B, RW Aurigae, R Draconis. They are the ones named in the challenge.
 - **Any other position is built live** from the IRSA archive: a first batch of 8 frames spread over dates and bands (the archive search is the slow part: from seconds to several minutes, depending on the archive; if the main search (TAP) fails, a backup search (SIA2) is used and the page says the list of images may be incomplete), then "Load more" or "Load up to 102".
-- **Views:** individual frames (step through visits at one wavelength, or through the wavelengths), stacked visits per detector band, and the difference from the first visit. Background is subtracted per image.
+- **Views:** individual frames (step through epochs at one wavelength, or through the wavelengths), stacked epochs per detector band, and the difference from the first epoch. Background is subtracted per image.
 - **Field of view:** 0.1°, 0.2° (default), 0.5° or 1°. Cached targets are 0.2° only; other sizes are built live.
 - **Flux charts:** Spectrum and Light curve at the target position (aperture photometry, microjansky, with uncertainty; method not yet validated).
 - **Metadata** per frame: date, wavelength, flagged-pixel fraction, and a REAL / SIMULATED badge. Everything built from the archive is real; the simulated badge appears only for the mock data used in frontend development.

@@ -136,6 +136,8 @@ Environment: `SPHEREX_LIVE=0` turns live builds off; `SPHEREX_SERIES_DIR` points
 
 The frontend, built with Vite and no UI framework. It only ever calls relative `/api/` paths.
 
+**Naming (T49):** the page says "epoch" wherever the code and the contract say "visit" (a group of observation dates); only user-visible text changed. "Catalogue epoch" (the date a catalogue position refers to) is a different thing and is always written in full.
+
 | Path | Holds |
 |---|---|
 | `index.html`, `src/style.css` | Page markup and styling: the top bar (target dropdown, RA and Dec boxes), the image with its sliders, the buttons, and the folded "Advanced" settings |

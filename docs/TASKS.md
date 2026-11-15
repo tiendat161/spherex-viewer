@@ -82,6 +82,7 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 | T48 | While TAP is down, live searches ask SIA2 first for 5 minutes (`TapHealth`, `TAP_SKIP_S` = 300, not tuned) instead of waiting for two 90 s TAP tries each time; TAP is tried again after the pause or if SIA2 fails. Not measured on the server after the change | "public-facing web tool" | the commit on branch `tap-skip` |
 | T46 | Fixed stale or unverified statements: contract decision 13 and live `frames[].index` meaning, flag bits cited to Explanatory Supplement Table 16, proper-motion adequacy marked unverified, live-wait text made indicative | "never invent scientific facts" | `ee71db0`, `a7657c3`, `2708374`, `5a004c6`, and the commit on branch `t46-claims` that adds this row |
 | T12 | Submission paperwork: `README.md` rewritten (public URL, status, limits), `REFERENCES.md` brought up to date. Not done: demo video, the two `TODO`s in `REFERENCES.md` (Gaia endpoint, AI-written split: need Dat), exact deadline unconfirmed | submission | the commit on branch `t12-submission` |
+| T49 | User-facing word "epoch" instead of "visit" (Dat's decision): page text, captions, tooltips, chart legends, README; code, JSON fields, contracts and API unchanged; "catalogue epoch" keeps its own meaning | none (clarity) | the commit that adds this row |
 
 ## Cancelled
 
