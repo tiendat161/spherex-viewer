@@ -1,6 +1,6 @@
-import { fetchTargets, pollSeries, pollSpectrum } from './api.js';
+import { fetchCatalogue, fetchTargets, pollSeries, pollSpectrum } from './api.js';
 import { PALETTE, fluxPoints, fluxSummary, lightCurveLayout, reasonText, reasonWords, spectrumLayout } from './chart.js';
-import { FOV_DEG, SPECTRUM_LOAD, clickToImage, imageToBox, pixelToSky, parseAngle, INITIAL_LOAD, MB_PER_IMAGE, isCachedPosition, loadPlan, loadTimeText, captionText, splitCoordinates, WIDE_FOV_DEG, bandLabel, blinkPair, buildSlots, cycleVisit, pingPong, formatFlag, gridFovDeg, isWideField, locationQuery, mjdToUtc, nearestWavelength, nearestY, nextSlot, orderSlots, padPosition, padSpec, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, stackSlots, stepVisit, stepWavelength, visitsOf, zoomRect } from './model.js';
+import { FOV_DEG, SPECTRUM_LOAD, clickToImage, imageToBox, pixelToSky, skyToPixel, medianMjd, parseAngle, INITIAL_LOAD, MB_PER_IMAGE, isCachedPosition, loadPlan, loadTimeText, captionText, splitCoordinates, WIDE_FOV_DEG, bandLabel, blinkPair, buildSlots, cycleVisit, pingPong, formatFlag, gridFovDeg, isWideField, locationQuery, mjdToUtc, nearestWavelength, nearestY, nextSlot, orderSlots, padPosition, padSpec, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, stackSlots, stepVisit, stepWavelength, visitsOf, zoomRect } from './model.js';
 
 const $ = (id) => document.getElementById(id);
 const el = {
@@ -9,7 +9,7 @@ const el = {
   frameBox: $('frame-box'), canvas: $('canvas'), scalebar: $('scalebar'), scalebarLabel: $('scalebar-label'), skipped: $('skipped'),
   prev: $('prev'), play: $('play'), next: $('next'), slider: $('slider'), visitBar: $('visit-bar'), vtrack: $('visit-track'), vmarks: $('visit-marks'), vhandle: $('visit-handle'), vlabels: $('visit-labels'), vaxis: $('vaxis'), segDate: $('seg-date'), segWl: $('seg-wl'), caption: $('caption'), targetsMenu: $('targets-menu'), targetsCurrent: $('targets-current'), vTrack: $('vaxis-track'), vTicks: $('vaxis-ticks'), vHandle: $('vaxis-handle'), vLabels: $('vaxis-labels'), fps: $('fps'), zoom: $('zoom'), pair: $('pair'), pairNote: $('pair-note'), playNote: $('play-note'), wdown: $('wdown'), wup: $('wup'), playWl: $('play-wl'),
   view: $('view'), band: $('band'), bandWrap: $('band-wrap'), diff: $('diff'), diffWrap: $('diff-wrap'),
-  mark: $('mark'), marker: $('marker'),
+  mark: $('mark'), marker: $('marker'), catToggle: $('catalogue'), catCanvas: $('cat-canvas'), catNote: $('cat-note'),
   stageRow: $('stage-row'), charts: $('charts'), tabSpectrum: $('tab-spectrum'), tabPoint: $('tab-point'), pointMarker: $('point-marker'), tabCurve: $('tab-curve'), chart: $('chart'), chartTitle: $('chart-title'), chartLegend: $('chart-legend'), chartHelp: $('chart-help'), chartMessage: $('chart-message'), chartNote: $('chart-note'),
   rFrame: $('r-frame'), rDate: $('r-date'), rWave: $('r-wave'), rFlag: $('r-flag'), legend: $('legend'),
 };
@@ -122,6 +122,7 @@ function render() {
   el.pair.checked = !!state.pair;
   renderPairNote();
   renderPlayNote();
+  renderCatalogue();
   renderMore();
   renderCharts();
   renderPointMarker();
@@ -436,6 +437,50 @@ function clearPoint() {
   if (state.chartTab === 'point') state.chartTab = 'spectrum';
 }
 
+/**
+ * WISE catalogue overlay (T15). REAL catalogue data (AllWISE, via /api/catalogue), drawn as open circles over the image at the
+ * catalogue positions: not moved for proper motion, so a fast mover is displaced from where SPHEREx saw it. Off by default.
+ */
+function renderCatalogue() {
+  const g = state.resp?.grid, c = el.catCanvas;
+  const on = el.catToggle.checked && !!g && !!state.pos && !el.frameBox.hidden;
+  c.hidden = !on;
+  el.catNote.hidden = !el.catToggle.checked;
+  if (!el.catToggle.checked) return;
+  if (!on) { el.catNote.textContent = 'WISE catalogue sources: shown once the image is loaded.'; return; }
+  const key = `${state.pos.ra},${state.pos.dec},${state.pos.fov}`;
+  if (state.cat?.key !== key) {
+    state.cat?.abort.abort();
+    const abort = new AbortController();
+    state.cat = { key, doc: null, abort };
+    fetchCatalogue(state.pos.ra, state.pos.dec, state.pos.fov, { signal: abort.signal })
+      .then((doc) => { if (state.cat?.abort === abort) { state.cat.doc = doc; renderCatalogue(); } }, () => {});
+  }
+  const doc = state.cat.doc;
+  const box = c.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  c.width = Math.max(1, Math.round(box.width * dpr)); c.height = Math.max(1, Math.round(box.height * dpr));
+  const cx = c.getContext('2d');
+  cx.clearRect(0, 0, c.width, c.height);
+  if (!doc) { el.catNote.textContent = 'WISE catalogue sources: asking the catalogue service (IRSA)…'; return; }
+  if (doc.status === 'error') { el.catNote.textContent = `WISE catalogue sources unavailable. ${doc.error.message}`; return; }
+  const zoom = Number(el.zoom.value);
+  let shown = 0;
+  cx.lineWidth = 1.5 * dpr; cx.strokeStyle = '#ff8c1a'; cx.shadowColor = '#000'; cx.shadowBlur = 2 * dpr;
+  for (const s of doc.sources) {
+    const p = skyToPixel(g, s.ra, s.dec);
+    if (!p) continue;
+    const { u, v } = imageToBox(p.fx, p.fy, zoom);
+    if (u < 0 || u > 1 || v < 0 || v > 1) continue;
+    cx.beginPath(); cx.arc(u * c.width, v * c.height, 7 * dpr, 0, 2 * Math.PI); cx.stroke();
+    shown++;
+  }
+  const mjd = medianMjd(doc.sources);
+  el.catNote.textContent = `REAL catalogue data: ${shown} AllWISE (WISE, 3.4–22 µm) source${shown === 1 ? '' : 's'} in view, orange circles` +
+    `${doc.truncated ? ` (the field holds more; the ${doc.sources.length} brightest in W1 were fetched)` : ''}. ` +
+    `Positions are the catalogue's, at its own epoch${mjd ? ` (median observation date of these sources ${mjdToUtc(mjd).slice(0, 10)} UTC)` : ''}, ` +
+    'not corrected for proper motion: a moving object is where WISE saw it, not where SPHEREx saw it. Not all of them are visible in the SPHEREx images.';
+}
+
 /** The marker on the image at the clicked point; follows the zoom. */
 function renderPointMarker() {
   const pt = state.point;
@@ -687,6 +732,7 @@ el.chart.addEventListener('click', (e) => { const g = e.target.closest('.chart-d
 el.chart.addEventListener('keydown', (e) => { const g = e.target.closest?.('.chart-dot'); if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); selectFrame(Number(g.dataset.index)); } });
 el.zoom.addEventListener('change', render);
 el.mark.addEventListener('change', render);
+el.catToggle.addEventListener('change', render);
 el.view.addEventListener('change', () => { setView(el.view.value); reslot(); });
 for (const c of [el.band, el.diff]) c.addEventListener('change', reslot);
 el.pair.addEventListener('change', () => {

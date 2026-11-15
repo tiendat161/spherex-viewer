@@ -400,3 +400,20 @@ describe('clicked position (T14)', () => {
     expect(spectrumUrl(1, 2, 0.5, { ra: 1.01, dec: 2.02 }, 8)).toContain('load=8');
   });
 });
+
+describe('skyToPixel', () => {
+  const grid = { center: { ra: 133.795, dec: -7.245 }, pixel_scale_arcsec: 6.2, shape: [116, 116] };
+  it('is the inverse of pixelToSky', async () => {
+    const { pixelToSky, skyToPixel } = await import('../src/model.js');
+    for (const [fx, fy] of [[0.5, 0.5], [0.1, 0.9], [0.8, 0.2]]) {
+      const { ra, dec } = pixelToSky(grid, fx, fy);
+      const p = skyToPixel(grid, ra, dec);
+      expect(p.fx).toBeCloseTo(fx, 9);
+      expect(p.fy).toBeCloseTo(fy, 9);
+    }
+  });
+  it('is null on the far side of the sky', async () => {
+    const { skyToPixel } = await import('../src/model.js');
+    expect(skyToPixel(grid, 313.795, 7.245)).toBeNull();
+  });
+});

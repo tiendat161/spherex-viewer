@@ -75,3 +75,16 @@ export async function pollSpectrum(ra, dec, fov, point, { load, fetchFn = fetch,
     await sleep(intervalMs, signal);
   }
 }
+
+/** AllWISE sources in the field (real catalogue data). Resolves to the API document; a network failure becomes an error document. */
+export async function fetchCatalogue(ra, dec, fov, { signal, fetchFn = fetch } = {}) {
+  try {
+    const res = await fetchFn(`/api/catalogue?ra=${ra}&dec=${dec}&fov=${fov}`, { signal });
+    const doc = await res.json();
+    if (doc && (doc.status === 'ok' || doc.status === 'error') && Array.isArray(doc.sources)) return doc;
+    throw new Error(`HTTP ${res.status}`);
+  } catch (e) {
+    if (e?.name === 'AbortError') throw e;
+    return { status: 'error', sources: [], error: { message: `The catalogue could not be fetched (${e.message}). The images are not affected.` } };
+  }
+}

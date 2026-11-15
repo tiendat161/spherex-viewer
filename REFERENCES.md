@@ -10,7 +10,7 @@ Sections match the Space Apps submission form.
 - SPHEREx cutout service docs: https://irsa.ipac.caltech.edu/data/SPHEREx/docs/cutout_tool.html
 - SPHEREx Explanatory Supplement: https://irsa.ipac.caltech.edu/data/SPHEREx/docs/SPHEREx_Expsupp.pdf
 - IRSA SPHEREx tutorial notebooks: https://caltech-ipac.github.io/irsa-tutorials/spherex/
-- Gaia DR3 (ESA, not NASA): the spike read Barnard's Star proper motion and 2016.0 position from the **ESA Gaia Archive TAP** (host `gea.esac.esa.int`, per `spike/epoch.py` and `docs/spike.md`), not from VizieR or IRSA. The values were entered by hand; no query script was kept. TODO: confirm and paste the exact TAP endpoint URL used; it is not recorded in the repo.
+- Gaia DR3 (ESA, not NASA): the spike read Barnard's Star proper motion and 2016.0 position from the **ESA Gaia Archive TAP** (host `gea.esac.esa.int`, per `spike/epoch.py` and `docs/spike.md`), not from VizieR or IRSA. The values were entered by hand; no query script was kept. The documented sync endpoint is `https://gea.esac.esa.int/tap-server/tap/sync` (https://www.cosmos.esa.int/web/gaia-users/archive/programmatic-access); it is not confirmed that the spike used exactly this URL, and it was unreachable on 2026-11-15.
 
 ## Space Agency Partner & Other Data and tools
 
@@ -25,7 +25,7 @@ Sections match the Space Apps submission form.
 - Claude Code (AI assistance for code and docs): https://claude.com/claude-code
 - Generic scaffolding created before the event: the agent definitions in `.claude/` and the `Makefile` (plus `CLAUDE.md`), committed in `f080347` "Generic scaffolding (pre-event)".
 
-Note: every library above is imported or run by the code (checked 2026-11-15 by searching `pipeline/`, `api/`, `Makefile` and `web/package.json`; `requests` is imported inside `pipeline/irsa.py`). Python versions are pinned in `requirements.txt`, web versions in `web/package.json`. Not used: Aladin Lite, Gaia or WISE catalogue overlays (planned tasks only). Also used for tests: pytest, jsonschema, httpx, Vitest, Playwright, Ajv.
+Note: every library above is imported or run by the code (checked 2026-11-15 by searching `pipeline/`, `api/`, `Makefile` and `web/package.json`; `requests` is imported inside `pipeline/irsa.py`). Python versions are pinned in `requirements.txt`, web versions in `web/package.json`. Not used: Aladin Lite. The catalogue overlay (T15) reads the AllWISE Source Catalog (table `allwise_p3as_psd`, IRSA TAP; https://irsa.ipac.caltech.edu/ibe/docs/wise/allwise/ is the image atlas; the catalogue is described at https://irsa.ipac.caltech.edu/data/WISE/docs/release/AllWISE/) through `pipeline/catalogue.py`. The column names `w1mpro` and `w1mjdmean` were taken from IRSA documentation text found by search; the live query was NOT yet confirmed against the service (it returned HTTP 502 on 2026-11-15). Gaia is not used: the documented ESA endpoint https://gea.esac.esa.int/tap-server/tap/sync (https://www.cosmos.esa.int/web/gaia-users/archive/programmatic-access) was unreachable from the development machine on 2026-11-15, so it is not claimed to work here. Also used for tests: pytest, jsonschema, httpx, Vitest, Playwright, Ajv.
 
 ## AI usage
 

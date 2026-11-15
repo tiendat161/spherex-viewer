@@ -46,6 +46,7 @@ The cached path runs the same steps as 4 and 5, once, in `pipeline/build.py`, an
 | The cached targets, their positions, frame counts, proper motion | `verify/targets.json`, read by `pipeline/targets.py`; then `make cache` |
 | The flux charts: what is drawn, colours, tabs, what a click does | `web/src/main.js` (`renderCharts`); the data handling is `web/src/chart.js` |
 | Spectrum at a clicked point: the measurement, the endpoint, the cached-target fallback | `pipeline/live.py` (`LiveSeries.spectrum`), `pipeline/cutout.py` (`wavelength_map`), `api/main.py` (`spectrum`), `contracts/spectrum.schema.json`; the click is `onImageClick` in `web/src/main.js` |
+| WISE catalogue overlay: the query, the endpoint, the drawing | `pipeline/catalogue.py` (table, radius, row limit, error text), `api/main.py` (`catalogue`), `contracts/catalogue.schema.json`; the drawing is `renderCatalogue` in `web/src/main.js` (`skyToPixel` in `web/src/model.js`), the toggle is under Advanced in `web/index.html` |
 | Player behaviour: controls, blink, zoom, frame order, badge, readouts | `web/src/main.js`; pure logic it uses is in `web/src/model.js` |
 | Page markup and styling | `web/index.html`, `web/src/style.css` |
 | How the frontend fetches and polls | `web/src/api.js` |
@@ -90,6 +91,7 @@ The source of truth for every interface. Read it before changing anything that c
 |---|---|
 | `series.schema.json` | Response of `GET /api/series`: status, real or simulated label, progress, the shared grid, the stretch, the list of frames, and the optional stacks |
 | `spectrum.schema.json` | Response of `GET /api/spectrum` (T14): the flux at a clicked position in every frame of a live series |
+| `catalogue.schema.json` | Response of `GET /api/catalogue` (T15): AllWISE sources in a field, real catalogue data, positions not corrected for proper motion |
 | `targets.schema.json` | Response of `GET /api/targets`: the cached targets and where each position comes from |
 
 The prose explanation, with the choices made and the open decisions, is in `docs/contract.md`.
@@ -105,6 +107,7 @@ Turns archive data into series. Used in two ways: `build.py` writes the static c
 | `select.py` | Picks which images make a series: evenly spaced in time (`select_frames`), one per wavelength band (`select_per_wavelength`), or for live series an order in which any first N spread over the dates and detector bands (`spread_order`); prefers releases in the order of `RELEASE_PREFERENCE` (`dr1` first) |
 | `cutout.py` | Reads one downloaded cutout: image, flags, variance, sky coordinates, unit, wavelength and `MJD-AVG`; optionally the wavelength at every pixel (`wave_map`, for a clicked position); helpers for sky-to-pixel and pixel solid angle |
 | `photometry.py` | Flux at a sky position on one native cutout: aperture photometry with a ring background, in microjansky with an uncertainty; says why when it cannot measure. Called by the build and the live path; the result is in each frame's `flux` and the series' `photometry` block |
+| `catalogue.py` | AllWISE Source Catalog sources for a field through the IRSA client (`allwise_p3as_psd`); a service failure becomes an error document. Used by `GET /api/catalogue` |
 | `grid.py` | The shared north-up grid: allowed fields of view, grid size, resampling every frame onto it, which pixels count as flagged |
 | `stretch.py` | Computes one brightness mapping per series and converts frames to 8-bit |
 | `stack.py` | Median background subtraction, grouping dates into visits, stacking per visit and detector band, difference from the first visit |
@@ -187,6 +190,7 @@ Pytest unit tests; none touches the network.
 | `pipeline/test_spectrum.py` | Spectrum at a clicked position: off-centre source, wavelength at the clicked pixel, errors, memory budget |
 | `pipeline/test_flux_series.py` | Flux in the series document: live and cached paths, flagged apertures, the schema's flux rules |
 | `pipeline/test_photometry.py` | Flux recovery, background independence, error estimate, flagged and NaN pixels, off-image position |
+| `pipeline/test_catalogue.py` | Catalogue query text, row parsing, truncation, service down (fake transport) |
 | `pipeline/test_build.py` | The cache build end to end on synthetic data |
 | `pipeline/test_live.py` | Live series: progress, stretch refresh, limits, staged loading and extension |
 | `pipeline/test_livestore.py` | Finished series surviving a restart: same document and PNGs, rebuilt to measure or extend, newest kept, old and damaged entries ignored |

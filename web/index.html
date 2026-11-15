@@ -42,6 +42,7 @@
           </div>
           <div id="frame-box" class="frame-box" hidden>
             <canvas id="canvas"></canvas>
+            <canvas id="cat-canvas" class="cat-canvas" hidden></canvas>
             <div id="marker" class="marker" title="Requested position (grid centre)" hidden></div>
             <div id="point-marker" class="point-marker" title="Clicked position" hidden></div>
             <div id="compass" class="compass">N&nbsp;↑ &nbsp;E&nbsp;←</div>
@@ -101,12 +102,14 @@
           </label>
           <label class="speed" title="Blink two frames far apart in time and close in wavelength"><input id="pair" type="checkbox" /> Blink widest pair</label>
           <label class="speed" title="Draw a circle on the requested position (the centre of the image)"><input id="mark" type="checkbox" /> Mark centre</label>
+          <label class="speed" title="Draw the positions of AllWISE catalogue sources (WISE, infrared) on the image"><input id="catalogue" type="checkbox" /> Show WISE catalogue sources</label>
           <label class="speed" id="band-wrap" hidden title="Which detector array the stacked images come from">Detector band <select id="band"></select></label>
           <label class="speed" id="diff-wrap" hidden title="Show each later visit minus the earliest visit. Things that did not change cancel to grey; a moving object leaves a dark and a bright spot."><input id="diff" type="checkbox" /> Difference from first visit</label>
           <label class="speed" title="Width of the patch of sky. Wider fields are built live and take longer.">Field of view
             <select id="fov" name="fov"><option value="0.1">0.1°</option><option value="0.2" selected>0.2° (cached targets)</option><option value="0.5">0.5°</option><option value="1">1°</option></select>
           </label>
         </div>
+        <p id="cat-note" class="muted small" hidden></p>
         <dl id="readout" class="readout">
           <div><dt>Frame</dt><dd id="r-frame">—</dd></div>
           <div><dt>Observed</dt><dd id="r-date">—</dd></div>

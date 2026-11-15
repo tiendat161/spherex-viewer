@@ -131,6 +131,14 @@ Validated by [`contracts/spectrum.schema.json`](../contracts/spectrum.schema.jso
 
 Cached targets are not built from cutouts the server has, so a request at a cached position starts a live series there (as `/api/series` does for any other field of view). Its frames are chosen by the live rule and are **not** the frames of the cached series: `index` is the index in the live series. The UI must say so.
 
+## GET /api/catalogue (T15)
+
+```
+GET /api/catalogue?ra=&dec=&fov=0.2
+```
+
+Validated by [`contracts/catalogue.schema.json`](../contracts/catalogue.schema.json). Sources of the AllWISE Source Catalog (IRSA TAP, table `allwise_p3as_psd`) inside the field: designation, ra, dec, W1 magnitude and the catalogue's mean W1 observation date (`mjd`). Always real catalogue data. Positions are the catalogue's, **not corrected for proper motion**. `status: "error"` (with `error.message`) when the catalogue service does not answer, the input is invalid, or the server does not contact archives (`SPHEREX_LIVE=0`); the images are not affected. At most 400 sources, the brightest in W1 (`truncated`).
+
 ## Prototype choices (2026-11-14)
 
 Provisional answers adopted for the prototype so the build sessions are not blocked. They are choices, not findings; none changes `series.schema.json`. Numbers match the open decisions below.

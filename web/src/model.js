@@ -52,6 +52,25 @@ export function pixelToSky(grid, fx, fy) {
   return { ra: (((ra / r) % 360) + 360) % 360, dec: dec / r };
 }
 
+/** The inverse of `pixelToSky`: fractions (from the left, from the top) of the image where the sky position (ra, dec) falls; null behind the tangent point. */
+export function skyToPixel(grid, ra, dec) {
+  const [ny, nx] = grid.shape;
+  const s = (grid.pixel_scale_arcsec / 3600) * (Math.PI / 180);
+  const r = Math.PI / 180;
+  const ra0 = grid.center.ra * r, dec0 = grid.center.dec * r, a = ra * r, d = dec * r;
+  const cosc = Math.sin(dec0) * Math.sin(d) + Math.cos(dec0) * Math.cos(d) * Math.cos(a - ra0);
+  if (cosc <= 0) return null;
+  const xi = (Math.cos(d) * Math.sin(a - ra0)) / cosc;
+  const eta = (Math.cos(dec0) * Math.sin(d) - Math.sin(dec0) * Math.cos(d) * Math.cos(a - ra0)) / cosc;
+  return { fx: 0.5 - xi / (nx * s), fy: 0.5 - eta / (ny * s) };
+}
+
+/** Median of the finite `mjd` values of catalogue sources, or null. */
+export function medianMjd(sources) {
+  const v = sources.map((x) => x.mjd).filter((x) => Number.isFinite(x)).sort((a, b) => a - b);
+  return v.length ? v[Math.floor(v.length / 2)] : null;
+}
+
 /** Fractions (from the left, from the top) of the image under a click at (u, v) in 0..1 of the canvas box, undoing the centred zoom. */
 export function clickToImage(u, v, zoom) {
   return { fx: (u - 0.5) / zoom + 0.5, fy: (v - 0.5) / zoom + 0.5 };
