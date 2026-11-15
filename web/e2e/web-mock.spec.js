@@ -503,3 +503,25 @@ test('mock: with the backdrop on the SPHEREx canvas gets the clicks and Clicked 
   await expect(page.locator('#tab-point')).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('#point-marker')).toBeVisible();
 });
+
+test('mock: with the backdrop on every option of the open target menu is on top and the last one loads', async ({ page }) => {
+  await page.setViewportSize(wide);
+  await page.addInitScript((h) => { window.__skyHash = h; }, stubHash);
+  await page.route(ALADIN, (r) => r.fulfill({ contentType: 'text/javascript', body: STUB }));
+  await page.route(TILE, (r) => r.fulfill({ contentType: 'image/jpeg', body: pixel }));
+  await page.goto(wise + '&backdrop=on');
+  await expect(page.locator('body')).toHaveClass(/sky-on/);
+  await openTargets(page);
+  const buttons = page.locator('#targets button');
+  const n = await buttons.count();
+  expect(n).toBeGreaterThan(1);
+  for (let i = 0; i < n; i++) {
+    const b = await buttons.nth(i).boundingBox();
+    const inside = await page.evaluate(([x, y]) => !!document.elementFromPoint(x, y)?.closest('.targets'), [b.x + b.width / 2, b.y + b.height / 2]);
+    expect(inside, `option ${i}`).toBe(true);
+  }
+  await page.screenshot({ path: outDir + 'web-mock-backdrop-menu.png' });
+  await buttons.nth(n - 1).click();
+  await expect(page.locator('#targets-current')).not.toHaveText('Your own position');
+  await expect(page.locator('#ra')).not.toHaveValue(/^133\.795/); // the last target was loaded (the mock has no series for it, so no frames are checked)
+});
