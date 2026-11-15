@@ -24,6 +24,12 @@ Commits: see `git log` (the contract commit "Contract: optional progress.search"
 
 **Gaps:** (1) SIA2 is not made primary: no speed comparison is possible until TAP works again; re-run the EC2 timing then (`docs/spike.md`, section 5), and check a deep field as well. (2) The 90 s TAP limit is a guess: the usual search takes 10 to 67 s and one took about 4 minutes, so a slow but working TAP may now be abandoned. (3) The fallback was tested with fakes only, not against the live archive from the server. (4) The new progress note was checked in a unit test, not in a screenshot: it only appears on the fallback path, which could not be triggered in the browser. (5) The partial-list cause for R Draconis is still unknown.
 
+## 2026-11-15: Rate limit and memory cap for the public server (T45)
+Commit: see `git log` on branch `t45-limits` (message starts "T45").
+**What:** `GET /api/series` is limited per client address (120 a minute, `SPHEREX_RATE_LIMIT`; HTTP 429 with an error document). Live series now have a total memory budget (pixels plus PNGs, 600 MB): older finished series are evicted, the newest finished one is kept, and a new build is refused while running series alone fill the budget. The image starts uvicorn with `--proxy-headers` so the limit sees the real client behind Caddy. Tests in `tests/api/test_api.py` and `tests/pipeline/test_live.py`; `make verify` passed (no UI change, no screenshot).
+**Why:** T23 finding 2: one client could fill the build slots and memory was only bounded for pixels of finished series.
+**Gaps:** The 120 a minute and the 600 MB are chosen figures, not measured on the EC2 host (T45's own note said to measure first). `--forwarded-allow-ips='*'` is only safe while port 8000 is not public. One client can still fill the 8 build slots with different positions inside the rate limit (no per-client build quota). Rate-limit state is in memory and per process. Not run inside the container.
+
 ## 2026-11-15: SIA2 tried as the archive search; TAP stays (T43)
 Commit: see `git log` (branch `t31-tap-or-sia2`, message starts "T43").
 

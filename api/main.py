@@ -11,6 +11,9 @@ set SPHEREX_LIVE=0 to serve the cache only, in which case nothing here contacts 
 import json
 import os
 import re
+import threading
+import time
+from collections import deque
 from pathlib import Path
 from typing import Optional
 
@@ -28,6 +31,32 @@ CACHED_FOV = 0.2
 CACHED_MAX_FRAMES = 102  # default and ceiling; a cached series is returned if max_frames >= its frame count
 ID_RE = re.compile(r"^[a-z0-9]+$")
 FRAME_RE = re.compile(r"^(\d{2,3}|[sd]_[A-Za-z0-9]+_\d{1,3})\.png$")  # frame NN.png, stack s_<band>_<visit>.png, difference d_...
+
+
+RATE_LIMIT = 120      # /api/series requests per client per RATE_WINDOW_S (the web app polls every 2 s: 30 a minute per tab)
+RATE_WINDOW_S = 60.0
+
+
+class RateLimiter:
+    """Sliding window per client key. In memory, one process (the service runs as one instance)."""
+
+    def __init__(self, limit=RATE_LIMIT, window_s=RATE_WINDOW_S, max_keys=10000):
+        self._limit, self._window, self._max_keys = limit, window_s, max_keys
+        self._hits = {}
+        self._lock = threading.Lock()
+
+    def allow(self, key, now=None) -> bool:
+        now = time.monotonic() if now is None else now
+        with self._lock:
+            if len(self._hits) > self._max_keys:  # bound the table: forget clients with no recent hits
+                self._hits = {k: q for k, q in self._hits.items() if q and now - q[-1] < self._window}
+            q = self._hits.setdefault(key, deque())
+            while q and now - q[0] >= self._window:
+                q.popleft()
+            if len(q) >= self._limit:
+                return False
+            q.append(now)
+            return True
 
 
 def error_doc(message: str) -> dict:
@@ -58,11 +87,14 @@ def _num(request: Request, name: str, default: Optional[float] = None) -> float:
 
 
 def create_app(series_dir: Optional[Path] = None, web_dist: Optional[Path] = None, targets_config: Optional[Path] = None,
-               live: Optional[LiveBuilder] = None) -> FastAPI:
+               live: Optional[LiveBuilder] = None, rate_limit: Optional[int] = None) -> FastAPI:
     """`live`: builder for uncached positions. None (the default) serves the cache only."""
     series_dir = Path(series_dir or os.environ.get("SPHEREX_SERIES_DIR") or ROOT / "static" / "series")
     web_dist = Path(web_dist) if web_dist is not None else ROOT / "web" / "dist"
     app = FastAPI(title="SPHEREx blink viewer API")
+    if rate_limit is None:
+        rate_limit = int(os.environ.get("SPHEREX_RATE_LIMIT", RATE_LIMIT))  # 0 turns the limit off
+    limiter = RateLimiter(rate_limit) if rate_limit > 0 else None
 
     def cached():
         """[(id, series doc)] for every directory that holds a series.json."""
@@ -74,6 +106,9 @@ def create_app(series_dir: Optional[Path] = None, web_dist: Optional[Path] = Non
 
     @app.get("/api/series")
     def series(request: Request):
+        if limiter is not None and not limiter.allow(request.client.host if request.client else "?"):
+            return JSONResponse(error_doc("Too many requests from this address. Wait a minute and try again."), status_code=429,
+                                headers={"Retry-After": "30"})
         try:
             ra = _num(request, "ra")
             dec = _num(request, "dec")

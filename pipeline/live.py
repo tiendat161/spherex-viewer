@@ -43,6 +43,7 @@ MAX_LIVE_FRAMES = 102     # the most a live series can hold: the contract's fram
 HOT_PIXEL_BYTES = 300e6   # pixels kept, over all finished series, so that they can be extended
 CUTOUT_FOV_FACTOR = 1.5   # same oversize as pipeline.build: detector cutout vs sky grid corners
 MATCH_ARCSEC = 1.0
+MAX_TOTAL_BYTES = 600e6   # pixels plus PNGs over all live series; at the limit new builds are refused and old finished series are evicted (estimate, not measured on the host)
 MAX_RUNNING = 2           # live series built at the same time
 MAX_WAITING = 6           # further series allowed to queue before requests are refused
 MAX_KEPT = 30             # finished series kept in memory
@@ -146,6 +147,10 @@ class LiveSeries:
     def pixel_bytes(self) -> int:
         with self._lock:
             return sum(f["pix"].nbytes + f["flagged"].nbytes for f in self._frames.values() if "pix" in f)
+
+    def png_bytes(self) -> int:
+        with self._lock:
+            return sum(map(len, self._pngs.values())) + sum(map(len, self._stack_pngs.values()))
 
     def drop_pixels(self):
         """Let the pixels go (the PNGs stay). The series can then be shown but not extended in place."""
@@ -282,7 +287,7 @@ class LiveBuilder:
     """Owns the live series: one per (position within 1 arcsec, fov). A request for more frames extends it."""
 
     def __init__(self, client, max_running=MAX_RUNNING, max_waiting=MAX_WAITING, max_kept=MAX_KEPT, error_ttl_s=ERROR_TTL_S,
-                 hot_pixel_bytes=HOT_PIXEL_BYTES, tap_dir=None):
+                 hot_pixel_bytes=HOT_PIXEL_BYTES, tap_dir=None, max_total_bytes=MAX_TOTAL_BYTES):
         self._client = client
         self._lock = threading.Lock()
         self._jobs = []  # oldest first
@@ -292,10 +297,13 @@ class LiveBuilder:
         self._error_ttl_s = error_ttl_s
         self._hot_pixel_bytes = hot_pixel_bytes
         self._tap_dir = tap_dir  # folder for remembered archive searches, or None
+        self._max_total_bytes = max_total_bytes
 
     def _run_job(self, job):
         job.run(self._client)
         self._trim()
+        with self._lock:
+            self._evict_to_budget()
 
     def _trim(self):
         """Keep the pixels of the most recently used finished series up to the byte budget (at least the latest one)."""
@@ -307,6 +315,18 @@ class LiveBuilder:
                     j.drop_pixels()
                 else:
                     kept += size
+
+    def total_bytes(self) -> int:
+        """Pixels plus PNGs held by every series (the lock is held by the caller or not needed for a rough figure)."""
+        return sum(j.pixel_bytes() + j.png_bytes() for j in list(self._jobs))
+
+    def _evict_to_budget(self, keep_latest=True):
+        """Forget the least recently used finished series until the total is within the budget, always keeping the
+        most recent one so the series a visitor is looking at stays (caller holds the lock)."""
+        for j in sorted((j for j in self._jobs if j.finished), key=lambda j: j.last_used)[:-1 if keep_latest else None]:
+            if self.total_bytes() <= self._max_total_bytes:
+                break
+            self._jobs.remove(j)
 
     def _busy(self):
         return sum(not j.finished for j in self._jobs) >= self._limit
@@ -334,6 +354,9 @@ class LiveBuilder:
                     break
             if rows is None and self._busy():
                 raise LiveBusy("Too many positions are being built right now. Try again in a few minutes.")
+            self._evict_to_budget(keep_latest=False)  # a new build may push out any finished series
+            if self.total_bytes() > self._max_total_bytes:  # running series alone fill the budget
+                raise LiveBusy("The server is holding as much data as it can. Try again in a few minutes.")
             done = [j for j in self._jobs if j.finished]
             for old in done[:max(0, len(self._jobs) + 1 - self._max_kept)]:
                 self._jobs.remove(old)

@@ -236,3 +236,16 @@ def test_tap_that_works_is_used_and_remembered(tmp_path):
     job = LiveSeries(RA, DEC, 0.2, 8, tap_dir=tmp_path)
     job.run(FakeClient())
     assert job.doc()["progress"]["search"] == "tap" and len(list(tmp_path.iterdir())) == 1
+
+
+def test_total_memory_budget_evicts_old_finished_series():
+    b = LiveBuilder(FakeClient(), max_total_bytes=1)  # a budget no series fits in
+    a = b.get_or_start(1.0, 1.0, 0.2, 3)
+    wait(a)
+    assert a.png_bytes() > 0 and b.total_bytes() > 0
+    assert b.find(a.id) is a  # the latest finished series is never evicted, even over budget
+    c = b.get_or_start(2.0, 2.0, 0.2, 3)  # a new build evicts the older finished series
+    assert b.find(a.id) is None
+    wait(c)
+    assert b.find(c.id) is c
+    assert c.doc()["status"] == "ready"

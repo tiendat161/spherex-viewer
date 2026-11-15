@@ -185,3 +185,25 @@ def test_a_bad_load_is_an_error_document(tmp_path, load):
     body = TestClient(create_app(series_dir=series, web_dist=tmp_path / "nodist")).get("/api/series", params={"ra": 10, "dec": 10, "load": load}).json()
     valid(body)
     assert body["status"] == "error"
+
+
+def test_series_requests_are_limited_per_client(tmp_path):
+    series, doc = make_cache(tmp_path)
+    c = TestClient(create_app(series_dir=series, web_dist=tmp_path / "nodist", rate_limit=3))
+    for _ in range(3):
+        assert c.get("/api/series", params={"ra": RA, "dec": DEC}).status_code == 200
+    r = c.get("/api/series", params={"ra": RA, "dec": DEC})
+    assert r.status_code == 429 and r.headers["retry-after"] == "30"
+    valid_doc = r.json()
+    assert valid_doc["status"] == "error" and "Too many" in valid_doc["error"]["message"]
+    assert c.get("/api/targets").status_code == 200  # other routes are not limited
+
+
+def test_rate_limiter_window_slides_and_bounds_its_table():
+    from api.main import RateLimiter
+    rl = RateLimiter(limit=2, window_s=10, max_keys=2)
+    assert rl.allow("a", 0) and rl.allow("a", 1) and not rl.allow("a", 2)
+    assert rl.allow("a", 11)  # the first hit has left the window
+    for k in "bcd":
+        rl.allow(k, 100)
+    assert len(rl._hits) <= 3
