@@ -633,3 +633,7 @@ Gaps: the "i" for the chart message and catalogue line is wired but only the mai
 
 ## 2026-11-15: Redeployed 1914fa7 to EC2
 **What:** T55 and T56 deployed (server build, container swapped, about 10 s downtime). Checked from outside: page 200, 5 targets, SIN and `#ff66ff` in the bundle, friendly `error.message` plus `error.detail` on a failing catalogue request (IRSA 502), Barnard series (40 frames), healthy. **Gaps:** the globe and crosshair were not looked at in a browser on the public site; the friendly text for a failed live series build was not seen (the build was still `loading`).
+
+## T59: position mark removed
+**What:** Dat decided the magenta crosshair of T55 was not a good idea. Removed the mark (canvas shape, catalogue layer, colour, `.sky-mark` CSS, the label and "i" text about the cross) and the `viewCentre` offset, which existed only so the mark sat in the header strip: the fly-in now ends centred on the position, as in T50 (simpler and the T50 behaviour). The header overlay is back to `#0f1115b0`. Kept: the SIN globe start (`fov` 360), fly-in, reduced motion, tile-loaded gating, fallback, click-through, credit and privacy text. Tests: the mark cases and the `viewCentre` unit tests are gone; the globe case and a fly-in-to-RA/Dec case remain.
+

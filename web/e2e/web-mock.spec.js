@@ -444,12 +444,10 @@ test('mock: catalogue service failure gives a message and keeps the images', asy
 const ALADIN = /cdn\.jsdelivr\.net\/npm\/aladin-lite@/;
 const TILE = /\/Norder3\/Dir0\/Npix0\.jpg$/;
 const STUB = `export default { init: Promise.resolve(),
-  catalog(o) { return { o, sources: [], clear() { this.sources = []; }, addSources(l) { this.sources.push(...l); window.__marks.push(l.map((x) => [x.ra, x.dec])); } }; },
-  source(ra, dec) { return { ra, dec }; },
   aladin(box, opts) {
   const c = document.createElement('canvas'); c.width = 50; c.height = 50; box.append(c);
-  window.__flights = (window.__flights || 0); window.__marks = []; window.__opts = { projection: opts.projection, fov: opts.fov }; window.__aims = [];
-  return { animateToRaDec(ra, dec) { window.__flights++; window.__aims.push([ra, dec]); }, zoomToFoV() {}, gotoRaDec(ra, dec) { window.__aims.push([ra, dec]); }, setFoV() {}, addCatalog(cat) { window.__shape = cat.o.shape instanceof HTMLCanvasElement; } };
+  window.__flights = (window.__flights || 0); window.__opts = { projection: opts.projection, fov: opts.fov }; window.__aims = [];
+  return { animateToRaDec(ra, dec) { window.__flights++; window.__aims.push([ra, dec]); }, zoomToFoV() {}, gotoRaDec(ra, dec) { window.__aims.push([ra, dec]); }, setFoV() {} };
 } };`;
 const stubHash = createHash('sha384').update(STUB).digest('base64');
 const pixel = Buffer.from('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=', 'base64');
@@ -548,20 +546,17 @@ test('mock: the backdrop starts on its own with no position chosen, then flies w
   await expect(page.locator('body')).toHaveClass(/sky-on/);
   expect(await page.evaluate(() => window.__flights)).toBe(0);
   expect(await page.evaluate(() => window.__opts)).toEqual({ projection: 'SIN', fov: 360 }); // the idle view is the whole-sky globe (360 degrees across a wide window shows the whole sphere)
-  expect(await page.evaluate(() => window.__marks.length)).toBe(0); // no mark before a position exists
   await expect(page.locator('#sky-label .sky-idle')).toBeVisible();
-  await expect(page.locator('#sky-label .sky-mark')).toBeHidden();
   await page.evaluate(() => { document.getElementById('ra').value = '133.795'; document.getElementById('dec').value = '-7.245'; });
   await page.locator('#coords button[type=submit]').click();
   await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
   await expect.poll(() => page.evaluate(() => window.__flights)).toBeGreaterThanOrEqual(1);
   await expect(page.locator('#sky-label .sky-idle')).toBeHidden();
-  await expect(page.locator('#sky-label .sky-mark')).toBeVisible();
-  expect(await page.evaluate(() => window.__marks.at(-1))).toEqual([[133.795, -7.245]]); // the mark is at the loaded RA/Dec
-  expect(await page.evaluate(() => window.__shape)).toBe(true);
+  expect(await page.evaluate(() => window.__aims.at(-1))).toEqual([133.795, -7.245]); // flies to the loaded RA/Dec
+  await expect(page.locator('#sky-label')).not.toContainText('cross');
 });
 
-test('mock: no mark and no backdrop below 900 px or when Aladin fails', async ({ page }) => {
+test('mock: no backdrop below 900 px', async ({ page }) => {
   await page.addInitScript((h) => { window.__skyHash = h; }, stubHash);
   await page.route(ALADIN, (r) => r.fulfill({ contentType: 'text/javascript', body: STUB }));
   await page.route(TILE, (r) => r.fulfill({ contentType: 'image/jpeg', body: pixel }));
@@ -569,7 +564,7 @@ test('mock: no mark and no backdrop below 900 px or when Aladin fails', async ({
   await page.goto(wise + '&backdrop=on');
   await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
   await page.waitForTimeout(1000);
-  expect(await page.evaluate(() => window.__marks)).toBeUndefined();
+  expect(await page.evaluate(() => window.__opts)).toBeUndefined();
   await expect(page.locator('#sky-label')).toBeHidden();
 });
 
