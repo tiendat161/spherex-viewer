@@ -42,7 +42,16 @@
         <button id="prev" type="button" aria-label="Step back">◀︎ Step</button>
         <button id="play" type="button">Play</button>
         <button id="next" type="button" aria-label="Step forward">Step ▶︎</button>
-        <input id="slider" type="range" min="0" max="0" value="0" aria-label="Frame" />
+        <div class="axis-wrap">
+          <input id="slider" type="range" min="0" max="0" value="0" aria-label="Frame" />
+          <div id="axis" class="axis" hidden>
+            <div id="axis-track" class="axis-track" title="Drag to move through the frames; each tick is one frame at its real position. Frames taken close together overlap: use Step or the arrow keys to move between them">
+              <div id="axis-ticks"></div><div id="axis-handle" class="axis-handle"></div>
+            </div>
+            <div id="axis-labels" class="axis-labels"></div>
+            <div id="axis-caption" class="axis-caption muted small"></div>
+          </div>
+        </div>
         <label class="speed">Speed
           <select id="fps"><option value="1">1 fps</option><option value="2">2 fps</option><option value="5" selected>5 fps</option><option value="10">10 fps</option></select>
         </label>

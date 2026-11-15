@@ -1,18 +1,19 @@
 import { fetchTargets, pollSeries } from './api.js';
-import { FOV_DEG, WIDE_FOV_DEG, bandLabel, blinkPair, buildSlots, formatFlag, gridFovDeg, isWideField, locationQuery, mjdToUtc, nextSlot, orderSlots, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, stackSlots, zoomRect } from './model.js';
+import { FOV_DEG, WIDE_FOV_DEG, axisSpec, bandLabel, blinkPair, buildSlots, formatFlag, gridFovDeg, isWideField, locationQuery, mjdToUtc, nearestPoint, nextSlot, orderSlots, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, stackSlots, zoomRect } from './model.js';
 
 const $ = (id) => document.getElementById(id);
 const el = {
   badge: $('badge'), targets: $('targets'), ra: $('ra'), dec: $('dec'), fov: $('fov'), fovNote: $('fov-note'), coords: $('coords'),
   progressText: $('progress-text'), bar: $('bar'), message: $('message'),
   frameBox: $('frame-box'), canvas: $('canvas'), scalebar: $('scalebar'), scalebarLabel: $('scalebar-label'), skipped: $('skipped'),
-  prev: $('prev'), play: $('play'), next: $('next'), slider: $('slider'), fps: $('fps'), zoom: $('zoom'), pair: $('pair'), pairNote: $('pair-note'),
+  prev: $('prev'), play: $('play'), next: $('next'), slider: $('slider'), axis: $('axis'), axisTrack: $('axis-track'), axisTicks: $('axis-ticks'), axisHandle: $('axis-handle'), axisLabels: $('axis-labels'), axisCaption: $('axis-caption'), fps: $('fps'), zoom: $('zoom'), pair: $('pair'), pairNote: $('pair-note'),
   view: $('view'), band: $('band'), bandWrap: $('band-wrap'), diff: $('diff'), diffWrap: $('diff-wrap'), order: $('order'), orderWrap: $('order-wrap'),
   mark: $('mark'), marker: $('marker'),
   rFrame: $('r-frame'), rDate: $('r-date'), rWave: $('r-wave'), rFlag: $('r-flag'), legend: $('legend'),
 };
 
 const state = { targets: [], resp: null, slots: [], current: 0, playing: false, timer: null, abort: null, pos: null, pair: null };
+let axisShown = null; // {slots, key, spec} of the axis as drawn, rebuilt only when the slots or the ordering change
 const images = new Map(); // url -> HTMLImageElement, preloaded so blinking does not stutter
 const ctx = el.canvas.getContext('2d');
 
@@ -117,6 +118,7 @@ function render() {
   renderPairNote();
   el.slider.max = String(Math.max(0, state.slots.length - 1));
   el.slider.value = String(state.current);
+  renderAxis();
   el.play.textContent = state.playing ? 'Pause' : 'Play';
   if (r) {
     el.progressText.textContent = progressText(r);
@@ -148,6 +150,30 @@ function render() {
   el.fovNote.hidden = !(r?.grid ? isWideField(r.grid) : state.pos?.fov >= WIDE_FOV_DEG);
   renderReadout();
   drawCurrent();
+}
+
+/** The draggable axis: a tick per frame at its real wavelength or date, and a handle on the current frame. */
+function renderAxis() {
+  const key = `${stackView()}|${el.order.value}`;
+  if (!axisShown || axisShown.slots !== state.slots || axisShown.key !== key) {
+    const spec = axisSpec(state.slots, { stacked: stackView(), order: el.order.value });
+    axisShown = { slots: state.slots, key, spec };
+    el.axisTicks.replaceChildren(...(spec?.points ?? []).map((p) => {
+      const t = document.createElement('div');
+      t.className = 'axis-tick';
+      t.style.left = `${p.x * 100}%`;
+      return t;
+    }));
+    const lab = (cls, x, text) => { const s = document.createElement('span'); s.className = cls; s.style.left = `${x * 100}%`; s.textContent = text; return s; };
+    el.axisLabels.replaceChildren(...(spec ? [lab('lo', 0, spec.ends[0]), ...spec.ticks.map((t) => lab('', t.x, t.label)), lab('hi', 1, spec.ends[1])] : []));
+    el.axisCaption.textContent = spec?.caption ?? '';
+  }
+  const spec = axisShown.spec;
+  el.axis.hidden = !spec;
+  el.slider.classList.toggle('visually-hidden', !!spec); // the native slider stays for the keyboard and screen readers
+  const here = spec?.points.find((p) => p.slot === state.current);
+  el.axisHandle.hidden = !here;
+  if (here) el.axisHandle.style.left = `${here.x * 100}%`;
 }
 
 function renderPairNote() {
@@ -260,6 +286,16 @@ el.play.addEventListener('click', () => { state.playing ? stopPlaying() : startP
 el.prev.addEventListener('click', () => { stopPlaying(); go(advance(-1)); });
 el.next.addEventListener('click', () => { stopPlaying(); go(advance(1)); });
 el.slider.addEventListener('input', () => { stopPlaying(); state.pair = null; go(Number(el.slider.value)); });
+// Dragging on the axis picks the frame nearest to the pointer; it goes through the slider so keyboard, pair mode and stopping playback behave the same.
+let dragging = false;
+function pickOnAxis(e) {
+  const r = el.axisTrack.getBoundingClientRect();
+  const slot = nearestPoint(axisShown?.spec?.points ?? [], Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)));
+  if (slot >= 0 && slot !== state.current) { el.slider.value = String(slot); el.slider.dispatchEvent(new Event('input')); }
+}
+el.axisTrack.addEventListener('pointerdown', (e) => { dragging = true; el.axisTrack.setPointerCapture(e.pointerId); el.slider.focus({ preventScroll: true }); pickOnAxis(e); });
+el.axisTrack.addEventListener('pointermove', (e) => { if (dragging) pickOnAxis(e); });
+for (const t of ['pointerup', 'pointercancel']) el.axisTrack.addEventListener(t, () => { dragging = false; });
 el.zoom.addEventListener('change', render);
 el.mark.addEventListener('change', render);
 el.view.addEventListener('change', () => { setView(el.view.value); reslot(); });

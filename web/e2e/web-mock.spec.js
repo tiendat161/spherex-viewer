@@ -147,3 +147,36 @@ test('field of view: selector, URL parameter, grid size, wide-field note', async
   await expect(page).toHaveURL(/dec=-7\.245147$/);
   await expect.poll(() => page.evaluate(() => document.getElementById('canvas').width)).toBe(116);
 });
+
+test('axis: ticks at real positions, dragging moves through the frames, follows the order', async ({ page }) => {
+  await page.goto(wise);
+  await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
+  await expect(page.locator('#play')).toHaveText('Pause');
+  await page.locator('#play').click(); // stop the auto-blink
+  await expect(page.locator('#play')).toHaveText('Play');
+  await expect(page.locator('#axis')).toBeVisible();
+  await expect(page.locator('#axis-caption')).toHaveText('Observation date');
+  await expect(page.locator('.axis-tick')).toHaveCount(40);
+
+  const box = await page.locator('#axis-track').boundingBox();
+  const y = box.y + box.height / 2;
+  await page.mouse.move(box.x + box.width / 2, y);
+  await page.mouse.down();
+  await expect(page.locator('#r-frame')).not.toHaveText('40 of 40');
+  await page.mouse.move(box.x - 6, y, { steps: 8 }); // past the end clamps to the first frame (the first five lie within 1 px of each other)
+  await expect(page.locator('#r-frame')).toHaveText('1 of 40');
+  await page.mouse.move(box.x + box.width + 6, y, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.locator('#r-frame')).toHaveText('40 of 40');
+  await expect(page.locator('#slider')).toHaveValue('39');
+
+  await page.locator('#order').selectOption('wavelength');
+  await expect(page.locator('#axis-caption')).toHaveText('Wavelength, log scale');
+  const lo = await page.locator('#axis-labels .lo').textContent();
+  const hi = await page.locator('#axis-labels .hi').textContent();
+  await page.mouse.click(box.x + 1, y);
+  await expect(page.locator('#r-wave')).toHaveText(`${Number.parseFloat(lo).toFixed(3)} µm`);
+  await page.mouse.click(box.x + box.width - 1, y);
+  await expect(page.locator('#r-wave')).toHaveText(`${Number.parseFloat(hi).toFixed(3)} µm`);
+  await page.screenshot({ path: outDir + 'web-mock-axis.png', fullPage: true });
+});
