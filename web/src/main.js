@@ -456,7 +456,7 @@ async function measurePoint() {
   const { ra, dec, fov } = state.pos;
   try {
     await pollSpectrum(ra, dec, fov, pt, {
-      load: pt.cached ? SPECTRUM_LOAD : state.load ?? SPECTRUM_LOAD, // a live series on screen is measured as loaded, not extended
+      load: pt.cached ? SPECTRUM_LOAD : 0, // 0: a live series on screen is measured as loaded and never extended by a click
       signal: pt.abort.signal,
       onUpdate: (resp) => { if (state.point === pt) { pt.resp = resp; pt.doneAt = resp.progress.done; render(); } },
     });

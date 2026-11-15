@@ -275,3 +275,39 @@ def test_a_bad_spectrum_request_is_an_error_document(tmp_path, params):
 def test_spectrum_without_live_builds_says_so(client):
     body = client.get("/api/spectrum", params={"ra": RA, "dec": DEC, "at_ra": RA, "at_dec": DEC}).json()
     assert not list(SPECTRUM.iter_errors(body)) and body["status"] == "error" and "live" in body["error"]["message"]
+
+
+def test_spectrum_load_zero_uses_the_series_as_loaded_and_never_extends_it(tmp_path):
+    import time
+    from unittest import mock
+    from pipeline.live import LiveBuilder
+    from tests.pipeline.test_build import FakeClient
+    series, _ = make_cache(tmp_path)
+    live = LiveBuilder(FakeClient())
+    with mock.patch("pipeline.cutout.wavelength_um_at", return_value=2.5):
+        c = TestClient(create_app(series_dir=series, web_dist=tmp_path / "nodist", live=live))
+
+        def get(load, **kw):
+            end = time.time() + 30
+            while True:
+                body = c.get("/api/spectrum", params={"ra": 10, "dec": 10, "at_ra": 10.01, "at_dec": 10.01, "load": load, **kw}).json()
+                assert not list(SPECTRUM.iter_errors(body)), body
+                if body["status"] != "loading" or time.time() > end:
+                    return body
+                time.sleep(0.05)
+
+        assert len(get(8)["frames"]) == 8
+        assert len(get(0)["frames"]) == 8  # not extended to the default 40
+        assert len(get(0, at_ra=10.02)["frames"]) == 8
+        assert live.find_at(10, 10, 0.2).cap == 8
+        assert len(get(12)["frames"]) == 12  # an explicit larger load still extends
+        # with no series at all, load=0 starts one with the default number of frames
+        assert len(get(0, ra=20, at_ra=20.01)["frames"]) == 40
+
+
+def test_spectrum_errors_name_the_bad_parameter(tmp_path):
+    series, _ = make_cache(tmp_path)
+    c = TestClient(create_app(series_dir=series, web_dist=tmp_path / "nodist"))
+    msg = lambda **p: c.get("/api/spectrum", params={"ra": 10, "dec": 10, "at_ra": 10, "at_dec": 10, **p}).json()["error"]["message"]
+    assert "at_ra" in msg(at_ra=400) and "at_dec" in msg(at_dec=95) and msg(ra=400).startswith("ra ")
+    assert "outside" in msg(at_ra=11)

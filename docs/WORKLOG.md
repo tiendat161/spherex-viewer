@@ -29,6 +29,12 @@ Commits: `846b646` (contract, own commit), `6588074`, `17dde52`
 
 **Why:** the 8-bit PNGs carry no flux. Measuring on the resampled grid pixels would have interpolated and lost the variance and the per-pixel wavelength, and it is not the method T32 validated.
 
+**Review fixes (same day):**
+- A bad or missing wavelength plane no longer fails the frame: `read_cutout` gives `wave_map: None`, the frame stays in the series and only the clicked-point spectrum skips it. The real `wavelength_map` now has tests (`tests/pipeline/test_wave_map.py`, a simulated table in the archive's WCS-WAVE layout: agrees with the single-position lookup; NaN and non-positive tables are refused). One bad table node spoils the whole cutout, including the centre lookup, so the "map fails alone" case is simulated with a mock.
+- Cost of the plane: 1.2 ms for one real 175 x 176 cutout (R Draconis, measured once with `all_pix2world`), 3.2 ms on the simulated 175 x 175 table in the test. Negligible next to a download.
+- `LiveSeries.spectrum` remembers its last answer (key: point, frames in, status, totals), so polling does not re-measure up to 102 frames.
+- `load=0` on `/api/spectrum` means "use the series as loaded" (`LiveBuilder.find_at`); the web click path uses it for a live series on screen. Out-of-range errors name `at_ra`/`at_dec`; one `error_document` helper replaces three inline dicts; the unused `keep_native` argument is gone.
+
 **Gaps:**
 - Checked in a browser on real cached R Draconis cutouts served through the live path (the archive's search service answered HTTP 502, so no download from IRSA was tried). Seen: a faint empty-sky point gives scatter around zero consistent with the error bars; the bright star's point is mostly flagged (1 of 40 frames).
 - Validation of the flux (T32) was at the target centre on bright stars; a clicked point uses the same code but off-centre accuracy is not separately checked. The panel says so.

@@ -26,7 +26,7 @@ from fastapi.staticfiles import StaticFiles
 
 from pipeline import targets as targets_mod
 from pipeline.grid import FOVS_DEG, allowed_fov
-from pipeline.live import LIVE_FRAMES, MAX_LIVE_FRAMES, LiveBuilder, LiveBusy
+from pipeline.live import LIVE_FRAMES, MAX_LIVE_FRAMES, LiveBuilder, LiveBusy, error_document
 
 ROOT = Path(__file__).resolve().parent.parent
 MATCH_ARCSEC = 1.0
@@ -72,11 +72,6 @@ def error_doc(message: str) -> dict:
         "frames": [],
         "error": {"message": message},
     }
-
-
-def spectrum_error_doc(message: str) -> dict:
-    return {"status": "error", "data_origin": "real", "progress": {"done": 0, "total": 0, "failed": 0}, "frames": [],
-            "error": {"message": message}}
 
 
 def _num(request: Request, name: str, default: Optional[float] = None) -> float:
@@ -171,29 +166,33 @@ def create_app(series_dir: Optional[Path] = None, web_dist: Optional[Path] = Non
             ra, dec = _num(request, "ra"), _num(request, "dec")
             at_ra, at_dec = _num(request, "at_ra"), _num(request, "at_dec")
             fov = _num(request, "fov", CACHED_FOV)
-            load = _num(request, "load", LIVE_FRAMES)
-            if not (0 <= ra < 360) or not (-90 <= dec <= 90) or not (0 <= at_ra < 360) or not (-90 <= at_dec <= 90):
-                raise ValueError("ra must satisfy 0 <= ra < 360 and dec -90 to 90 (ICRS degrees)")
+            load = _num(request, "load", LIVE_FRAMES)  # 0: measure the series as it is, extend nothing
+            for names, (lon, lat) in ((("ra", "dec"), (ra, dec)), (("at_ra", "at_dec"), (at_ra, at_dec))):
+                if not (0 <= lon < 360) or not (-90 <= lat <= 90):
+                    raise ValueError(f"{names[0]} must satisfy 0 <= {names[0]} < 360 and {names[1]} -90 to 90 (ICRS degrees)")
         except ValueError as e:
-            return JSONResponse(spectrum_error_doc(str(e)))
+            return JSONResponse(error_document(str(e)))
         fov = allowed_fov(fov)
         if fov is None:
-            return JSONResponse(spectrum_error_doc(f"fov must be one of {', '.join(f'{f:g}' for f in FOVS_DEG)} (degrees)."))
-        if not (1 <= load <= MAX_LIVE_FRAMES and load == int(load)):
-            return JSONResponse(spectrum_error_doc(f"load must be a whole number from 1 to {MAX_LIVE_FRAMES}."))
+            return JSONResponse(error_document(f"fov must be one of {', '.join(f'{f:g}' for f in FOVS_DEG)} (degrees)."))
+        if load != 0 and not (1 <= load <= MAX_LIVE_FRAMES and load == int(load)):
+            return JSONResponse(error_document(f"load must be 0 or a whole number from 1 to {MAX_LIVE_FRAMES}."))
         # Inside the field of view (a square of side fov around the position; flat-sky approximation, fine at one degree).
         d_dec = abs(at_dec - dec)
         d_ra = abs((at_ra - ra + 180) % 360 - 180) * math.cos(math.radians(dec))
         if d_dec > fov / 2 or d_ra > fov / 2:
-            return JSONResponse(spectrum_error_doc("The clicked position is outside the field of view."))
+            return JSONResponse(error_document("at_ra, at_dec: the clicked position is outside the field of view."))
         if live is None:
-            return JSONResponse(spectrum_error_doc(
+            return JSONResponse(error_document(
                 "This server does not build series live, so a spectrum at a clicked position cannot be measured "
                 "(it needs the archive cutouts, which only live series keep)."))
         try:
-            doc = live.get_or_start(ra, dec, fov, int(load)).spectrum(at_ra, at_dec)
+            job = live.find_at(ra, dec, fov) if load == 0 else None  # load=0: use the series as loaded, never extend it
+            if job is None:
+                job = live.get_or_start(ra, dec, fov, int(load) or LIVE_FRAMES)
+            doc = job.spectrum(at_ra, at_dec)
         except LiveBusy as e:
-            return JSONResponse(spectrum_error_doc(str(e)))
+            return JSONResponse(error_document(str(e)))
         return JSONResponse(doc)
 
     @app.get("/api/targets")

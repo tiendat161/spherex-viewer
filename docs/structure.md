@@ -122,7 +122,7 @@ Environment: `SPHEREX_CACHE_DIR` moves the raw download folder (default `.cache/
 
 - `GET /api/targets` lists the cached targets.
 - `GET /api/series?ra=&dec=&fov=&max_frames=&load=` returns the cached series for that position, or starts, extends and reports a live build (`load`: frames to have loaded, live only). Every failure is a contract-valid `status: "error"` document, not an HTTP error.
-- `GET /api/spectrum?ra=&dec=&fov=&at_ra=&at_dec=&load=` returns the flux at the clicked position `at_ra, at_dec` in every frame of the live series at `ra, dec, fov` (started if needed, also at a cached position: the cached series has no cutouts on the server). Polled like `/api/series`.
+- `GET /api/spectrum?ra=&dec=&fov=&at_ra=&at_dec=&load=` (`load=0`: use the series as loaded, never extend it) returns the flux at the clicked position `at_ra, at_dec` in every frame of the live series at `ra, dec, fov` (started if needed, also at a cached position: the cached series has no cutouts on the server). Polled like `/api/series`.
 - `GET /api/frames/<id>/<name>` serves a frame (`NN.png`), stack (`s_<band>_<visit>.png`) or difference (`d_<band>_<visit>.png`) image, from disk or from a live series.
 - Any other `/api/` path is a 404. Everything else is served from `web/dist`, so the app and the API share one origin.
 
@@ -182,6 +182,7 @@ Pytest unit tests; none touches the network.
 | `pipeline/test_targets.py` | Position parsing and proper motion |
 | `pipeline/test_stack.py` | Background subtraction, visits, stacks, differences |
 | `conftest.py` | Replaces the per-pixel wavelength plane in every test (synthetic cutouts have no WCS-WAVE table) |
+| `pipeline/test_wave_map.py` | The real per-pixel wavelength plane on a simulated WCS-WAVE table: agreement with the single-position lookup, bad tables refused, a frame without a map stays in the series |
 | `pipeline/test_spectrum.py` | Spectrum at a clicked position: off-centre source, wavelength at the clicked pixel, errors, memory budget |
 | `pipeline/test_flux_series.py` | Flux in the series document: live and cached paths, flagged apertures, the schema's flux rules |
 | `pipeline/test_photometry.py` | Flux recovery, background independence, error estimate, flagged and NaN pixels, off-image position |
