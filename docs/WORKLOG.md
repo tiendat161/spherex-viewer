@@ -15,6 +15,25 @@ Commits: abc1234, def5678
 
 ---
 
+## 2026-11-15: Visit buttons and a vertical wavelength slider (T34)
+Commits: see the T34 row on the board. Replaces the horizontal axis of T33.
+
+**What:**
+- Individual frames are now chosen by two controls: a row of visit buttons (each with its dates and frame count) and a vertical wavelength slider beside the image. A frame is a (visit, wavelength) point. The buttons pick the visit; the vertical axis, on one log scale shared by all visits (so it does not change when the visit does), picks the wavelength among that visit's frames. Changing visit keeps the wavelength as nearly as it can: it goes to the frame of the new visit closest in wavelength, and the readout shows the wavelength actually reached.
+- Keys: up and down change the wavelength within the visit, left and right the visit (in the stacked view and with no visits to show, left and right still step through frames as before). Step, Play and Order are unchanged.
+- Visits come from the response (`stacks.visits`, finished series) or, while a series is loading and in the mock, from the frame dates with the pipeline's 30-day gap rule (`VISIT_GAP_DAYS` in `web/src/model.js`, a copy of the constant in `pipeline/stack.py`).
+- The stacked view keeps the plain slider. The native range slider stays, visually hidden, for the keyboard and screen readers; the controls go through it.
+- Unit tests for the grouping, stepping and snapping; a Playwright test against the mock.
+
+**Why:** time comes in a few visits months apart (3 for the cached WISE 0855 series, 4 or 5 for Epsilon Indi B), so a visit choice is clearer than a date axis, and inside a visit wavelength is a plain one-dimensional axis. This makes blinking at about one wavelength across visits, the motion check, a click. No contract change, no new dependency.
+
+**Gaps:**
+- Visits are uneven (WISE 0855: 8, 56 and 38 frames), so the vertical axis is sparse for some visits and the nearest wavelength in another visit can be a few tenths of a micrometre away.
+- Frames of nearly the same wavelength overlap on the axis; up and down keys move between them.
+- With a single visit the buttons are hidden and only the vertical axis shows.
+- Play does not cycle through visits at a held wavelength; "Blink widest pair" is still the way to do a time blink automatically.
+- Not tried on a touch screen or outside Chromium (T25).
+
 ## 2026-11-15: Draggable wavelength axis (T33)
 Commits: see the T33 row on the board
 
