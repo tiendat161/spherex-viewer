@@ -630,3 +630,6 @@ Not changed: input validation messages (bad RA/Dec, fov, load), reachable only b
 Tests: `tests/pipeline/test_messages.py` (no developer words in any text, 429 told apart, detail kept, logged), updated live, catalogue and API tests, `clientError` unit tests in `web/test/api.test.js`, two Playwright cases (a long 502 detail shows only the short text with the detail in the "i"; a raw HTTP 502 reply). Screenshots: `verify/out/error-archive-down.png` (desktop, popover open) and `error-archive-down-narrow.png` (390 px).
 
 Gaps: the "i" for the chart message and catalogue line is wired but only the main message box has a Playwright case for it. Chromium only.
+
+## 2026-11-15: Redeployed 1914fa7 to EC2
+**What:** T55 and T56 deployed (server build, container swapped, about 10 s downtime). Checked from outside: page 200, 5 targets, SIN and `#ff66ff` in the bundle, friendly `error.message` plus `error.detail` on a failing catalogue request (IRSA 502), Barnard series (40 frames), healthy. **Gaps:** the globe and crosshair were not looked at in a browser on the public site; the friendly text for a failed live series build was not seen (the build was still `loading`).
