@@ -15,6 +15,15 @@ Commits: abc1234, def5678
 
 ---
 
+## 2026-11-15: Deployed on AWS EC2 (T10)
+Commit: see `git log` (message starts "Deploy: record the EC2 deployment").
+
+**What:** the container runs on an EC2 `t3.small` in Sydney behind Caddy, reachable at `https://16-179-73-6.sslip.io` with a valid Let's Encrypt certificate. From a laptop: the page, `/api/targets` (5), Barnard's Star (38 real frames) and a frame PNG all answered. Server: both containers up, app healthy, 466 MB of 1.9 GB used at idle. Details and the exact commands are in `docs/deploy.md`.
+
+**Why this shape:** the free plan account is locked to Sydney and offers no Arm types; a private repo needed a read-only deploy key; an Elastic IP was attached before the HTTPS name so the name survives a restart.
+
+**Gaps:** a live build (M42) never completed: IRSA's TAP service returned HTTP 502 from the server and from a laptop (the poll kept answering `loading`, 0 frames, for over 9 minutes). So the live path on this server, and its speed from Sydney, are **unverified**. Not checked: `make verify` against the server, a stop and start, load. The link is not yet in the README (T12). The `sslip.io` name is a stopgap; a real domain is better. Remember to terminate the instance and release the Elastic IP when finished, or it keeps billing.
+
 ## 2026-11-15: Container built and run locally (T10)
 Commit: see `git log` (message starts "Deploy: fix the image build").
 

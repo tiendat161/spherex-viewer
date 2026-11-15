@@ -24,7 +24,6 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 
 | ID | P | Task | Challenge item | Touches | Notes |
 |---|---|---|---|---|---|
-| T10 | P1 | Deploy a public link | "public-facing web tool" | new `Dockerfile` or hosting config, `README.md` | Not deployed anywhere. Live builds need a running Python backend; a static-only host would be cached targets only. Independent of all other tasks. **Update 2026-11-15:** `Dockerfile`, `.dockerignore` and `docs/deploy.md` are written and the image now builds and runs locally (arm64; see `docs/deploy.md`). Host chosen: AWS EC2 `t4g.small` (steps in `docs/deploy.md`). Still needed: Dat creates the AWS account and runs the steps, then the link goes in the README. |
 | T12 | P1 | Submission paperwork: rewrite `README.md`, finish `REFERENCES.md`, demo video | submission | `README.md`, `REFERENCES.md` | README still says "generic scaffolding only". Submission deadline is still unknown: check first. Independent of code tasks. |
 | T14 | P2 | Spectrum on click: brightness of the clicked point across all bands | "Extra kudos if your tool can generate spectra on the fly" | `contracts/`, `pipeline/` (new per-frame flux data), `api/main.py`, `web/src/main.js` | Needs per-frame flux values, which the 8-bit PNGs do not carry. Clashes with T13 and T15 in `main.js`. |
 | T15 | P2 | Overlay Gaia or WISE catalogue positions | "overlay astronomical data from other telescopes" | `api/main.py` (catalogue query), `web/src/main.js`, `web/index.html` | Would also answer where WISE 0855 and Epsilon Indi B should be. Aladin Lite was the planned route. |
@@ -77,3 +76,4 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 | T29 | Flux measurements stored with timestamps: per-frame flux, error and mid-exposure time in the series document, cached and live | "Store measurements with actual timestamps" | `32492ed` (contract), `7c83325`, `3e4dc80` |
 | T30 | Spectrum and Light curve next to the image, coloured by visit, click a point to show the frame | "Display spectrum and light curve" | `8283816` |
 | T19 | Sexagesimal RA and Dec input (`08h55m10.831s -7d14m42.53s`), alone or pasted together | "enter the coordinates" | `b76cb00` |
+| T10 | Public deployment: container on AWS EC2 (Sydney, `t3.small`) behind Caddy HTTPS at `https://16-179-73-6.sslip.io`; cached targets verified from outside. Live builds not verified (archive returned 502). README link goes with T12 | "public-facing web tool" | `044a7e3`, `26c9518`, and the commit that adds this row |

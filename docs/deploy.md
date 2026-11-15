@@ -2,7 +2,7 @@
 
 One container runs everything: the API and the built web app, on one port. The Dockerfile is at the top of the repository.
 
-**Status (2026-11-15):** the image **builds and runs** (built and run with Docker Desktop on an arm64 Mac, 723 MB). In the running container the page, the target list, a cached series (Barnard's Star: 38 real frames, all with flux), a frame image and the health check (`healthy`) all worked, and a request for an uncached position started a live build. Not checked: a full live build to the end inside the container, an amd64 build (what most hosts run), memory use under load. **Not deployed anywhere yet.** Building it first needed three fixes, now in the Dockerfile: the web stage needs `fixtures/` and `verify/targets.json` (the Vite config loads the dev-only mock even for a production build), and `numcodecs` has no prebuilt wheel on arm64 so a compiler is installed for the pip step only.
+**Status (2026-11-15):** the image **builds and runs, and is deployed on AWS EC2 (see the last section)**. Earlier the same day: the image **builds and runs** (built and run with Docker Desktop on an arm64 Mac, 723 MB). In the running container the page, the target list, a cached series (Barnard's Star: 38 real frames, all with flux), a frame image and the health check (`healthy`) all worked, and a request for an uncached position started a live build. Not checked: a full live build to the end inside the container, an amd64 build (what most hosts run), memory use under load. **Not deployed anywhere yet.** Building it first needed three fixes, now in the Dockerfile: the web stage needs `fixtures/` and `verify/targets.json` (the Vite config loads the dev-only mock even for a production build), and `numcodecs` has no prebuilt wheel on arm64 so a compiler is installed for the pip step only.
 
 ## Build and run locally
 
@@ -43,37 +43,32 @@ Any container host that runs a Dockerfile and keeps one instance running fits. W
 - **No accounts, no stored user data.** Positions typed by visitors go to the archive as part of the search; nothing else leaves the service.
 - **The cached targets are in the image.** Refreshing them is `make refresh` on a machine with archive access (`docs/data-updates.md`), then rebuild the image.
 
-## Deploying on AWS EC2 (the route chosen for T10)
+## Deploying on AWS EC2 (what was actually done for T10)
 
-Chosen for learning and for the CV: EC2 is the AWS service most job postings name. Cost estimate (third-party figures for the server, IP and disk, so check the AWS Pricing Calculator): `t4g.small` about $0.0168 per hour, plus a public IPv4 address about $0.005 per hour, plus a 20 GB disk about $1.6 a month, so about **$17 a month**. The server runs only while you keep it; **stop or terminate it after the demo**. A `t4g` server is ARM (Graviton), the same architecture as the image built on an Apple-silicon Mac; the image built on the server itself is always the right one.
+Chosen for learning and for the CV: EC2 is the AWS service most job postings name. Deployed 2026-11-15 and checked from outside: `https://16-179-73-6.sslip.io` serves the page, the five cached targets and their frames over HTTPS with a valid certificate. A live build (M42) did **not** complete: the archive's search service answered HTTP 502 from both the server and a laptop at the time, so the live path is not verified on this server.
 
-1. **Account safety first.** Create a billing alert (AWS Budgets, for example $20 a month) before anything else. Do not use the root account for daily work: make an IAM user.
-2. **Launch the server.** EC2, Launch instance: Amazon Linux 2023, **arm64**, type `t4g.small`, a new key pair (keep the `.pem` file private), 20 GB gp3 disk. Region: `us-east-1` (nearest the archive's cloud copy, an untested possible speed-up; see the T40 note in `docs/WORKLOG.md`).
-3. **Security group (the firewall).** Allow inbound 22 (SSH) **from your own IP only**, and 80 and 443 from anywhere. Nothing else; the app's port 8000 stays closed to the internet.
-4. **Elastic IP.** Allocate one and attach it, so the address does not change when the server restarts.
-5. **A name for HTTPS.** Caddy gets a free certificate for a domain name. If you own a domain, point an A record at the Elastic IP. Without one, `<ip with dashes>.sslip.io` (for example `3-91-0-1.sslip.io`) resolves to that IP; this is a public free service and its certificate limits are shared, so treat it as a stopgap.
-6. **On the server** (`ssh -i key.pem ec2-user@<ip>`):
+What was used, and why it differs from the first plan:
 
-```bash
-sudo dnf install -y docker git && sudo systemctl enable --now docker && sudo usermod -aG docker ec2-user
-```
+- **Account:** an AWS free plan account ($100 credits, 182 days, 2026-11-15). Its project is **locked to `ap-southeast-2` (Sydney)**; other regions need an upgrade, which was not done. The archive is in the US, so a live build from Sydney may be slower than from us-east-1 (not measured).
+- **Server:** `t3.small` (2 vCPU, 2 GiB, x86), Amazon Linux 2023, 20 GiB gp3. Arm (`t4g`) types were not offered on this plan. Credit mode set to **standard**, so a burst slows the server instead of billing extra. Price in the console: $0.0264 per hour for the server, so about $19 a month, plus a public IPv4 address about $3.65 and the disk; roughly **$25 a month** if left running (estimate, check Cost Explorer).
+- **Firewall (security group):** SSH (22) from one IP only, HTTP (80) and HTTPS (443) from anywhere. The app's port 8000 is not open.
+- **Elastic IP** attached before HTTPS, so the address (and the name built from it) survives a stop and start. Associating it changes the address you SSH to.
+- **Name and certificate:** `<ip with dashes>.sslip.io`, a public free service that points at the IP; Caddy got a Let's Encrypt certificate for it by itself. A real domain would be better for a long-lived link.
+- **Code on the server:** the repository is private, so the server uses a read-only **deploy key** (GitHub repository Settings, Deploy keys, write access off). The image is built on the server (`docker build`), so it is x86 there.
 
-Log out and back in so the group applies. Then get the code (replace the URL with this repository's) and build:
+Steps (the commands that were run, on the server unless noted):
 
-```bash
-git clone <repository-url> spherex-viewer && cd spherex-viewer && docker build -t spherex-viewer .
-```
+1. Console: launch the instance as above; keep the `.pem` key outside the repository (`~/.ssh/`, `chmod 400`).
+2. `sudo dnf install -y docker git && sudo systemctl enable --now docker && sudo usermod -aG docker ec2-user`, then log out and in.
+3. `ssh-keygen -t ed25519 -f ~/.ssh/deploy_key -N "" -C "spherex-ec2"`, add `deploy_key.pub` as a deploy key on GitHub, then `GIT_SSH_COMMAND='ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes' git clone git@github.com:<owner>/spherex-viewer.git` and `git config core.sshCommand 'ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes'` inside it.
+4. Console: allocate an Elastic IP and associate it with the instance; reconnect to the new address.
+5. `docker build -t spherex-viewer .`
+6. `docker network create web`, then `docker run -d --name viewer --restart unless-stopped --network web -v spherex-cache:/data spherex-viewer`.
+7. `docker run -d --name caddy --restart unless-stopped --network web -p 80:80 -p 443:443 -v caddy-data:/data caddy:2 caddy reverse-proxy --from <name>.sslip.io --to viewer:8000`
+8. Check: the page opens, `docker ps` shows both running (the viewer healthy), `docker logs caddy` says a certificate was obtained.
 
-7. **Run the app and Caddy** on one private network, so only Caddy is reachable:
+Update later: `git pull && docker build -t spherex-viewer .`, then `docker rm -f viewer` and run step 6's viewer command again. Live builds in progress are lost on a restart.
 
-```bash
-docker network create web
-docker run -d --name viewer --restart unless-stopped --network web -v spherex-cache:/data spherex-viewer
-docker run -d --name caddy --restart unless-stopped --network web -p 80:80 -p 443:443 -v caddy-data:/data caddy:2 caddy reverse-proxy --from YOUR.DOMAIN --to viewer:8000
-```
+Tear down when finished: terminate the instance (the disk is deleted with it), **release the Elastic IP** (an unattached one still costs), check the bill the next day.
 
-8. **Check:** open `https://YOUR.DOMAIN`; `docker ps` shows both as running (the viewer as healthy); `docker logs viewer` shows requests.
-9. **Update later:** `git pull && docker build -t spherex-viewer .`, then `docker rm -f viewer` and run the viewer command again. Live builds in progress are lost on a restart.
-10. **Tear down:** terminate the instance, release the Elastic IP (an unattached one still costs), delete the disk if it is left over, and check the bill the next day.
-
-Not yet checked: none of these steps has been run on a real server. Memory on 2 GB is an estimate. Possible next steps for the CV, once this works: push the image to ECR and deploy it with GitHub Actions instead of building on the server.
+Not yet checked: a live build to the end on this server (archive was down), memory under load (about 466 MB used of 1.9 GB at idle), `make verify` against the server, a stop and start of the instance.
