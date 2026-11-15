@@ -16,7 +16,6 @@ Details of finished work (what, why, what is still missing) are in [`WORKLOG.md`
 | ID | Task | Owner | Touches |
 |---|---|---|---|
 | T41 | Cache three famous positions as demo targets (Orion M42, Eagle M16, Andromeda M31) so a demo never waits for the archive | parked on branch `t41-demo-targets` (entries added, series not built: the archive search service was down, HTTP 502). To finish: when the archive answers, on that branch run `python -m pipeline.build verify/targets.json --only m42 m16 m31`, then `--offline` for flux, then `make verify` | `verify/targets.json`, `static/series/`, `tests/pipeline/test_targets.py` |
-| T25 | Check the frontend outside Chromium (Firefox, WebKit) | claude/t25-browsers-84f8ae | `web/playwright*.config.js` |
 
 ## Todo
 
@@ -42,6 +41,7 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 ## Done
 
 | ID | Task | Challenge item | Commits |
+| T25 | Frontend checked in Firefox and WebKit: mock and real-data specs pass on all three browsers; `E2E_BROWSERS`, `make verify-browsers` | none | `c426091` |
 |---|---|---|---|
 | T16 | Deeper stacks: `stack_images: 120` for Barnard's Star, Epsilon Indi B, RW Aurigae, R Draconis (stacks now from 119-120 images, was 35-40) | "add together ... to improve the signal-to-noise" | `dbd05fa` |
 | T18 | The 8 failed frames (Barnard's Star 3, R Draconis 5) retried: all 40 of 40 frames now load for every target | test targets | `dbd05fa` |

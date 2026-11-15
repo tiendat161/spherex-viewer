@@ -4,7 +4,7 @@ What was done, why, and what is still missing. Newest first. The task board is [
 Commit messages stay short; the reasoning and the known gaps live here.
 
 ## 2026-11-15: Frontend checked in Firefox and WebKit (T25)
-Commits: see TASKS.md
+Commits: `c426091`
 
 **What:** Both Playwright configs take `E2E_BROWSERS` (default `chromium`; `chromium,firefox,webkit` for all). `make verify-browsers` runs the mock spec and the real-data spec (via `verify/e2e.py`) on all three. Firefox/WebKit screenshots go to `verify/out/<browser>/`. Result: mock spec 9 tests x 3 browsers and real-data spec 6 tests x 3 browsers all pass, and `make test` and `make verify` pass. Screenshots of WISE 0855 in Firefox and WebKit were inspected: canvas, vertical wavelength slider, visit slider, spectrum chart and badge render as in Chromium. No app code changed.
 **Why:** Only Chromium had been tested.
