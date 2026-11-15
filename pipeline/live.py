@@ -32,6 +32,7 @@ from . import stretch as stretch_mod
 from .cutout import CutoutError, read_cutout
 from .grid import PIXEL_SCALE_ARCSEC, grid_shape, make_grid_wcs, reproject_frame, to_png_array
 from .irsa import MAX_IN_FLIGHT, IrsaError
+from . import tapcache
 from .select import spread_order
 from .stack import band_id, build_stacks, subtract_background, with_urls
 from .targets import sep_arcsec
@@ -62,8 +63,9 @@ def _png_bytes(pixels, vmin, vmax) -> bytes:
 
 
 class LiveSeries:
-    def __init__(self, ra, dec, fov, cap, rows=None):
+    def __init__(self, ra, dec, fov, cap, rows=None, tap_dir=None):
         self.ra, self.dec, self.fov, self.cap = ra, dec, fov, cap
+        self._tap_dir = tap_dir  # where earlier archive searches are remembered (None: not remembered)
         self.id = "live" + hashlib.sha1(f"{ra:.6f},{dec:.6f},{fov}".encode()).hexdigest()[:12]  # stable when `cap` grows
         self.shape = grid_shape(fov)
         self._lock = threading.Lock()
@@ -190,11 +192,18 @@ class LiveSeries:
     def _run(self, client):
         if self._order is None:
             rows = self._rows
+            if rows is None and self._tap_dir is not None:
+                rows = tapcache.load(self._tap_dir, self.ra, self.dec)  # searched before: skip the slow step
             if rows is None:
                 try:
                     rows = client.tap_rows(self.ra, self.dec)
                 except IrsaError as e:
                     return self._fail(f"The archive query failed: {e}")
+                if self._tap_dir is not None:
+                    try:
+                        tapcache.save(self._tap_dir, self.ra, self.dec, rows)
+                    except OSError:
+                        pass  # not remembering is only slower
             order = spread_order(rows)
             if not order:
                 return self._fail("The SPHEREx archive lists no images covering this position.")
@@ -246,7 +255,7 @@ class LiveBuilder:
     """Owns the live series: one per (position within 1 arcsec, fov). A request for more frames extends it."""
 
     def __init__(self, client, max_running=MAX_RUNNING, max_waiting=MAX_WAITING, max_kept=MAX_KEPT, error_ttl_s=ERROR_TTL_S,
-                 hot_pixel_bytes=HOT_PIXEL_BYTES):
+                 hot_pixel_bytes=HOT_PIXEL_BYTES, tap_dir=None):
         self._client = client
         self._lock = threading.Lock()
         self._jobs = []  # oldest first
@@ -255,6 +264,7 @@ class LiveBuilder:
         self._max_kept = max_kept
         self._error_ttl_s = error_ttl_s
         self._hot_pixel_bytes = hot_pixel_bytes
+        self._tap_dir = tap_dir  # folder for remembered archive searches, or None
 
     def _run_job(self, job):
         job.run(self._client)
@@ -300,7 +310,7 @@ class LiveBuilder:
             done = [j for j in self._jobs if j.finished]
             for old in done[:max(0, len(self._jobs) + 1 - self._max_kept)]:
                 self._jobs.remove(old)
-            job = LiveSeries(ra, dec, fov, cap, rows=rows)
+            job = LiveSeries(ra, dec, fov, cap, rows=rows, tap_dir=self._tap_dir)
             self._jobs.append(job)
             self._pool.submit(self._run_job, job)
             return job

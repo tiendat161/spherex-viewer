@@ -9,6 +9,7 @@ export const INITIAL_LOAD = 8; // frames asked for first when a position is buil
 export const MORE_STEP = 16; // what "Load more" adds
 export const MAX_LOAD = 102; // the most a live series holds
 export const IMAGES_PER_MIN = 30; // about, with 8 archive downloads at once (one position, one run: indicative only)
+export const SLOW_SEARCH_S = 90; // after this long the archive search is called slow (it took 40 to 67 s in three runs, about 4 minutes once)
 export const MB_PER_IMAGE = 4.4; // size of one archive cutout, whatever the field of view
 
 /** The one request for a position. Identical on every poll (docs/contract.md, Polling). `load` is for live series only. */
@@ -189,9 +190,11 @@ export function progressText(resp, elapsedS = null) {
   if (resp.status === 'error') return 'Error';
   const fail = failed > 0 ? `, ${failed} failed` : '';
   if (resp.status === 'loading' && total === 0) {
-    return elapsedS == null
-      ? 'Waiting for the archive query (0 / 0)'
-      : `Asking the archive which images cover this position… ${Math.round(elapsedS)} s (it usually takes about a minute)`;
+    if (elapsedS == null) return 'Waiting for the archive query (0 / 0)';
+    const s = Math.round(elapsedS);
+    return elapsedS < SLOW_SEARCH_S
+      ? `Asking the archive which images cover this position… ${s} s (it usually takes about a minute)`
+      : `The archive is slower than usual today. Still waiting for the list of images that cover this position… ${s} s. Nothing is wrong on this page; this step is the archive's own queue.`;
   }
   if (resp.status === 'loading') return `Loading: ${done} / ${total} frames${fail}${typeof available === 'number' ? ` · ${available} images found` : ''}`;
   if (typeof available === 'number') return `${done} of ${available} images loaded${fail}`;

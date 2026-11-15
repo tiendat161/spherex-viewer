@@ -16,6 +16,7 @@ Details of finished work (what, why, what is still missing) are in [`WORKLOG.md`
 | ID | Task | Owner | Touches |
 |---|---|---|---|
 | T12 | Submission paperwork: README, REFERENCES (demo video not started) | t12-readme | `README.md`, `REFERENCES.md` |
+| T41 | Cache three famous positions as demo targets (Orion M42, Eagle M16, Andromeda M31) so a demo never waits for the archive | `t40-staged-loading`; `python -m pipeline.build --only m42 m16 m31` was running when this was written, waiting on the archive | `verify/targets.json` (entries kept out of git until built), `static/series/`, `tests/pipeline/test_targets.py` |
 
 ## Todo
 
@@ -69,3 +70,4 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 | T39 | Simple first screen: target dropdown and RA/Dec boxes on top (paste both at once), "By date / By wavelength" toggle, caption, visit slider for stacks too, everything else under "Advanced" | none (usability) | `801e2ff` |
 | T40 | Staged loading of a live position: a first batch of 8 frames spread over dates and bands, then "Load more" / "Load up to 102"; 8 downloads at once; archive-search message | `7e23de0` and `1ddb0f8` (contract), `5725cb3`, `60cea46` |
 | T21 | `make refresh`, `RELEASE_PREFERENCE` list, `docs/data-updates.md` for refreshing on a new data release | "easy to update with the latest data releases" | `d26ff13` |
+| T42 | Remember archive searches on disk (a repeated position skips the slow search, also after a restart); say plainly when the archive is slow | none (demo reliability) | `3a0790d` |

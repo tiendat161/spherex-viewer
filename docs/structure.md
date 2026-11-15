@@ -104,6 +104,7 @@ Turns archive data into series. Used in two ways: `build.py` writes the static c
 | `writer.py` | Writes `series.json` and the frame, stack and difference PNGs |
 | `build.py` | Command-line entry point for the cache: `python -m pipeline.build verify/targets.json [--only id] [--refresh-tap] [--offline]`. Resumes from `.cache/` |
 | `live.py` | Live series for positions or fields of view that are not cached: `LiveBuilder` (queue, limits, which finished series keep their pixels) and `LiveSeries` (one per position and field of view, in memory, with progress; loads a first batch and is extended when a larger `load` is asked for) |
+| `tapcache.py` | Remembers the archive's answer to "which images cover this position" for live series on disk (`.cache/tap/live/`, a week), so a repeated position, also after a restart, skips the slow search |
 | `tapcount.py` | Small helper that prints how many archive images cover each target |
 
 Environment: `SPHEREX_CACHE_DIR` moves the raw download folder (default `.cache/`).
@@ -172,7 +173,8 @@ Pytest unit tests; none touches the network.
 | `pipeline/test_targets.py` | Position parsing and proper motion |
 | `pipeline/test_stack.py` | Background subtraction, visits, stacks, differences |
 | `pipeline/test_build.py` | The cache build end to end on synthetic data |
-| `pipeline/test_live.py` | Live series: progress, stretch refresh, limits |
+| `pipeline/test_live.py` | Live series: progress, stretch refresh, limits, staged loading and extension |
+| `pipeline/test_tapcache.py` | Remembered archive searches: matching, expiry, damaged files, skipping the search after a restart |
 | `api/test_api.py` | The endpoints, cached and live |
 
 ### `verify/`

@@ -313,6 +313,9 @@ describe('staged loading helpers', () => {
   it('progressText: the archive search with elapsed time, images found, images loaded', () => {
     expect(progressText(loadingResponse(0, 0), 12.4)).toContain('12 s');
     expect(progressText(loadingResponse(0, 0), 12.4)).toContain('Asking the archive');
+    expect(progressText(loadingResponse(0, 0), 89)).toContain('usually takes about a minute');
+    expect(progressText(loadingResponse(0, 0), 150)).toContain('slower than usual');
+    expect(progressText(loadingResponse(0, 0), 150)).toContain('150 s');
     const found = { status: 'loading', progress: { done: 3, total: 8, failed: 0, available: 269 } };
     expect(progressText(found)).toBe('Loading: 3 / 8 frames · 269 images found');
     expect(progressText(resp({ total: 8, available: 269 }))).toBe('8 of 269 images loaded');
