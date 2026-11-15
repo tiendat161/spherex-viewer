@@ -40,7 +40,6 @@ canvas { width:100%; height:100%; image-rendering:pixelated; image-rendering:cri
 .cat-canvas { position:absolute; inset:0; background:transparent; pointer-events:none; cursor:auto; image-rendering:auto; }
 .cat-tip { position:absolute; z-index:3; background:#000c; color:#ffd9a8; border:1px solid #ff8c1a; border-radius:4px; padding:2px 6px; font-size:12px; pointer-events:none; white-space:nowrap; }
 .marker { position:absolute; left:50%; top:50%; width:28px; height:28px; margin:-14px 0 0 -14px; border:2px solid #ffe14d; border-radius:50%; pointer-events:none; box-shadow:0 0 0 1px #000; }
-.point-marker { position:absolute; width:20px; height:20px; margin:-10px 0 0 -10px; border:2px solid #4dd2ff; border-radius:50%; pointer-events:none; box-shadow:0 0 0 1px #000; }
 .frame-box canvas { cursor:crosshair; }
 .compass { position:absolute; left:8px; top:8px; color:#fff; font-size:13px; text-shadow:0 0 3px #000, 0 0 3px #000; }
 .scalebar { width:var(--w); position:absolute; right:10px; bottom:10px; color:#fff; font-size:12px; text-align:center; text-shadow:0 0 3px #000; white-space:nowrap; }

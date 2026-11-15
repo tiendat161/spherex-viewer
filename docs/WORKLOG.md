@@ -3,6 +3,13 @@
 What was done, why, and what is still missing. Newest first. The task board is [`TASKS.md`](TASKS.md); IDs below refer to it.
 Commit messages stay short; the reasoning and the known gaps live here.
 
+## 2026-11-15: Clicked point hidden in the page (T58)
+Commits: HASH
+
+**What:** Removed the "Clicked point" tab, the image click handler, the point marker and the clicked-point chart branches from `web/` (`index.html`, `main.js`, `style.css`) and the Playwright check that clicked the image. The image takes no click now; the zoom is a slider, so nothing else changed there. `GET /api/spectrum`, `LiveSeries.spectrum`, `contracts/spectrum.schema.json` and their tests are untouched. `pollSpectrum`, `spectrumUrl`, `pixelToSky`, `clickToImage` are no longer called by the page; kept (with their unit tests) so the feature can be brought back.
+**Why:** Dat's decision: a click on a cached target needs about 40 archive downloads (minutes) and fails while IRSA is down, so it is a bad demo path.
+**Gaps:** T14's feature is no longer reachable from the page; it was checked only through the API and the unit tests. The "i" texts and labels had no mention of clicking the image for a spectrum.
+
 ## 2026-11-15: Frontend checked in Firefox and WebKit (T25)
 Commits: `c426091`
 

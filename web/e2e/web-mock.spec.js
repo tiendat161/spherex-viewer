@@ -485,7 +485,7 @@ test('mock: backdrop refuses a script whose hash does not match the pinned one',
   expect(await page.evaluate(() => document.body.className)).toBe('');
 });
 
-test('mock: with the backdrop on the SPHEREx canvas gets the clicks and Clicked point still works', async ({ page }) => {
+test('mock: with the backdrop on the SPHEREx canvas still gets the pointer (there is no Clicked point tab any more)', async ({ page }) => {
   await page.setViewportSize(wide);
   await page.addInitScript((h) => { window.__skyHash = h; }, stubHash);
   await page.route(ALADIN, (r) => r.fulfill({ contentType: 'text/javascript', body: STUB }));
@@ -510,9 +510,10 @@ test('mock: with the backdrop on the SPHEREx canvas gets the clicks and Clicked 
   const box = await page.locator('#canvas').boundingBox();
   const x = box.x + box.width * 0.4, y = box.y + box.height * 0.6;
   expect(await page.evaluate(([a, b]) => document.elementFromPoint(a, b).id, [x, y])).toBe('canvas');
-  await page.mouse.click(x, y);
-  await expect(page.locator('#tab-point')).toHaveAttribute('aria-selected', 'true');
-  await expect(page.locator('#point-marker')).toBeVisible();
+  await page.mouse.click(x, y); // T58: a click on the image does nothing
+  await expect(page.locator('#tab-point')).toHaveCount(0);
+  await expect(page.locator('#point-marker')).toHaveCount(0);
+  await expect(page.locator('#tab-spectrum')).toHaveAttribute('aria-selected', 'true');
 });
 
 test('mock: with the backdrop on every option of the open target menu is on top and the last one loads', async ({ page }) => {

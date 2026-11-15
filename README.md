@@ -40,7 +40,7 @@ make cache          # rebuild the cached targets from the archive (contacts IRSA
 
 - The first batch for a new position waits for the archive search (one run timed on the deployed server: about 252 s), and live series are kept in memory only.
 - Not checked outside Chromium. The exact submission deadline (public listings say the hackathon closes on 15 November 2026; no official time was found) and WISE 0855's proper motion are unverified (see `docs/WORKLOG.md`, "Not verified").
-- Flux charts (Spectrum, Light curve) use a first-choice aperture that is not yet validated (T32). Not yet built: spectrum at a clicked point, Gaia/WISE catalogue overlays, per-pixel flag detail. The task board lists them.
+- Flux charts (Spectrum, Light curve) use a first-choice aperture that is not yet validated (T32). The API endpoint `GET /api/spectrum` (flux at any sky position) exists and is tested, but the page does not offer it (T58): it needs about 40 archive downloads and failed while the archive was down. Not yet built: Gaia/WISE catalogue overlays, per-pixel flag detail. The task board lists them.
 
 ## Data and credits
 

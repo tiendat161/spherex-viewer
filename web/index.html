@@ -47,7 +47,6 @@
             <canvas id="cat-canvas" class="cat-canvas" hidden></canvas>
             <div id="cat-tip" class="cat-tip" hidden></div>
             <div id="marker" class="marker" title="Requested position (grid centre)" hidden></div>
-            <div id="point-marker" class="point-marker" title="Clicked position" hidden></div>
             <div id="compass" class="compass">N&nbsp;↑ &nbsp;E&nbsp;←</div>
             <div id="scalebar" class="scalebar" hidden><span id="scalebar-label"></span></div>
             <div id="skipped" class="skipped" hidden></div>
@@ -56,7 +55,6 @@
         <aside id="charts" class="charts" aria-label="Flux measurements" hidden>
           <div class="chart-top"><div class="seg" role="tablist" aria-label="Chart">
             <button id="tab-spectrum" type="button" role="tab" aria-selected="true" title="Flux against wavelength, every frame that could be measured">Spectrum</button>
-            <button id="tab-point" type="button" role="tab" aria-selected="false" title="Click a point on the image: its flux in every frame, measured on request">Clicked point</button>
             <button id="tab-curve" type="button" role="tab" aria-selected="false" title="Flux against date, for the frames near the wavelength on screen">Light curve</button>
           </div><span class="info"><button type="button" class="info-btn" aria-label="How to read this chart and how it was measured">i</button><span class="info-pop"><p id="chart-help"></p><p id="chart-method"></p></span></span></div>
           <p id="chart-title" class="chart-title"></p>
