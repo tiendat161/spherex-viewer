@@ -33,7 +33,7 @@ from . import stretch as stretch_mod
 from .cutout import CutoutError, read_cutout, sky_to_pixel, wavelength_at
 from .grid import PIXEL_SCALE_ARCSEC, grid_shape, make_grid_wcs, reproject_frame, to_png_array
 from .irsa import MAX_IN_FLIGHT, IrsaError
-from . import tapcache
+from . import livestore, tapcache
 from .photometry import flux_for_series, method_block, spectrum_method_block
 from .select import spread_order
 from .stack import band_id, build_stacks, subtract_background, with_urls
@@ -192,6 +192,32 @@ class LiveSeries:
         with self._lock:
             self._spectrum_cache = (key, doc)  # the last point only: a poll repeats the same request
         return doc
+
+    def snapshot(self):
+        """(meta, {png file name: bytes}) of a finished series, for `pipeline.livestore`; None unless it is ready. No pixels."""
+        with self._lock:
+            if self.status != "ready":
+                return None
+            frames = {str(i): {k: f.get(k) for k in ("obs_mjd", "wavelength_um", "flag_fraction", "flux", "mjd_avg")}
+                      for i, f in self._frames.items() if i in self._pngs}
+            meta = {"id": self.id, "ra": self.ra, "dec": self.dec, "fov": self.fov, "cap": self.cap, "total": self.total,
+                    "available": self.available, "failed": self.failed, "unit": self._unit, "gen": self.gen,
+                    "stretch": self.stretch, "stacks": self._stacks, "finished_at": self.finished_at, "frames": frames}
+            pngs = {f"{i:02d}.png": b for i, b in self._pngs.items()}
+            pngs.update(self._stack_pngs)
+            return meta, pngs
+
+    @classmethod
+    def restore(cls, meta, pngs, tap_dir=None):
+        """A ready series from `snapshot` data: it shows, but has no pixels (`pix_dropped`), so it is rebuilt to be measured or extended."""
+        job = cls(meta["ra"], meta["dec"], meta["fov"], meta["cap"], tap_dir=tap_dir)
+        job.status, job.total, job.available, job.failed = "ready", meta["total"], meta["available"], meta["failed"]
+        job._unit, job.gen, job.stretch, job._stacks, job.finished_at = meta["unit"], meta["gen"], meta["stretch"], meta["stacks"], meta["finished_at"]
+        job.pix_dropped = True
+        job._frames = {int(i): dict(f) for i, f in meta["frames"].items()}
+        job._pngs = {i: pngs[f"{i:02d}.png"] for i in job._frames if f"{i:02d}.png" in pngs}
+        job._stack_pngs = {n: b for n, b in pngs.items() if not n[:-4].isdigit()}
+        return job
 
     def png(self, name: str):
         """`name` is 'NN.png' for a frame or a stack file name."""
@@ -398,7 +424,7 @@ class LiveBuilder:
     """Owns the live series: one per (position within 1 arcsec, fov). A request for more frames extends it."""
 
     def __init__(self, client, max_running=MAX_RUNNING, max_waiting=MAX_WAITING, max_kept=MAX_KEPT, error_ttl_s=ERROR_TTL_S,
-                 hot_pixel_bytes=HOT_PIXEL_BYTES, tap_dir=None, max_total_bytes=MAX_TOTAL_BYTES):
+                 hot_pixel_bytes=HOT_PIXEL_BYTES, tap_dir=None, max_total_bytes=MAX_TOTAL_BYTES, store_dir=None):
         self._client = client
         self._lock = threading.Lock()
         self._jobs = []  # oldest first
@@ -410,12 +436,41 @@ class LiveBuilder:
         self._tap_dir = tap_dir  # folder for remembered archive searches, or None
         self._max_total_bytes = max_total_bytes
         self._tap_health = TapHealth()
+        self._store_dir = store_dir  # folder for finished series, so that a restart keeps them (`pipeline.livestore`), or None
+        if store_dir is not None:
+            try:
+                self._jobs = [LiveSeries.restore(m, p, tap_dir) for m, p in livestore.load_all(store_dir, max_kept)]
+            except (KeyError, TypeError, ValueError):
+                self._jobs = []  # a file of an unexpected shape: start empty rather than not at all
 
     def _run_job(self, job):
         job.run(self._client, self._tap_health)
+        self._save(job)
         self._trim()
         with self._lock:
             self._evict_to_budget()
+
+    def _save(self, job):
+        snap = job.snapshot() if self._store_dir is not None else None
+        if snap is not None:
+            try:
+                livestore.save(self._store_dir, job.id, snap[0], snap[1], self._max_kept)
+            except OSError:
+                pass  # not keeping it is only a loss after a restart
+
+    def revive(self, job):
+        """Build a finished series again from its remembered archive rows, to get its pixels back (after a restart or
+        after the memory budget let them go). Returns the new, loading series; the old one is replaced. May raise LiveBusy."""
+        with self._lock:
+            if job not in self._jobs or not job.pix_dropped:
+                return next((j for j in self._jobs if j.id == job.id), job)  # someone already did
+            if self._busy():
+                raise LiveBusy("Too many positions are being built right now. Try again in a few minutes.")
+            self._jobs.remove(job)
+            new = LiveSeries(job.ra, job.dec, job.fov, job.cap, rows=job._rows, tap_dir=self._tap_dir)
+            self._jobs.append(new)
+            self._pool.submit(self._run_job, new)
+            return new
 
     def _trim(self):
         """Keep the pixels of the most recently used finished series up to the byte budget (at least the latest one)."""

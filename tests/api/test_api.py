@@ -311,3 +311,30 @@ def test_spectrum_errors_name_the_bad_parameter(tmp_path):
     msg = lambda **p: c.get("/api/spectrum", params={"ra": 10, "dec": 10, "at_ra": 10, "at_dec": 10, **p}).json()["error"]["message"]
     assert "at_ra" in msg(at_ra=400) and "at_dec" in msg(at_dec=95) and msg(ra=400).startswith("ra ")
     assert "outside" in msg(at_ra=11)
+
+
+def test_a_spectrum_on_a_series_restored_after_a_restart_rebuilds_it_and_measures(tmp_path):
+    import time
+    from unittest import mock
+    from pipeline.live import LiveBuilder
+    from tests.pipeline.test_build import FakeClient
+    from tests.pipeline.test_live import wait
+    series, _ = make_cache(tmp_path)
+    store = tmp_path / "store"
+    with mock.patch("pipeline.cutout.wavelength_um_at", return_value=2.5):
+        first = LiveBuilder(FakeClient(), store_dir=store)
+        wait(first.get_or_start(10, 10, 0.2, 8))
+        first._pool.shutdown(wait=True)
+        c = TestClient(create_app(series_dir=series, web_dist=tmp_path / "nodist", live=LiveBuilder(FakeClient(), store_dir=store)))
+        shown = c.get("/api/series", params={"ra": 10, "dec": 10, "load": 8}).json()  # served from disk, no build
+        assert shown["status"] == "ready" and len(shown["frames"]) == 8
+        assert c.get(shown["frames"][0]["url"]).status_code == 200
+        params = {"ra": 10, "dec": 10, "at_ra": 10.01, "at_dec": 10.01, "load": 0}
+        end = time.time() + 30
+        while True:
+            body = c.get("/api/spectrum", params=params).json()
+            assert not list(SPECTRUM.iter_errors(body)), body
+            if body["status"] == "ready" or time.time() > end:
+                break
+            time.sleep(0.05)
+    assert body["status"] == "ready" and len(body["frames"]) == 8

@@ -14,7 +14,7 @@ docker build -t spherex-viewer .
 docker run --rm -p 8000:8000 -v spherex-cache:/data spherex-viewer
 ```
 
-Then open http://localhost:8000. The volume is optional: it keeps remembered archive searches (`/data/cache/tap/live`, valid for a week) across restarts.
+Then open http://localhost:8000. The volume is optional: it keeps remembered archive searches (`/data/cache/tap/live`) and the 30 newest finished live series (`/data/cache/live-series`, frames and charts but not pixels), both valid for a week, across restarts.
 
 ## Settings (environment variables)
 
@@ -68,7 +68,7 @@ Steps (the commands that were run, on the server unless noted):
 7. `docker run -d --name caddy --restart unless-stopped --network web -p 80:80 -p 443:443 -v caddy-data:/data caddy:2 caddy reverse-proxy --from <name>.sslip.io --to viewer:8000`
 8. Check: the page opens, `docker ps` shows both running (the viewer healthy), `docker logs caddy` says a certificate was obtained.
 
-Update later: `git pull && docker build -t spherex-viewer .`, then `docker rm -f viewer` and run step 6's viewer command again. Live builds in progress are lost on a restart.
+Update later: `git pull && docker build -t spherex-viewer .`, then `docker rm -f viewer` and run step 6's viewer command again. Live builds in progress are lost on a restart; finished ones are restored from the volume.
 
 Tear down when finished: terminate the instance (the disk is deleted with it), **release the Elastic IP** (an unattached one still costs), check the bill the next day.
 

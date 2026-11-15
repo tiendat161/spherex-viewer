@@ -112,9 +112,10 @@ Turns archive data into series. Used in two ways: `build.py` writes the static c
 | `build.py` | Command-line entry point for the cache: `python -m pipeline.build verify/targets.json [--only id] [--refresh-tap] [--offline]`. Resumes from `.cache/` |
 | `live.py` | Live series for positions or fields of view that are not cached: `LiveBuilder` (queue, limits, which finished series keep their pixels) and `LiveSeries` (one per position and field of view, in memory, with progress; keeps each native cutout so `spectrum` can measure any clicked position; loads a first batch and is extended when a larger `load` is asked for) |
 | `tapcache.py` | Remembers the archive's answer to "which images cover this position" for live series on disk (`.cache/tap/live/`, a week), so a repeated position, also after a restart, skips the slow search |
+| `livestore.py` | Keeps finished live series on disk (`.cache/live-series/`, newest 30, a week): document data and PNGs, no pixels, so a restart does not lose them. A restored series shows at once and is rebuilt from the remembered archive rows when its pixels are needed (`LiveBuilder.revive`) |
 | `tapcount.py` | Small helper that prints how many archive images cover each target |
 
-Environment: `SPHEREX_CACHE_DIR` moves the raw download folder (default `.cache/`).
+Environment: `SPHEREX_CACHE_DIR` moves the raw download folder (default `.cache/`); finished live series are kept under `live-series/` in it.
 
 ### `api/`
 
@@ -188,6 +189,7 @@ Pytest unit tests; none touches the network.
 | `pipeline/test_photometry.py` | Flux recovery, background independence, error estimate, flagged and NaN pixels, off-image position |
 | `pipeline/test_build.py` | The cache build end to end on synthetic data |
 | `pipeline/test_live.py` | Live series: progress, stretch refresh, limits, staged loading and extension |
+| `pipeline/test_livestore.py` | Finished series surviving a restart: same document and PNGs, rebuilt to measure or extend, newest kept, old and damaged entries ignored |
 | `pipeline/test_tapcache.py` | Remembered archive searches: matching, expiry, damaged files, skipping the search after a restart |
 | `api/test_api.py` | The endpoints, cached and live |
 

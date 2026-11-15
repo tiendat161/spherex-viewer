@@ -190,6 +190,8 @@ def create_app(series_dir: Optional[Path] = None, web_dist: Optional[Path] = Non
             job = live.find_at(ra, dec, fov) if load == 0 else None  # load=0: use the series as loaded, never extend it
             if job is None:
                 job = live.get_or_start(ra, dec, fov, int(load) or LIVE_FRAMES)
+            if job.pix_dropped and job.status == "ready":  # restored after a restart, or let go for memory: build it again to measure on it
+                job = live.revive(job)
             doc = job.spectrum(at_ra, at_dec)
         except LiveBusy as e:
             return JSONResponse(error_document(str(e)))
@@ -233,9 +235,9 @@ def create_app(series_dir: Optional[Path] = None, web_dist: Optional[Path] = Non
 def default_live() -> Optional[LiveBuilder]:
     if os.environ.get("SPHEREX_LIVE", "1") == "0":
         return None
-    from pipeline import tapcache
+    from pipeline import livestore, tapcache
     from pipeline.irsa import IrsaClient
-    return LiveBuilder(IrsaClient(), tap_dir=tapcache.default_dir())
+    return LiveBuilder(IrsaClient(), tap_dir=tapcache.default_dir(), store_dir=livestore.default_dir())
 
 
 app = create_app(live=default_live())
