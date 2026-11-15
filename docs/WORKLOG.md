@@ -587,3 +587,12 @@ With the backdrop on, `header`, `.topbar` and `main` all had `z-index:1`, and `m
 **Why:** the board should show everything that changed, with a number, so the work can be found later. T17 (WISE 0855 marker) was cancelled by Dat the same day, see "Cancelled" in `TASKS.md`.
 
 **Gaps:** nothing new beyond the entries each piece already has. The info-icon text simplification is in progress under the next ID.
+
+### T54: "i" icons, simpler text
+
+New `web/src/info.js`. An "i" button with a popover (`role="tooltip"`, `aria-describedby`, `aria-expanded`): hover shows it and leaving hides it; a click pins it and a second click closes it; Escape and a click elsewhere close it; keyboard focus shows it; a tap toggles it. The popover is moved to `<body>` (z-index 1000), so the `.topbar` / `main` stacking problem of T51 cannot cover it, and is placed below or above the icon and kept inside the screen (max 320 px wide). An "i" whose popover has no text hides itself.
+
+Moved into an "i" (text kept): the long part of the RA/Dec hint; the sky-backdrop explanation, full credit and privacy sentence (the label now reads "Background: DSS2 sky survey (STScI/NASA, CDS), not SPHEREx data"); "how to read this chart" and the photometry method (one "i" beside the chart tabs); catalogue detail (proper motion, catalogue epoch, truncation); the wide-field reason; "more images" explanation; the epoch-play and widest-pair explanations; the tooltips of the Advanced options; the brightness-scale text; the two long Advanced paragraphs (live building, reading the image; each now has a one-line summary). Shortened with the meaning kept: archive-wait text ("depending on the archive" dropped), slow-archive text, backup-search note, "building a live series" message for a clicked cached target, catalogue line. Stays visible: badge, progress and error texts, "REAL catalogue data", "Real SPHEREx data" on the clicked-point chart, "SIMULATED." in chart titles, frames-without-flux counts, load buttons with time and size.
+
+Not changed: `title` tooltips on the image, sliders, tabs and view buttons (already hover text), the target menu's one-line position note (full text on hover, as before), the orange image panel, backdrop behaviour.
+Checked: `make test`, `make verify`, `make verify-docs`, Playwright mock specs on Chromium, Firefox and WebKit (the keyboard Tab test is skipped on WebKit, which does not Tab to buttons by default). The real Aladin backdrop was not checked with live tiles here (the tests use the stand-in).

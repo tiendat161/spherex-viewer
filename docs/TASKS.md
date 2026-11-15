@@ -16,7 +16,6 @@ Details of finished work (what, why, what is still missing) are in [`WORKLOG.md`
 | ID | Task | Owner | Touches |
 |---|---|---|---|
 | T41 | Cache three famous positions as demo targets (Orion M42, Eagle M16, Andromeda M31) so a demo never waits for the archive | parked on branch `t41-demo-targets` (entries added, series not built: the archive search service was down, HTTP 502). To finish: when the archive answers, on that branch run `python -m pipeline.build verify/targets.json --only m42 m16 m31`, then `--offline` for flux, then `make verify` | `verify/targets.json`, `static/series/`, `tests/pipeline/test_targets.py` |
-| T54 | Requested by Dat: simpler text. Explanatory text moves into an "i" icon (hover shows, click pins, click again or Escape closes); short labels, status, errors and the REAL / SIMULATED labelling stay visible | branch `claude/info-icons` | `web/index.html`, `web/src/main.js`, `web/src/model.js`, `web/src/style.css`, `web/src/info.js`, `web/e2e/` |
 
 ## Todo
 
@@ -39,6 +38,7 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 
 | ID | Task | Challenge item | Commits |
 |---|---|---|---|
+| T54 | Simpler text (Dat's request): explanatory text moved into an "i" icon (hover shows, click pins, click again, Escape or a click elsewhere closes; keyboard and touch work); short labels, status, errors and the REAL / SIMULATED labelling stay visible. See `WORKLOG.md` for the list | none (usability) | `a1df85f` |
 | T51 | Bug found by Dat: the target dropdown was covered by the page text once the sky backdrop was on (`.topbar` and `main` shared `z-index:1`, `main` painted over the open list). Fixed with `body.sky-on .topbar { z-index:3 }`; Playwright test checks every option is reachable. Redeployed and checked on the public site | none (usability, found after T50) | `69433e0` |
 | T52 | Requested by Dat: the Aladin sky backdrop starts on a wide view of the sky when the page opens, before any target or Load (lazy, after the page is idle); orange image-panel border (`--accent-panel`, `#e07b00`, 2 px). Note: `--sim` is a similar orange used for the SIMULATED badge. Checked on the public site | none (look and feel, follows T50) | `b7feb5e` |
 | T53 | Redeploys of `origin/main` to the EC2 host by a deploy session, three times on 2026-11-15 (`b877d4c`, `69433e0`, `b7feb5e`): previous image kept as `spherex-viewer:previous` for rollback, about 10 s downtime each, checked from outside. Catalogue overlay and live builds still unverified on the server (IRSA returned HTTP 502). Deploys stay manual; see `docs/deploy.md` | "public-facing web tool" | `0007f3a`, `8ce7156`, `b5e0702` (docs) |
