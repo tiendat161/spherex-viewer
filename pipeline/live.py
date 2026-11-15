@@ -33,6 +33,7 @@ from .cutout import CutoutError, read_cutout
 from .grid import PIXEL_SCALE_ARCSEC, grid_shape, make_grid_wcs, reproject_frame, to_png_array
 from .irsa import MAX_IN_FLIGHT, IrsaError
 from . import tapcache
+from .photometry import flux_for_series, method_block
 from .select import spread_order
 from .stack import band_id, build_stacks, subtract_background, with_urls
 from .targets import sep_arcsec
@@ -95,9 +96,17 @@ class LiveSeries:
             if self.status == "error":
                 return {"status": "error", "data_origin": "real", "progress": {"done": 0, "total": 0, "failed": 0},
                         "grid": None, "stretch": None, "frames": [], "error": {"message": self.error}}
-            frames = [{"index": i, "obs_mjd": round(f["obs_mjd"], 6), "wavelength_um": round(f["wavelength_um"], 5),
-                       "url": f"/api/frames/{self.id}/{i:02d}.png?v={self.gen}", "flag_fraction": round(f["flag_fraction"], 4)}
-                      for i, f in sorted(self._frames.items()) if i in self._pngs]
+            frames = []
+            for i, f in sorted(self._frames.items()):
+                if i not in self._pngs:
+                    continue
+                e = {"index": i, "obs_mjd": round(f["obs_mjd"], 6), "wavelength_um": round(f["wavelength_um"], 5),
+                     "url": f"/api/frames/{self.id}/{i:02d}.png?v={self.gen}", "flag_fraction": round(f["flag_fraction"], 4)}
+                if f.get("mjd_avg") is not None:
+                    e["mjd_avg"] = round(f["mjd_avg"], 6)
+                if f.get("flux") is not None:
+                    e["flux"] = f["flux"]
+                frames.append(e)
             progress = {"done": len(frames), "total": self.total, "failed": self.failed}
             if self.available is not None:
                 progress["available"] = self.available
@@ -110,6 +119,8 @@ class LiveSeries:
                 "frames": frames,
                 "background": "median_subtracted",
             }
+            if any("flux" in e for e in frames):
+                doc["photometry"] = method_block()
             if self._stacks:  # while the series is being extended these are the stacks of the frames loaded before
                 doc["stacks"] = with_urls(self._stacks, lambda name: f"/api/frames/{self.id}/{name}?v={self.gen}")
             return doc
@@ -161,14 +172,15 @@ class LiveSeries:
         self._pngs = {i: _png_bytes(f["pix"], self.stretch["vmin"], self.stretch["vmax"]) for i, f in self._frames.items()}
         self.gen += 1
 
-    def _add(self, index, obs_mjd, band, c, pix, flagged):
+    def _add(self, index, obs_mjd, band, c, pix, flagged, flux=None):
         with self._lock:
             if self._unit is None:
                 self._unit = c["bunit"]
             elif c["bunit"] != self._unit:
                 raise ValueError(f"frames disagree on BUNIT: {self._unit!r} and {c['bunit']!r}")
             self._frames[index] = {"obs_mjd": obs_mjd, "wavelength_um": c["wavelength_um"],
-                                   "flag_fraction": float(flagged.mean()), "pix": pix, "flagged": flagged, "band": band}
+                                   "flag_fraction": float(flagged.mean()), "pix": pix, "flagged": flagged, "band": band,
+                                   "flux": flux, "mjd_avg": c.get("mjd_avg")}
             n = len(self._frames)
             if n & (n - 1) == 0 or self.stretch is None:  # 1, 2, 4, 8, ...
                 try:
@@ -219,6 +231,7 @@ class LiveSeries:
             row = self._order[i]
             try:
                 c = read_cutout(client.fetch_cutout(row["uri"], self.ra, self.dec, size), self.ra, self.dec)
+                flux = flux_for_series(c, self.ra, self.dec)  # on the cutout as downloaded, before resampling
                 pix, flagged = reproject_frame(c["image"], c["wcs"], c["flags"], gwcs, self.shape)
                 if not np.isfinite(pix).any():
                     raise CutoutError("no coverage on the grid")
@@ -227,7 +240,7 @@ class LiveSeries:
                 with self._lock:
                     self.failed += 1
                 return
-            self._add(i, float(row["time_bounds_lower"]), band_id(row.get("energy_bandpassname", "")), c, pix, flagged)
+            self._add(i, float(row["time_bounds_lower"]), band_id(row.get("energy_bandpassname", "")), c, pix, flagged, flux)
 
         while True:
             with self._lock:

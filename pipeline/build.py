@@ -18,6 +18,7 @@ from . import targets as targets_mod
 from .cutout import CutoutError, read_cutout
 from .grid import grid_shape, make_grid_wcs, reproject_frame
 from .irsa import MAX_IN_FLIGHT, IrsaClient, IrsaError
+from .photometry import flux_for_series
 from .select import dedupe_prefer_release, select_frames, select_per_wavelength
 from .stack import band_id, build_stacks, subtract_background
 from .writer import write_series
@@ -94,13 +95,14 @@ def build_target(client, t, cfg, out_root, refresh_tap=False, log=print):
         try:
             path = fetch_raw(client, t, row, fov)
             c = read_cutout(str(path), t.ra, t.dec)
+            flux = flux_for_series(c, t.ra, t.dec)  # measured on the cutout as downloaded, before resampling
             pix, flagged = reproject_frame(c["image"], c["wcs"], c["flags"], gwcs, shape)
             if not np.isfinite(pix).any():
                 raise CutoutError("no coverage on the grid")
             pix = subtract_background(pix, flagged)
             log(f"[{t.id}] frame {i:02d} ok  {c['wavelength_um']:.3f} um")
             return i, {"index": i, "obs_mjd": float(row["time_bounds_lower"]), "wavelength_um": c["wavelength_um"],
-                       "pix": pix, "flagged": flagged, "bunit": c["bunit"],
+                       "pix": pix, "flagged": flagged, "bunit": c["bunit"], "flux": flux, "mjd_avg": c["mjd_avg"],
                        "band": band_id(row.get("energy_bandpassname", ""))}, None
         except (IrsaError, CutoutError) as e:
             log(f"[{t.id}] frame {i:02d} FAILED: {e}")
@@ -132,7 +134,7 @@ def build_target(client, t, cfg, out_root, refresh_tap=False, log=print):
     vmin, vmax = stretch_mod.compute_limits([g["pix"] for g in good], [g["flagged"] for g in good])
     st = {"kind": stretch_mod.KIND, "vmin": round(vmin, 6), "vmax": round(vmax, 6), "unit": units.pop()}
     frames = [{"index": g["index"], "obs_mjd": g["obs_mjd"], "wavelength_um": g["wavelength_um"],
-               "flag_fraction": float(g["flagged"].mean()),
+               "flag_fraction": float(g["flagged"].mean()), "flux": g["flux"], "mjd_avg": g["mjd_avg"],
                "png": stretch_mod.apply(g["pix"], st["vmin"], st["vmax"])} for g in good]
     stacks, stack_pngs = build_stacks(readable, st["unit"], [float(r["time_bounds_lower"]) for r in dedupe_prefer_release(rows)])
     write_series(Path(out_root) / t.id, t.id, t.ra, t.dec, shape, st, frames, total, failed,

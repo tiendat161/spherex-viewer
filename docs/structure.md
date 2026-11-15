@@ -99,11 +99,11 @@ Turns archive data into series. Used in two ways: `build.py` writes the static c
 | `targets.py` | Reads `verify/targets.json`, converts positions to degrees, applies proper motion where the target asks for it; `sep_arcsec` |
 | `select.py` | Picks which images make a series: evenly spaced in time (`select_frames`), one per wavelength band (`select_per_wavelength`), or for live series an order in which any first N spread over the dates and detector bands (`spread_order`); prefers releases in the order of `RELEASE_PREFERENCE` (`dr1` first) |
 | `cutout.py` | Reads one downloaded cutout: image, flags, variance, sky coordinates, unit, wavelength and `MJD-AVG`; helpers for sky-to-pixel and pixel solid angle |
-| `photometry.py` | Flux at a sky position on one native cutout: aperture photometry with a ring background, in microjansky with an uncertainty; says why when it cannot measure. Not yet called by the build, the live path or the API (T29) |
+| `photometry.py` | Flux at a sky position on one native cutout: aperture photometry with a ring background, in microjansky with an uncertainty; says why when it cannot measure. Called by the build and the live path; the result is in each frame's `flux` and the series' `photometry` block |
 | `grid.py` | The shared north-up grid: allowed fields of view, grid size, resampling every frame onto it, which pixels count as flagged |
 | `stretch.py` | Computes one brightness mapping per series and converts frames to 8-bit |
 | `stack.py` | Median background subtraction, grouping dates into visits, stacking per visit and detector band, difference from the first visit |
-| `writer.py` | Writes `series.json` and the frame, stack and difference PNGs |
+| `writer.py` | Writes `series.json` and the frame, stack and difference PNGs (with each frame's flux and the photometry method) |
 | `build.py` | Command-line entry point for the cache: `python -m pipeline.build verify/targets.json [--only id] [--refresh-tap] [--offline]`. Resumes from `.cache/` |
 | `live.py` | Live series for positions or fields of view that are not cached: `LiveBuilder` (queue, limits, which finished series keep their pixels) and `LiveSeries` (one per position and field of view, in memory, with progress; loads a first batch and is extended when a larger `load` is asked for) |
 | `tapcache.py` | Remembers the archive's answer to "which images cover this position" for live series on disk (`.cache/tap/live/`, a week), so a repeated position, also after a restart, skips the slow search |
@@ -174,6 +174,7 @@ Pytest unit tests; none touches the network.
 | `pipeline/test_irsa.py` | The concurrency limit and retries |
 | `pipeline/test_targets.py` | Position parsing and proper motion |
 | `pipeline/test_stack.py` | Background subtraction, visits, stacks, differences |
+| `pipeline/test_flux_series.py` | Flux in the series document: live and cached paths, flagged apertures, the schema's flux rules |
 | `pipeline/test_photometry.py` | Flux recovery, background independence, error estimate, flagged and NaN pixels, off-image position |
 | `pipeline/test_build.py` | The cache build end to end on synthetic data |
 | `pipeline/test_live.py` | Live series: progress, stretch refresh, limits, staged loading and extension |

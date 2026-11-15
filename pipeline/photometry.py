@@ -109,3 +109,20 @@ def measure_flux(c, ra, dec, aperture_pix=APERTURE_RADIUS_PIX, annulus_pix=ANNUL
             "flux_err_ujy": float(np.sqrt(var_term + bkg_term)) * omega * MJY_TO_UJY,
             "background": bkg, "n_background_pix": n_bkg, "error_basis": basis,
             "x_pix": x, "y_pix": y, "wavelength_um": c.get("wavelength_um"), "mjd_avg": c.get("mjd_avg")}
+
+
+def method_block():
+    """The contract's top-level `photometry` object: how the fluxes in a series were measured."""
+    return {"method": "aperture", "aperture_radius_pix": APERTURE_RADIUS_PIX, "annulus_inner_pix": ANNULUS_PIX[0],
+            "annulus_outer_pix": ANNULUS_PIX[1], "aperture_corrected": False, "at": "request_position"}
+
+
+def flux_for_series(c, ra, dec):
+    """The contract's `frames[].flux` object for one cutout: flux and uncertainty in microjansky, or ok false and a reason."""
+    try:
+        r = measure_flux(c, ra, dec)
+    except ValueError:  # BUNIT is not MJy/sr
+        return {"ok": False, "reason": "unexpected_unit"}
+    if not r["ok"]:
+        return {"ok": False, "reason": r["reason"]}
+    return {"ok": True, "flux_ujy": round(float(r["flux_ujy"]), 3), "flux_err_ujy": round(float(r["flux_err_ujy"]), 3)}
