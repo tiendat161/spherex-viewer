@@ -34,7 +34,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 37377.869,
-    "flux_err_ujy": 441.311
+    "flux_err_ujy": 200.596
    }
   },
   {
@@ -47,7 +47,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 26372.046,
-    "flux_err_ujy": 688.483
+    "flux_err_ujy": 312.947
    }
   },
   {
@@ -72,7 +72,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 27297.739,
-    "flux_err_ujy": 337.727
+    "flux_err_ujy": 153.512
    }
   },
   {
@@ -85,7 +85,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 12119.541,
-    "flux_err_ujy": 287.41
+    "flux_err_ujy": 130.641
    }
   },
   {
@@ -98,7 +98,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 27158.492,
-    "flux_err_ujy": 373.977
+    "flux_err_ujy": 169.989
    }
   },
   {
@@ -123,7 +123,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 30244.949,
-    "flux_err_ujy": 412.567
+    "flux_err_ujy": 187.53
    }
   },
   {
@@ -148,7 +148,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 31861.086,
-    "flux_err_ujy": 398.255
+    "flux_err_ujy": 181.025
    }
   },
   {
@@ -161,7 +161,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 26116.915,
-    "flux_err_ujy": 775.597
+    "flux_err_ujy": 352.544
    }
   },
   {
@@ -174,7 +174,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 23402.445,
-    "flux_err_ujy": 826.691
+    "flux_err_ujy": 375.769
    }
   },
   {
@@ -187,7 +187,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 20649.466,
-    "flux_err_ujy": 796.79
+    "flux_err_ujy": 362.177
    }
   },
   {
@@ -212,7 +212,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 50852.26,
-    "flux_err_ujy": 913.26
+    "flux_err_ujy": 415.118
    }
   },
   {
@@ -225,7 +225,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 13804.262,
-    "flux_err_ujy": 313.489
+    "flux_err_ujy": 142.495
    }
   },
   {
@@ -238,7 +238,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 49305.322,
-    "flux_err_ujy": 871.09
+    "flux_err_ujy": 395.95
    }
   },
   {
@@ -251,7 +251,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 8599.395,
-    "flux_err_ujy": 216.39
+    "flux_err_ujy": 98.359
    }
   },
   {
@@ -264,7 +264,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 13789.547,
-    "flux_err_ujy": 313.018
+    "flux_err_ujy": 142.281
    }
   },
   {
@@ -289,7 +289,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 135.596,
-    "flux_err_ujy": 148.413
+    "flux_err_ujy": 67.46
    }
   },
   {
@@ -302,7 +302,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 13018.823,
-    "flux_err_ujy": 278.803
+    "flux_err_ujy": 126.729
    }
   },
   {
@@ -315,7 +315,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 8525.774,
-    "flux_err_ujy": 208.843
+    "flux_err_ujy": 94.929
    }
   },
   {
@@ -328,7 +328,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 108.942,
-    "flux_err_ujy": 158.613
+    "flux_err_ujy": 72.097
    }
   },
   {
@@ -341,7 +341,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 9699.059,
-    "flux_err_ujy": 218.792
+    "flux_err_ujy": 99.451
    }
   },
   {
@@ -354,7 +354,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 10587.955,
-    "flux_err_ujy": 307.681
+    "flux_err_ujy": 139.855
    }
   },
   {
@@ -379,7 +379,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 18207.606,
-    "flux_err_ujy": 726.901
+    "flux_err_ujy": 330.41
    }
   },
   {
@@ -392,7 +392,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 11750.703,
-    "flux_err_ujy": 259.293
+    "flux_err_ujy": 117.861
    }
   },
   {
@@ -405,7 +405,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 26480.259,
-    "flux_err_ujy": 392.482
+    "flux_err_ujy": 178.401
    }
   },
   {
@@ -418,7 +418,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 17058.882,
-    "flux_err_ujy": 720.274
+    "flux_err_ujy": 327.397
    }
   },
   {
@@ -431,7 +431,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 21594.164,
-    "flux_err_ujy": 841.358
+    "flux_err_ujy": 382.435
    }
   },
   {
@@ -444,7 +444,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 20892.08,
-    "flux_err_ujy": 345.108
+    "flux_err_ujy": 156.867
    }
   },
   {
@@ -457,7 +457,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 14525.483,
-    "flux_err_ujy": 277.449
+    "flux_err_ujy": 126.113
    }
   },
   {
@@ -470,7 +470,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 18774.18,
-    "flux_err_ujy": 645.221
+    "flux_err_ujy": 293.282
    }
   },
   {
@@ -495,7 +495,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 39322.541,
-    "flux_err_ujy": 441.369
+    "flux_err_ujy": 200.622
    }
   },
   {
@@ -532,7 +532,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 52336.701,
-    "flux_err_ujy": 887.142
+    "flux_err_ujy": 403.246
    }
   }
  ],

@@ -34,7 +34,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 151118.329,
-    "flux_err_ujy": 1054.302
+    "flux_err_ujy": 479.228
    }
   },
   {
@@ -47,7 +47,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 73943.43,
-    "flux_err_ujy": 663.126
+    "flux_err_ujy": 301.421
    }
   },
   {
@@ -84,7 +84,7 @@
    "flux": {
     "ok": true,
     "flux_ujy": 156036.937,
-    "flux_err_ujy": 916.111
+    "flux_err_ujy": 416.414
    }
   },
   {
