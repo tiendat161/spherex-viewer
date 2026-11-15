@@ -148,34 +148,46 @@ test('field of view: selector, URL parameter, grid size, wide-field note', async
   await expect.poll(() => page.evaluate(() => document.getElementById('canvas').width)).toBe(116);
 });
 
-test('axis: always wavelength, dragging moves through the frames, plain slider for stacks', async ({ page }) => {
+test('visit buttons and the vertical wavelength axis', async ({ page }) => {
   await page.goto(wise);
   await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
   await expect(page.locator('#play')).toHaveText('Pause');
   await page.locator('#play').click(); // stop the auto-blink
   await expect(page.locator('#play')).toHaveText('Play');
-  await expect(page.locator('#axis')).toBeVisible();
-  await expect(page.locator('#axis-caption')).toHaveText('Wavelength, log scale');
-  await expect(page.locator('.axis-tick')).toHaveCount(40);
+  await expect(page.locator('#vaxis')).toBeVisible();
+  await expect(page.locator('#visit-bar button')).toHaveCount(3); // the mock series spans three groups of dates
+  await expect(page.locator('#visit-bar button').first()).toHaveAttribute('aria-pressed', 'true');
 
-  const lo = Number.parseFloat(await page.locator('#axis-labels .lo').textContent()).toFixed(3);
-  const hi = Number.parseFloat(await page.locator('#axis-labels .hi').textContent()).toFixed(3);
-  const box = await page.locator('#axis-track').boundingBox();
-  const y = box.y + box.height / 2;
-  // Time order (the default) and wavelength order give the same axis: the ends are the shortest and longest wavelength.
-  for (const order of ['time', 'wavelength']) {
-    await page.locator('#order').selectOption(order);
-    await expect(page.locator('#axis-caption')).toHaveText('Wavelength, log scale');
-    await page.mouse.click(box.x + 1, y);
-    await expect(page.locator('#r-wave')).toHaveText(`${lo} µm`);
-    await page.mouse.click(box.x + box.width - 1, y);
-    await expect(page.locator('#r-wave')).toHaveText(`${hi} µm`);
-  }
-  // A drag follows the pointer and ends on the last frame in wavelength order.
-  await page.mouse.move(box.x + box.width / 2, y);
+  const wave = async () => Number.parseFloat(await page.locator('#r-wave').textContent());
+  const box = await page.locator('#vaxis-track').boundingBox();
+  const x = box.x + box.width / 2;
+  // Click the bottom, then the top: shortest then longest wavelength of the visit, ticks are only this visit's frames.
+  const ticks = await page.locator('.vaxis-tick').count();
+  await page.mouse.click(x, box.y + box.height - 1);
+  const low = await wave();
+  await page.mouse.click(x, box.y + 1);
+  const high = await wave();
+  expect(high).toBeGreaterThan(low);
+  // Dragging follows the pointer.
+  await page.mouse.move(x, box.y + box.height / 2);
   await page.mouse.down();
-  await page.mouse.move(box.x + box.width + 6, y, { steps: 8 });
+  await page.mouse.move(x, box.y - 8, { steps: 8 });
   await page.mouse.up();
-  await expect(page.locator('#r-wave')).toHaveText(`${hi} µm`);
-  await page.screenshot({ path: outDir + 'web-mock-axis.png', fullPage: true });
+  expect(await wave()).toBe(high);
+
+  // Arrow keys: down steps to a shorter wavelength in the same visit; right changes visit, keeping the wavelength close.
+  const date = () => page.locator('#r-date').textContent();
+  const d0 = await date();
+  await page.keyboard.press('ArrowDown');
+  expect(await wave()).toBeLessThan(high);
+  await page.mouse.click(x, box.y + 1);
+  const top = await wave();
+  await page.locator('#visit-bar button').nth(1).click();
+  await expect(page.locator('#visit-bar button').nth(1)).toHaveAttribute('aria-pressed', 'true');
+  expect(await date()).not.toBe(d0);
+  expect(Math.abs(Math.log((await wave()) / top))).toBeLessThan(0.5); // nearest wavelength, not the same frame
+  await page.keyboard.press('ArrowLeft');
+  await expect(page.locator('#visit-bar button').first()).toHaveAttribute('aria-pressed', 'true');
+  expect(ticks).toBeGreaterThan(1);
+  await page.screenshot({ path: outDir + 'web-mock-pad.png', fullPage: true });
 });

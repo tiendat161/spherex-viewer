@@ -30,6 +30,12 @@
       <div id="progress" class="progress" aria-live="polite"><span id="progress-text">Choose a target.</span><progress id="bar" max="1" value="0"></progress></div>
       <div id="message" class="message" hidden></div>
       <div class="stage">
+        <div id="vaxis" class="vaxis" hidden>
+          <div id="vaxis-labels" class="vaxis-labels"></div>
+          <div id="vaxis-track" class="vaxis-track" title="Drag to change the wavelength within this visit; each tick is one frame. Frames of nearly the same wavelength overlap: use the up and down arrow keys to move between them">
+            <div id="vaxis-ticks"></div><div id="vaxis-handle" class="vaxis-handle"></div>
+          </div>
+        </div>
         <div id="frame-box" class="frame-box" hidden>
           <canvas id="canvas"></canvas>
           <div id="marker" class="marker" title="Requested position (grid centre)" hidden></div>
@@ -44,13 +50,7 @@
         <button id="next" type="button" aria-label="Step forward">Step ▶︎</button>
         <div class="axis-wrap">
           <input id="slider" type="range" min="0" max="0" value="0" aria-label="Frame" />
-          <div id="axis" class="axis" hidden>
-            <div id="axis-track" class="axis-track" title="Drag to move through the frames; each tick is one frame at its real position. Frames taken close together overlap: use Step or the arrow keys to move between them">
-              <div id="axis-ticks"></div><div id="axis-handle" class="axis-handle"></div>
-            </div>
-            <div id="axis-labels" class="axis-labels"></div>
-            <div id="axis-caption" class="axis-caption muted small"></div>
-          </div>
+          <div id="visit-bar" class="visit-bar" role="group" aria-label="Visit" hidden></div>
         </div>
         <label class="speed">Speed
           <select id="fps"><option value="1">1 fps</option><option value="2">2 fps</option><option value="5" selected>5 fps</option><option value="10">10 fps</option></select>

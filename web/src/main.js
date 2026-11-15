@@ -1,19 +1,19 @@
 import { fetchTargets, pollSeries } from './api.js';
-import { FOV_DEG, WIDE_FOV_DEG, axisSpec, bandLabel, blinkPair, buildSlots, formatFlag, gridFovDeg, isWideField, locationQuery, mjdToUtc, nearestPoint, nextSlot, orderSlots, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, stackSlots, zoomRect } from './model.js';
+import { FOV_DEG, WIDE_FOV_DEG, bandLabel, blinkPair, buildSlots, formatFlag, gridFovDeg, isWideField, locationQuery, mjdToUtc, nearestWavelength, nearestY, nextSlot, orderSlots, padPosition, padSpec, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, stackSlots, stepVisit, stepWavelength, visitsOf, zoomRect } from './model.js';
 
 const $ = (id) => document.getElementById(id);
 const el = {
   badge: $('badge'), targets: $('targets'), ra: $('ra'), dec: $('dec'), fov: $('fov'), fovNote: $('fov-note'), coords: $('coords'),
   progressText: $('progress-text'), bar: $('bar'), message: $('message'),
   frameBox: $('frame-box'), canvas: $('canvas'), scalebar: $('scalebar'), scalebarLabel: $('scalebar-label'), skipped: $('skipped'),
-  prev: $('prev'), play: $('play'), next: $('next'), slider: $('slider'), axis: $('axis'), axisTrack: $('axis-track'), axisTicks: $('axis-ticks'), axisHandle: $('axis-handle'), axisLabels: $('axis-labels'), axisCaption: $('axis-caption'), fps: $('fps'), zoom: $('zoom'), pair: $('pair'), pairNote: $('pair-note'),
+  prev: $('prev'), play: $('play'), next: $('next'), slider: $('slider'), visitBar: $('visit-bar'), vaxis: $('vaxis'), vTrack: $('vaxis-track'), vTicks: $('vaxis-ticks'), vHandle: $('vaxis-handle'), vLabels: $('vaxis-labels'), fps: $('fps'), zoom: $('zoom'), pair: $('pair'), pairNote: $('pair-note'),
   view: $('view'), band: $('band'), bandWrap: $('band-wrap'), diff: $('diff'), diffWrap: $('diff-wrap'), order: $('order'), orderWrap: $('order-wrap'),
   mark: $('mark'), marker: $('marker'),
   rFrame: $('r-frame'), rDate: $('r-date'), rWave: $('r-wave'), rFlag: $('r-flag'), legend: $('legend'),
 };
 
 const state = { targets: [], resp: null, slots: [], current: 0, playing: false, timer: null, abort: null, pos: null, pair: null };
-let axisShown = null; // {slots, key, spec} of the axis as drawn, rebuilt only when the slots or the view change
+let padShown = null; // {slots, stacks, key, spec, visit} of the visit and wavelength controls as drawn
 const images = new Map(); // url -> HTMLImageElement, preloaded so blinking does not stutter
 const ctx = el.canvas.getContext('2d');
 
@@ -118,7 +118,7 @@ function render() {
   renderPairNote();
   el.slider.max = String(Math.max(0, state.slots.length - 1));
   el.slider.value = String(state.current);
-  renderAxis();
+  renderPad();
   el.play.textContent = state.playing ? 'Pause' : 'Play';
   if (r) {
     el.progressText.textContent = progressText(r);
@@ -152,28 +152,49 @@ function render() {
   drawCurrent();
 }
 
-/** The draggable wavelength axis: a tick per frame at its real wavelength, and a handle on the current frame. */
-function renderAxis() {
-  const key = String(stackView());
-  if (!axisShown || axisShown.slots !== state.slots || axisShown.key !== key) {
-    const spec = axisSpec(state.slots, { stacked: stackView() });
-    axisShown = { slots: state.slots, key, spec };
-    el.axisTicks.replaceChildren(...(spec?.points ?? []).map((p) => {
+/** The pad spec for the frames on screen, or null (stacked view, or too few wavelengths): then the plain slider is used. */
+const padActive = () => padShown?.spec ?? null;
+
+/**
+ * Visit buttons (horizontal) and the vertical wavelength slider. A frame is a (visit, wavelength) point:
+ * the buttons pick the visit, the vertical axis the wavelength among that visit's frames.
+ */
+function renderPad() {
+  if (!padShown || padShown.slots !== state.slots || padShown.stacks !== state.resp?.stacks || padShown.key !== String(stackView())) {
+    const spec = stackView() ? null : padSpec(state.slots, visitsOf(state.resp, state.slots));
+    padShown = { slots: state.slots, stacks: state.resp?.stacks, key: String(stackView()), spec, visit: -1 };
+    el.visitBar.replaceChildren(...(spec?.visits.length > 1 ? spec.visits.map((v, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.dataset.visit = String(i);
+      const span = `${mjdToUtc(v.start_mjd).slice(0, 10)}${v.end_mjd - v.start_mjd >= 1 ? ` to ${mjdToUtc(v.end_mjd).slice(0, 10)}` : ''}`;
+      b.append(`Visit ${i + 1}`);
+      const small = document.createElement('small');
+      small.textContent = `${span} · ${v.points.length} frame${v.points.length === 1 ? '' : 's'}`;
+      b.append(small);
+      return b;
+    }) : []));
+    const lab = (cls, top, text) => { const e = document.createElement('span'); e.className = cls; e.style.top = `${top * 100}%`; e.textContent = text; return e; };
+    el.vLabels.replaceChildren(...(spec ? [lab('hi', 0, spec.ends[1]), ...spec.ticks.map((t) => lab('', 1 - t.y, t.label)), lab('lo', 1, spec.ends[0])] : []));
+  }
+  const spec = padShown.spec;
+  el.vaxis.hidden = !spec;
+  el.visitBar.hidden = !spec || spec.visits.length < 2;
+  el.slider.classList.toggle('visually-hidden', !!spec); // the native slider stays for the keyboard and screen readers
+  if (!spec) return;
+  const at = padPosition(spec, state.current);
+  if (at && at.visit !== padShown.visit) { // ticks of the visit now shown
+    padShown.visit = at.visit;
+    el.vTicks.replaceChildren(...spec.visits[at.visit].points.map((p) => {
       const t = document.createElement('div');
-      t.className = 'axis-tick';
-      t.style.left = `${p.x * 100}%`;
+      t.className = 'vaxis-tick';
+      t.style.top = `${(1 - p.y) * 100}%`;
       return t;
     }));
-    const lab = (cls, x, text) => { const s = document.createElement('span'); s.className = cls; s.style.left = `${x * 100}%`; s.textContent = text; return s; };
-    el.axisLabels.replaceChildren(...(spec ? [lab('lo', 0, spec.ends[0]), ...spec.ticks.map((t) => lab('', t.x, t.label)), lab('hi', 1, spec.ends[1])] : []));
-    el.axisCaption.textContent = spec?.caption ?? '';
   }
-  const spec = axisShown.spec;
-  el.axis.hidden = !spec;
-  el.slider.classList.toggle('visually-hidden', !!spec); // the native slider stays for the keyboard and screen readers
-  const here = spec?.points.find((p) => p.slot === state.current);
-  el.axisHandle.hidden = !here;
-  if (here) el.axisHandle.style.left = `${here.x * 100}%`;
+  el.vHandle.hidden = !at;
+  if (at) el.vHandle.style.top = `${(1 - spec.visits[at.visit].points[at.point].y) * 100}%`;
+  for (const b of el.visitBar.querySelectorAll('button')) b.setAttribute('aria-pressed', String(!!at && Number(b.dataset.visit) === at.visit));
 }
 
 function renderPairNote() {
@@ -286,16 +307,26 @@ el.play.addEventListener('click', () => { state.playing ? stopPlaying() : startP
 el.prev.addEventListener('click', () => { stopPlaying(); go(advance(-1)); });
 el.next.addEventListener('click', () => { stopPlaying(); go(advance(1)); });
 el.slider.addEventListener('input', () => { stopPlaying(); state.pair = null; go(Number(el.slider.value)); });
-// Dragging on the axis picks the frame nearest to the pointer; it goes through the slider so keyboard, pair mode and stopping playback behave the same.
-let dragging = false;
-function pickOnAxis(e) {
-  const r = el.axisTrack.getBoundingClientRect();
-  const slot = nearestPoint(axisShown?.spec?.points ?? [], Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)));
+// Pad: every change goes through the slider, so pair mode and stopping playback behave as for any other slider move.
+function pickSlot(slot) {
   if (slot >= 0 && slot !== state.current) { el.slider.value = String(slot); el.slider.dispatchEvent(new Event('input')); }
 }
-el.axisTrack.addEventListener('pointerdown', (e) => { dragging = true; el.axisTrack.setPointerCapture(e.pointerId); el.slider.focus({ preventScroll: true }); pickOnAxis(e); });
-el.axisTrack.addEventListener('pointermove', (e) => { if (dragging) pickOnAxis(e); });
-for (const t of ['pointerup', 'pointercancel']) el.axisTrack.addEventListener(t, () => { dragging = false; });
+let dragging = false;
+function pickOnVAxis(e) {
+  const spec = padActive(), at = spec && padPosition(spec, state.current);
+  if (!at) return;
+  const r = el.vTrack.getBoundingClientRect();
+  pickSlot(nearestY(spec.visits[at.visit], 1 - Math.min(1, Math.max(0, (e.clientY - r.top) / r.height))));
+}
+el.vTrack.addEventListener('pointerdown', (e) => { dragging = true; el.vTrack.setPointerCapture(e.pointerId); el.slider.focus({ preventScroll: true }); pickOnVAxis(e); });
+el.vTrack.addEventListener('pointermove', (e) => { if (dragging) pickOnVAxis(e); });
+for (const t of ['pointerup', 'pointercancel']) el.vTrack.addEventListener(t, () => { dragging = false; });
+el.visitBar.addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-visit]'), spec = padActive(), at = spec && padPosition(spec, state.current);
+  if (!b || !spec) return;
+  const wl = at ? spec.visits[at.visit].points[at.point].wl : spec.visits[0].points[0].wl;
+  pickSlot(nearestWavelength(spec.visits[Number(b.dataset.visit)], wl)); // the closest wavelength in that visit
+});
 el.zoom.addEventListener('change', render);
 el.mark.addEventListener('change', render);
 el.view.addEventListener('change', () => { setView(el.view.value); reslot(); });
@@ -321,6 +352,12 @@ el.fov.addEventListener('change', () => { if (state.pos) load(state.pos.ra, stat
 document.addEventListener('keydown', (e) => {
   if (e.target instanceof HTMLInputElement && e.target.type !== 'range') return;
   if (e.key === ' ' && e.target === document.body) { e.preventDefault(); el.play.click(); }
+  else if (padActive() && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+    // With the visit and wavelength controls: up and down change the wavelength, left and right the visit.
+    e.preventDefault(); // the hidden slider would otherwise step by itself as well
+    pickSlot(e.key === 'ArrowUp' ? stepWavelength(padActive(), state.current, 1) : e.key === 'ArrowDown' ? stepWavelength(padActive(), state.current, -1)
+      : stepVisit(padActive(), state.current, e.key === 'ArrowRight' ? 1 : -1));
+  }
   else if (e.key === 'ArrowRight') el.next.click();
   else if (e.key === 'ArrowLeft') el.prev.click();
 });

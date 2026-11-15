@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { axisSpec, blinkPair, buildSlots, nearestPoint, gridFovDeg, isWideField, locationQuery, mjdToUtc, nextSlot, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, seriesUrl, zoomRect } from '../src/model.js';
+import { blinkPair, buildSlots, nearestWavelength, nearestY, padPosition, padSpec, stepVisit, stepWavelength, visitsOf, gridFovDeg, isWideField, locationQuery, mjdToUtc, nextSlot, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, seriesUrl, zoomRect } from '../src/model.js';
 import { errorResponse, fixture, gapResponse, loadingResponse, validateSeries, validateTargets } from './helpers.js';
 
 describe('hand-built responses are schema-valid', () => {
@@ -167,32 +167,56 @@ describe('stackSlots', () => {
   });
 });
 
-describe('axisSpec: the draggable wavelength axis', () => {
+describe('visits and the wavelength pad', () => {
   const f = (i, mjd, wl) => ({ index: i, obs_mjd: mjd, wavelength_um: wl, url: `/${i}.png`, flag_fraction: 0 });
+  // visit A (days 100-101): 1, 2, 4 um; visit B (day 300): 1.1, 3 um; one failed frame
+  const slots = [f(0, 100, 1), f(1, 100.5, 4), f(2, 101, 2), { skipped: true, index: 3 }, f(4, 300, 3), f(5, 300.1, 1.1)];
+  const visits = visitsOf(null, slots);
+  const spec = padSpec(slots, visits);
 
-  it('puts frames at their real wavelengths on a log scale, leaving out failed ones', () => {
-    const a = axisSpec([f(0, 5, 1), f(1, 3, 2), { skipped: true, index: 2 }, f(3, 9, 4)]);
-    expect(a.points.map((p) => p.slot)).toEqual([0, 1, 3]);
-    expect(a.points.map((p) => p.x)).toEqual([0, 0.5, 1]); // 1, 2, 4 um are evenly spaced on a log axis
-    expect(a.ends).toEqual(['1.00 µm', '4.00 µm']);
-    expect(a.ticks.map((t) => t.label)).toEqual(['1.5 µm', '2 µm', '3 µm']); // 1 and 4 sit on the ends, no label
+  it('groups frames into visits by the 30 day gap rule, or uses the response stacks.visits', () => {
+    expect(visits).toEqual([{ index: 0, start_mjd: 100, end_mjd: 101 }, { index: 1, start_mjd: 300, end_mjd: 300.1 }]);
+    const given = [{ index: 0, start_mjd: 0, end_mjd: 1 }];
+    expect(visitsOf({ stacks: { visits: given } }, slots)).toBe(given);
   });
-  it('does not depend on the play order: frames in time order are still placed by wavelength', () => {
-    const timeOrder = [f(0, 1, 4), f(1, 2, 1), f(2, 3, 2)];
-    expect(axisSpec(timeOrder).points).toEqual([{ slot: 0, x: 1 }, { slot: 1, x: 0 }, { slot: 2, x: 0.5 }]);
+  it('lists each visit\'s frames by wavelength on one log scale shared by all visits, leaving out failed frames', () => {
+    expect(spec.visits.map((v) => v.points.map((p) => p.slot))).toEqual([[0, 2, 1], [5, 4]]);
+    expect(spec.visits[0].points.map((p) => p.y)).toEqual([0, 0.5, 1]); // 1, 2, 4 um are evenly spaced on a log axis
+    expect(spec.visits[1].points[0].y).toBeCloseTo(Math.log(1.1) / Math.log(4));
+    expect(spec.ends).toEqual(['1.00 µm', '4.00 µm']);
+    expect(spec.ticks.map((t) => t.label)).toEqual(['1.5 µm', '2 µm', '3 µm']);
   });
-  it('is null for stacked visits, which have no single wavelength', () => {
-    expect(axisSpec([{ stack: true, start_mjd: 1, end_mjd: 2 }, { stack: true, start_mjd: 3, end_mjd: 4 }], { stacked: true })).toBeNull();
+  it('puts a frame that is a little outside every visit into the nearest one', () => {
+    const s = padSpec([f(0, 100, 1), f(1, 100, 2), f(2, 140, 3)], [{ index: 0, start_mjd: 100, end_mjd: 101 }, { index: 1, start_mjd: 200, end_mjd: 201 }]);
+    expect(s.visits.map((v) => v.points.map((p) => p.slot))).toEqual([[0, 1, 2]]); // the empty visit is left out
+  });
+  it('finds where a slot is', () => {
+    expect(padPosition(spec, 2)).toEqual({ visit: 0, point: 1 });
+    expect(padPosition(spec, 4)).toEqual({ visit: 1, point: 1 });
+    expect(padPosition(spec, 3)).toBeNull(); // the failed frame
+  });
+  it('steps through wavelengths within a visit and stops at the ends', () => {
+    expect(stepWavelength(spec, 0, 1)).toBe(2);
+    expect(stepWavelength(spec, 2, 1)).toBe(1);
+    expect(stepWavelength(spec, 1, 1)).toBe(1);
+    expect(stepWavelength(spec, 0, -1)).toBe(0);
+  });
+  it('changes visit keeping the nearest wavelength, and stops at the first and last visit', () => {
+    expect(stepVisit(spec, 2, 1)).toBe(4); // 2 um -> 3 um (log distance 0.41) rather than 1.1 um (0.60)
+    expect(stepVisit(spec, 0, 1)).toBe(5); // 1 um -> 1.1 um
+    expect(stepVisit(spec, 4, -1)).toBe(1); // 3 um -> 4 um (0.29) rather than 2 um (0.41)
+    expect(stepVisit(spec, 0, -1)).toBe(0);
+    expect(stepVisit(spec, 4, 1)).toBe(4);
+  });
+  it('nearestWavelength and nearestY pick within one visit', () => {
+    expect(nearestWavelength(spec.visits[1], 1.5)).toBe(5);
+    expect(nearestWavelength(spec.visits[1], 2.9)).toBe(4);
+    expect(nearestY(spec.visits[0], 0.6)).toBe(2);
+    expect(nearestY(spec.visits[0], 0.95)).toBe(1);
   });
   it('is null with fewer than two distinct wavelengths', () => {
-    expect(axisSpec([f(0, 100, 1)])).toBeNull();
-    expect(axisSpec([f(0, 100, 1), f(1, 101, 1)])).toBeNull();
-    expect(axisSpec([])).toBeNull();
-  });
-  it('nearestPoint picks the closest frame, or -1 with none', () => {
-    const pts = axisSpec([f(0, 1, 1), f(1, 2, 1.1), f(2, 3, 4)]).points;
-    expect(nearestPoint(pts, 0.0)).toBe(0);
-    expect(nearestPoint(pts, 0.9)).toBe(2);
-    expect(nearestPoint([], 0.5)).toBe(-1);
+    expect(padSpec([f(0, 1, 1)], [])).toBeNull();
+    expect(padSpec([f(0, 1, 1), f(1, 2, 1)], [])).toBeNull();
+    expect(padSpec([], [])).toBeNull();
   });
 });

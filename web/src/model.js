@@ -189,38 +189,87 @@ export function blinkPair(slots, { minBaseline = 0.8 } = {}) {
 }
 
 const WAVELENGTH_TICKS_UM = [1, 1.5, 2, 3, 4, 5]; // labelled on the wavelength axis when inside its range
+export const VISIT_GAP_DAYS = 30; // same rule as pipeline/stack.py: a longer gap between consecutive frames starts a new visit
 
 /**
- * The draggable axis under the player: wavelength, on a log scale, whatever order the frames are played in.
- * Every individual frame that exists is a point at its real wavelength; failed frames have no position and are
- * left out. Stacked visits have no single wavelength (they combine a band), so there is no axis for them: null,
- * and the plain slider is used. Also null with fewer than two distinct wavelengths. `x` values run from 0 to 1.
+ * Visits for the individual frames: [{index, start_mjd, end_mjd}]. The response's own `stacks.visits` when
+ * it has them (the finished series), otherwise grouped here from the frame dates with the pipeline's gap rule,
+ * so the control also works while a series is still loading.
  */
-export function axisSpec(slots, { stacked = false } = {}) {
-  if (stacked) return null;
-  const pts = [];
+export function visitsOf(resp, slots) {
+  if (resp?.stacks?.visits?.length) return resp.stacks.visits;
+  const t = slots.filter((s) => !s.skipped).map((s) => s.obs_mjd).sort((a, b) => a - b);
+  const out = [];
+  for (const m of t) {
+    const last = out[out.length - 1];
+    if (last && m - last.end_mjd <= VISIT_GAP_DAYS) last.end_mjd = m;
+    else out.push({ index: out.length, start_mjd: m, end_mjd: m });
+  }
+  return out;
+}
+
+/**
+ * The visit and wavelength controls for individual frames. Each frame is a point: its visit, and its
+ * wavelength on one log scale shared by all visits (y: 0 is the shortest wavelength, 1 the longest), so the
+ * scale does not change when the visit does. Failed frames have no position and are left out.
+ * Returns null when there are fewer than two distinct wavelengths; the plain slider is used then.
+ * `visits[i].points` are sorted by wavelength.
+ */
+export function padSpec(slots, visits) {
+  const live = [];
   slots.forEach((s, slot) => {
-    if (!s.skipped && Number.isFinite(s.wavelength_um) && s.wavelength_um > 0) pts.push({ slot, v: s.wavelength_um });
+    if (!s.skipped && Number.isFinite(s.wavelength_um) && s.wavelength_um > 0) live.push({ slot, wl: s.wavelength_um, mjd: s.obs_mjd });
   });
-  if (pts.length < 2) return null;
-  const lo = Math.min(...pts.map((p) => p.v));
-  const hi = Math.max(...pts.map((p) => p.v));
+  if (live.length < 2) return null;
+  const lo = Math.min(...live.map((p) => p.wl));
+  const hi = Math.max(...live.map((p) => p.wl));
   if (!(hi > lo)) return null;
-  const x = (v) => (Math.log(v) - Math.log(lo)) / (Math.log(hi) - Math.log(lo));
+  const y = (v) => (Math.log(v) - Math.log(lo)) / (Math.log(hi) - Math.log(lo));
+  const vs = (visits.length ? visits : [{ index: 0, start_mjd: -Infinity, end_mjd: Infinity }]).map((v) => ({ ...v, points: [] }));
+  for (const p of live) {
+    // inside its dates, else the nearest visit (a date can sit a little outside a visit's recorded range)
+    const dist = (v) => (p.mjd < v.start_mjd ? v.start_mjd - p.mjd : p.mjd > v.end_mjd ? p.mjd - v.end_mjd : 0);
+    vs.reduce((best, v) => (dist(v) < dist(best) ? v : best)).points.push({ slot: p.slot, wl: p.wl, y: y(p.wl) });
+  }
+  for (const v of vs) v.points.sort((a, b) => a.wl - b.wl || a.slot - b.slot);
   return {
-    caption: 'Wavelength, log scale',
+    visits: vs.filter((v) => v.points.length),
     ends: [`${lo.toFixed(2)} µm`, `${hi.toFixed(2)} µm`],
-    points: pts.map((p) => ({ slot: p.slot, x: x(p.v) })),
-    ticks: WAVELENGTH_TICKS_UM.filter((t) => t > lo && t < hi && x(t) > 0.08 && x(t) < 0.92).map((t) => ({ x: x(t), label: `${t} µm` })),
+    ticks: WAVELENGTH_TICKS_UM.filter((t) => t > lo && t < hi && y(t) > 0.04 && y(t) < 0.96).map((t) => ({ y: y(t), label: `${t} µm` })),
   };
 }
 
-/** Slot of the point closest to `x` (0 to 1) on the axis, or -1 if there are none. */
-export function nearestPoint(points, x) {
-  let best = -1, d = Infinity;
-  for (const p of points) {
-    const k = Math.abs(p.x - x);
-    if (k < d) { d = k; best = p.slot; }
+/** Position of a slot in the pad: {visit (index into spec.visits), point (index into its points)} or null. */
+export function padPosition(spec, slot) {
+  for (let v = 0; v < spec.visits.length; v++) {
+    const k = spec.visits[v].points.findIndex((p) => p.slot === slot);
+    if (k >= 0) return { visit: v, point: k };
   }
-  return best;
+  return null;
+}
+
+/** Slot in `visit` whose wavelength is closest (in log) to `wl`. */
+export function nearestWavelength(visit, wl) {
+  return visit.points.reduce((best, p) => (Math.abs(Math.log(p.wl / wl)) < Math.abs(Math.log(best.wl / wl)) ? p : best)).slot;
+}
+
+/** Slot in `visit` closest to the vertical position `y` (0 to 1). */
+export function nearestY(visit, y) {
+  return visit.points.reduce((best, p) => (Math.abs(p.y - y) < Math.abs(best.y - y) ? p : best)).slot;
+}
+
+/** Next shorter (dir -1) or longer (+1) wavelength in the same visit; stays put at the ends. */
+export function stepWavelength(spec, slot, dir) {
+  const at = padPosition(spec, slot);
+  if (!at) return slot;
+  const pts = spec.visits[at.visit].points;
+  return pts[Math.min(pts.length - 1, Math.max(0, at.point + dir))].slot;
+}
+
+/** The previous (dir -1) or next (+1) visit, keeping the wavelength as nearly as it can; stays put at the ends. */
+export function stepVisit(spec, slot, dir) {
+  const at = padPosition(spec, slot);
+  const to = at && at.visit + dir;
+  if (!at || to < 0 || to >= spec.visits.length) return slot;
+  return nearestWavelength(spec.visits[to], spec.visits[at.visit].points[at.point].wl);
 }
