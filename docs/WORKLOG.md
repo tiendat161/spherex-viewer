@@ -37,7 +37,7 @@ Commit: on branch `tap-skip`, merged to main.
 
 **Why:** the M42 run on EC2 took 252 s, about 180 s of it two TAP timeouts before the fallback; every visitor would wait that again while TAP is down.
 
-**Gaps:** not run on the server after the change; the 300 s is a guess. The first search after the pause still pays the full TAP wait. A position searched via SIA2 may list fewer images than TAP (T43).
+**Gaps:** deployed to EC2, but the check failed for an outside reason: right after the deploy both TAP and the SIA2 `spherex_qr3` search answered HTTP 502, so M42 (fov 0.5) and a second position ended in the "both searches failed" error (16 to 65 s). The new skip path was therefore not seen working on the server; only the unit tests cover it. The 300 s is a guess. The first search after the pause still pays the full TAP wait. A position searched via SIA2 may list fewer images than TAP (T43).
 
 ## 2026-11-15: Live build verified on the EC2 server through SIA2 (T10, T43)
 Commit: see `git log` (message starts "Deploy: record").
