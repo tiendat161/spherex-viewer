@@ -24,7 +24,6 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 | ID | P | Task | Challenge item | Touches | Notes |
 |---|---|---|---|---|---|
 | T15 | P2 | Overlay Gaia or WISE catalogue positions | "overlay astronomical data from other telescopes" | `api/main.py` (catalogue query), `web/src/main.js`, `web/index.html` | Would also answer where WISE 0855 and Epsilon Indi B should be. Aladin Lite was the planned route. |
-| T17 | P2 | WISE 0855: show where the object should be now | test target | `verify/targets.json`, `pipeline/targets.py`, or overlay via T15 | Nothing identified at the marker. Challenge coordinates match about epoch 2010; the object should be about 126″ away. Proper motion value is unverified. Ask the organisers which epoch they mean. |
 | T20 | P2 | Flag detail: per-pixel flag overlay or a breakdown by flag bit | "display metadata, like contamination flags" | `pipeline/grid.py`, `pipeline/writer.py`, `contracts/`, `web/src/main.js` | Only a flagged fraction per frame is shown today. |
 | T24 | P3 | Epsilon Indi B: confirm what the bright object at the field edge is and whether the target is visible | test target | none, or T15 | Presumed Epsilon Indi A, not checked. |
 | T26 | P3 | Remove the merged Day 1 worktrees and branches (`claude/build-backend-2cca9d`, `claude/build-web-cb39ff`) | none | git only | Fully merged, no uncommitted work. Needs Dat's go-ahead. |
@@ -83,3 +82,11 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 | T48 | While TAP is down, live searches ask SIA2 first for 5 minutes (`TapHealth`, `TAP_SKIP_S` = 300, not tuned) instead of waiting for two 90 s TAP tries each time; TAP is tried again after the pause or if SIA2 fails. Not measured on the server after the change | "public-facing web tool" | the commit on branch `tap-skip` |
 | T46 | Fixed stale or unverified statements: contract decision 13 and live `frames[].index` meaning, flag bits cited to Explanatory Supplement Table 16, proper-motion adequacy marked unverified, live-wait text made indicative | "never invent scientific facts" | `ee71db0`, `a7657c3`, `2708374`, `5a004c6`, and the commit on branch `t46-claims` that adds this row |
 | T12 | Submission paperwork: `README.md` rewritten (public URL, status, limits), `REFERENCES.md` brought up to date. Not done: demo video, the two `TODO`s in `REFERENCES.md` (Gaia endpoint, AI-written split: need Dat), exact deadline unconfirmed | submission | the commit on branch `t12-submission` |
+
+## Cancelled
+
+Dropped by Dat; not planned. Kept so the ID is not reused.
+
+| ID | Task | Why |
+|---|---|---|
+| T17 | WISE 0855: show where the object should be now (needed the organisers' epoch for the challenge coordinates) | Cancelled by Dat on 2026-11-15: not asking the organisers. Nothing is identified at the marker; see `WORKLOG.md` and T04. |
