@@ -35,7 +35,8 @@ The cached path runs the same steps as 4 and 5, once, in `pipeline/build.py`, an
 | To change | Look in |
 |---|---|
 | A field in the series or targets JSON | `contracts/series.schema.json` or `contracts/targets.schema.json` first (own commit), then `docs/contract.md`, `pipeline/writer.py` and `pipeline/live.py` (both produce the document), `web/src/model.js`, `fixtures/wise0855.json` |
-| Request parameters, validation, error messages, routes | `api/main.py` |
+| Request parameters, validation, routes | `api/main.py` |
+| The text of an error a visitor sees (archive down, no images, busy, rate limit, catalogue), and where the technical detail goes | `pipeline/messages.py` (texts), set in `pipeline/live.py` (`_fail`), `api/main.py`, `pipeline/catalogue.py`; for failures of the request itself `clientError` in `web/src/api.js`; shown by `onUpdate` in `web/src/main.js` (`#message`, text in the box, `error.detail` in its "i") |
 | Allowed fields of view, pixel scale, grid size, which flag bits count | `pipeline/grid.py` (`FOVS_DEG`, `PIXEL_SCALE_ARCSEC`, `IGNORED_FLAG_BITS`); the frontend copy of the list is `FOVS_DEG` in `web/src/model.js` |
 | Which images are picked for a series | `pipeline/select.py` |
 | Archive queries, download limits, retries | `pipeline/irsa.py` (`MAX_IN_FLIGHT`, `CUTOUT_ATTEMPTS`, `TAP_ATTEMPTS`); how long the live path waits for TAP before the SIA2 backup: `TAP_LIVE_ATTEMPTS`, `TAP_LIVE_TIMEOUT_S`, `TAP_SKIP_S` in `pipeline/live.py` |
@@ -116,6 +117,7 @@ Turns archive data into series. Used in two ways: `build.py` writes the static c
 | `writer.py` | Writes `series.json` and the frame, stack and difference PNGs (with each frame's flux and the photometry method) |
 | `build.py` | Command-line entry point for the cache: `python -m pipeline.build verify/targets.json [--only id] [--refresh-tap] [--offline]`. Resumes from `.cache/` |
 | `live.py` | Live series for positions or fields of view that are not cached: `LiveBuilder` (queue, limits, which finished series keep their pixels) and `LiveSeries` (one per position and field of view, in memory, with progress; keeps each native cutout so `spectrum` can measure any clicked position; loads a first batch and is extended when a larger `load` is asked for) |
+| `messages.py` | Every error text a visitor can see (T56), one plain sentence each, and `archive_failure` (archive down vs archive asking for fewer requests); the technical text goes to `error.detail` and the server log |
 | `tapcache.py` | Remembers the archive's answer to "which images cover this position" for live series on disk (`.cache/tap/live/`, a week), so a repeated position, also after a restart, skips the slow search |
 | `livestore.py` | Keeps finished live series on disk (`.cache/live-series/`, newest 30, a week): document data and PNGs, no pixels, so a restart does not lose them. A restored series shows at once and is rebuilt from the remembered archive rows when its pixels are needed (`LiveBuilder.revive`) |
 | `tapcount.py` | Small helper that prints how many archive images cover each target |
@@ -199,6 +201,7 @@ Pytest unit tests; none touches the network.
 | `pipeline/test_catalogue.py` | Catalogue query text, row parsing, truncation, service down (fake transport) |
 | `pipeline/test_build.py` | The cache build end to end on synthetic data |
 | `pipeline/test_live.py` | Live series: progress, stretch refresh, limits, staged loading and extension |
+| `pipeline/test_messages.py` | The visitor texts: no developer words, archive down is never worded as "no data", the detail is kept |
 | `pipeline/test_livestore.py` | Finished series surviving a restart: same document and PNGs, rebuilt to measure or extend, newest kept, old and damaged entries ignored |
 | `pipeline/test_tapcache.py` | Remembered archive searches: matching, expiry, damaged files, skipping the search after a restart |
 | `api/test_api.py` | The endpoints, cached and live |
