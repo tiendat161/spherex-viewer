@@ -35,7 +35,7 @@ Commits: `87f6ae0` (branch `claude/t22-persist-live`, on top of the T14 branch b
 
 **Gaps:**
 - A restored series is a snapshot: while it is rebuilt (after a click for a spectrum, or "Load more"), the series answers `loading` with the frames arriving again, so the player on screen resets for the time of the rebuild.
-- The disk folder is not bounded in bytes, only by count (30) and age (a week); about a few MB per series (not measured). T45 covers limits.
+- The disk folder is not bounded in bytes, only by count (30) and age (a week); one 8-frame series with stacks took 216 KB, so about 3 MB for 102 frames (extrapolated). T45 covers limits.
 - Not checked: a real restart in the Docker container with the volume; a restored series is never refreshed for a new data release before the week is up.
 
 ## 2026-11-15: Spectrum on click (T14)
