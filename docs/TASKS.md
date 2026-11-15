@@ -67,3 +67,4 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 | T36 | A "Pick a wavelength" button beside the stacked view, which has no wavelength slider (people could not find it) | none (usability) | `37f24d8` |
 | T37 | Play mode "across visits, same wavelength" (the default for individual frames when there are two or more visits) next to "through the frames, in Order" | none (usability, motion check) | `887d108` |
 | T38 | Buttons follow the two sliders: step visit, step wavelength, "Play across visits", "Play through wavelengths"; the Order and Play selectors are removed (replaces T37's selector) | none (usability) | `90cdc9c` |
+| T39 | Simple first screen: target dropdown and RA/Dec boxes on top (paste both at once), "By date / By wavelength" toggle, caption, visit slider for stacks too, everything else under "Advanced" | none (usability) | `801e2ff` |

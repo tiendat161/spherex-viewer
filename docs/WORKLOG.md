@@ -15,6 +15,25 @@ Commits: abc1234, def5678
 
 ---
 
+## 2026-11-15: A simple first screen, advanced settings folded away (T39)
+Commits: see the T39 row on the board.
+
+**What:**
+- Top bar: the cached targets are a dropdown bar ("Target: WISE 0855", one line per target, the technical note in full on hover; it closes when a target is picked or on a click elsewhere), next to the RA and Dec boxes. Paste "RA Dec" (separated by a space, a comma or a semicolon) into either box and both fill; one value pastes as usual. Decimal degrees only, as before (sexagesimal is T19).
+- Below the image: a one-line caption in words (for example "Visit 2 of 3 · dates · 128 images combined, 0.74-5.00 µm"), a "By date | By wavelength" toggle in place of the View selector (the selector stays, visually hidden, as the state), the step and play buttons, and the visit slider. The visit slider now also serves the stacked view, so both views look the same. The empty column and the "Pick a wavelength" button of the stacked view are gone.
+- Folded under "Advanced": speed, zoom, blink widest pair, mark centre, detector band, difference from first visit, field of view, the frame readout, the stretch legend and the long explanations.
+- The image is sized to the window height so the image, caption and sliders fit on a laptop screen; on a phone width the visit labels drop their dates (the caption has them).
+- Tests: unit tests for the paste split and the caption; the browser tests open the folds where they use hidden controls and cover the menu, the paste, the toggle and the caption.
+
+**Why:** requested: simple at first sight, with the filters and settings an astronomer wants available but out of the way. No contract change, no new dependency.
+
+**Gaps:**
+- The Spectrum and Light curve tabs next to the image are not built: they need the flux measurements stored and served (T29, T30). The page is a single column 900 px wide and will need widening for them.
+- Target cards still carry the technical SIMBAD note (one line, full text on hover). A short plain-language line per target was left out: it would be new scientific text that nobody has checked.
+- No introductory sentence about SPHEREx was added for the same reason.
+- The Advanced fold is not remembered between visits.
+- Looked at on a laptop-sized window and a 375 px phone width in Chromium; not tried on a real touch device or other browsers (T25).
+
 ## 2026-11-15: Buttons follow the two sliders (T38)
 Commits: see the T38 row on the board. Replaces the Play selector of T37.
 
