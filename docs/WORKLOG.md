@@ -23,6 +23,21 @@ Commits: abc1234, def5678
 ---
 
 
+## 2026-11-15: Live series survive a restart (T22)
+Commits: `87f6ae0` (branch `claude/t22-persist-live`, on top of the T14 branch because both change `pipeline/live.py`)
+
+**What:**
+- A finished live series is written to `.cache/live-series/<id>/` (`pipeline/livestore.py`): frame metadata, flux, stretch, stacks and every PNG; no pixels. The builder loads the newest 30 (not older than a week) at start. Checked with the real API on real cached cutouts: build, stop the server, start it again, the series answers `ready` at once with the same frame URLs, and a frame PNG is served.
+- A restored series has no pixels, so it is treated like one whose pixels were let go: asking for more frames rebuilds it (existing path), and the new `LiveBuilder.revive` rebuilds it for a clicked-point spectrum (`/api/spectrum` calls it). Both reuse the archive rows remembered by `tapcache`, so no new archive search.
+- This also fixes a dead end from T14: a series whose pixels were released for memory used to answer a spectrum request with "load the position again", which did nothing.
+
+**Why:** T22 asked for results to outlive a restart, which matters on the EC2 host. Pixels are 50 MB per series, so only what is needed to show the series is kept.
+
+**Gaps:**
+- A restored series is a snapshot: while it is rebuilt (after a click for a spectrum, or "Load more"), the series answers `loading` with the frames arriving again, so the player on screen resets for the time of the rebuild.
+- The disk folder is not bounded in bytes, only by count (30) and age (a week); about a few MB per series (not measured). T45 covers limits.
+- Not checked: a real restart in the Docker container with the volume; a restored series is never refreshed for a new data release before the week is up.
+
 ## 2026-11-15: Spectrum on click (T14)
 Commits: `a226402` (contract, own commit), `cae72f4`, `b9085dc`, `1fe2a65`, `c051d9f`
 
