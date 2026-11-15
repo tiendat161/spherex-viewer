@@ -4,18 +4,30 @@ import math
 from .irsa import observation_key, release_of
 
 
-def dedupe_prefer_dr1(rows):
+# Which release wins when one observation is listed under several release paths: earlier is preferred,
+# a release not listed ranks last. To prefer a newer release, put it first (see docs/data-updates.md).
+RELEASE_PREFERENCE = ("dr1", "qr3")
+
+
+def _rank(uri):
+    rel = release_of(uri)
+    return RELEASE_PREFERENCE.index(rel) if rel in RELEASE_PREFERENCE else len(RELEASE_PREFERENCE)
+
+
+def dedupe_prefer_release(rows, preference=None):
+    """One row per observation, taken from the most preferred release."""
+    rank = _rank if preference is None else (lambda u: preference.index(release_of(u)) if release_of(u) in preference else len(preference))
     best = {}
     for r in rows:
         k = observation_key(r["uri"])
         cur = best.get(k)
-        if cur is None or (release_of(r["uri"]) == "dr1" and release_of(cur["uri"]) != "dr1"):
+        if cur is None or rank(r["uri"]) < rank(cur["uri"]):
             best[k] = r
     return list(best.values())
 
 
 def select_frames(rows, max_frames):
-    rows = sorted(dedupe_prefer_dr1(rows), key=lambda r: (float(r["time_bounds_lower"]), r["uri"]))
+    rows = sorted(dedupe_prefer_release(rows), key=lambda r: (float(r["time_bounds_lower"]), r["uri"]))
     n = len(rows)
     if n <= max_frames:
         return rows
@@ -34,7 +46,7 @@ def spread_order(rows):
     detector bands differ. Used by live series: loading the first 8 gives a quick look across visits and wavelengths, and loading
     more extends the same list, so frames already loaded are never reloaded. Deterministic.
     """
-    rows = sorted(dedupe_prefer_dr1(rows), key=lambda r: (float(r["time_bounds_lower"]), r["uri"]))
+    rows = sorted(dedupe_prefer_release(rows), key=lambda r: (float(r["time_bounds_lower"]), r["uri"]))
     n = len(rows)
     if n <= 2:
         return rows

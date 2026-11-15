@@ -18,7 +18,7 @@ from . import targets as targets_mod
 from .cutout import CutoutError, read_cutout
 from .grid import grid_shape, make_grid_wcs, reproject_frame
 from .irsa import MAX_IN_FLIGHT, IrsaClient, IrsaError
-from .select import dedupe_prefer_dr1, select_frames, select_per_wavelength
+from .select import dedupe_prefer_release, select_frames, select_per_wavelength
 from .stack import band_id, build_stacks, subtract_background
 from .writer import write_series
 
@@ -74,7 +74,7 @@ def build_target(client, t, cfg, out_root, refresh_tap=False, log=print):
     rows = tap_rows_cached(client, t, refresh_tap)
     if rule == "per_wavelength":
         # Wavelength is only known from each cutout, so every distinct image is read first.
-        chosen = sorted(dedupe_prefer_dr1(rows), key=lambda r: (float(r["time_bounds_lower"]), r["uri"]))
+        chosen = sorted(dedupe_prefer_release(rows), key=lambda r: (float(r["time_bounds_lower"]), r["uri"]))
         shown = None
     else:
         # `stack_images` (optional, per target or top level): read this many images, evenly spaced in time,
@@ -134,7 +134,7 @@ def build_target(client, t, cfg, out_root, refresh_tap=False, log=print):
     frames = [{"index": g["index"], "obs_mjd": g["obs_mjd"], "wavelength_um": g["wavelength_um"],
                "flag_fraction": float(g["flagged"].mean()),
                "png": stretch_mod.apply(g["pix"], st["vmin"], st["vmax"])} for g in good]
-    stacks, stack_pngs = build_stacks(readable, st["unit"], [float(r["time_bounds_lower"]) for r in dedupe_prefer_dr1(rows)])
+    stacks, stack_pngs = build_stacks(readable, st["unit"], [float(r["time_bounds_lower"]) for r in dedupe_prefer_release(rows)])
     write_series(Path(out_root) / t.id, t.id, t.ra, t.dec, shape, st, frames, total, failed,
                  background="median_subtracted", stacks=stacks, stack_pngs=stack_pngs)
     if stacks:

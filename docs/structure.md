@@ -48,6 +48,7 @@ The cached path runs the same steps as 4 and 5, once, in `pipeline/build.py`, an
 | How the frontend fetches and polls | `web/src/api.js` |
 | What the mock API returns in frontend development | `web/mock/plugin.js`, `web/mock/png.js`, `fixtures/wise0855.json` |
 | What `make verify` checks | `Makefile`, `verify/check_contract.py`, `verify/check_docs.py`, `verify/e2e.py`, `web/e2e-real/real.spec.js` |
+| Which release is used, refreshing for new data releases | `RELEASE_PREFERENCE` in `pipeline/select.py`, `make refresh`, `docs/data-updates.md` |
 | Tasks and history | `docs/TASKS.md`, `docs/WORKLOG.md` |
 
 ## Top level
@@ -95,7 +96,7 @@ Turns archive data into series. Used in two ways: `build.py` writes the static c
 |---|---|
 | `irsa.py` | The one IRSA client (`IrsaClient`): archive query and cutout download, a process-wide limit on requests in flight (8), retries on HTTP 503, de-duplication across data releases |
 | `targets.py` | Reads `verify/targets.json`, converts positions to degrees, applies proper motion where the target asks for it; `sep_arcsec` |
-| `select.py` | Picks which images make a series: evenly spaced in time (`select_frames`), one per wavelength band (`select_per_wavelength`), or for live series an order in which any first N spread over the dates and detector bands (`spread_order`); prefers the `dr1` release |
+| `select.py` | Picks which images make a series: evenly spaced in time (`select_frames`), one per wavelength band (`select_per_wavelength`), or for live series an order in which any first N spread over the dates and detector bands (`spread_order`); prefers releases in the order of `RELEASE_PREFERENCE` (`dr1` first) |
 | `cutout.py` | Reads one downloaded cutout: image, flags, sky coordinates, unit and wavelength |
 | `grid.py` | The shared north-up grid: allowed fields of view, grid size, resampling every frame onto it, which pixels count as flagged |
 | `stretch.py` | Computes one brightness mapping per series and converts frames to 8-bit |
@@ -192,6 +193,7 @@ Pytest unit tests; none touches the network.
 | `structure.md` | This file |
 | `TASKS.md` | The task board: todo, in progress, done, with the files each task touches |
 | `WORKLOG.md` | What was done, why, and what is still missing, newest first |
+| `data-updates.md` | How to refresh the cached targets for a new data release, and where the release preference is set |
 | `contract.md` | The API contract in prose, the choices made and the open decisions |
 | `PLAN.md` | The pre-hackathon prep plan: goal, schedule, challenge text, open questions |
 | `spike.md` | Measurements from the feasibility spike: query times, cutout sizes, 503 rates, CORS, coordinate epoch |

@@ -32,7 +32,6 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 | T18 | P2 | Retry the 8 failed frames (Barnard's Star 3, R Draconis 5) | test targets | `static/series/`, `.cache/` | `make cache` resumes from `.cache/`. Contacts IRSA. Can be done together with T16. |
 | T19 | P2 | Sexagesimal input (`08h55m10.831s -7d14m42.53s`) | "enter the coordinates" | `web/src/model.js`, `web/index.html`, `web/test/` | The form takes decimal degrees only; the challenge gives WISE 0855 in sexagesimal. Small. |
 | T20 | P2 | Flag detail: per-pixel flag overlay or a breakdown by flag bit | "display metadata, like contamination flags" | `pipeline/grid.py`, `pipeline/writer.py`, `contracts/`, `web/src/main.js` | Only a flagged fraction per frame is shown today. |
-| T21 | P2 | Make data-release updates easy | "easy to update with the latest data releases" | `pipeline/select.py`, `pipeline/irsa.py`, `Makefile`, docs | `dr1` is preferred over `qr3` in code; a refresh is a manual `make cache --refresh-tap`. Document or automate. |
 | T22 | P3 | Keep live series across restarts | none | `pipeline/live.py`, `api/main.py` | Live results are in memory only (30 most recent). Matters once deployed (T10). |
 | T23 | P3 | Run the `reviewer` agent over the full diff since Day 1 | none | read-only | Never done; was step 4 of the Day 1 merge order. |
 | T24 | P3 | Epsilon Indi B: confirm what the bright object at the field edge is and whether the target is visible | test target | none, or T15 | Presumed Epsilon Indi A, not checked. |
@@ -69,3 +68,4 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 | T38 | Buttons follow the two sliders: step visit, step wavelength, "Play across visits", "Play through wavelengths"; the Order and Play selectors are removed (replaces T37's selector) | none (usability) | `90cdc9c` |
 | T39 | Simple first screen: target dropdown and RA/Dec boxes on top (paste both at once), "By date / By wavelength" toggle, caption, visit slider for stacks too, everything else under "Advanced" | none (usability) | `801e2ff` |
 | T40 | Staged loading of a live position: a first batch of 8 frames spread over dates and bands, then "Load more" / "Load up to 102"; 8 downloads at once; archive-search message | `7e23de0` and `1ddb0f8` (contract), `5725cb3`, `60cea46` |
+| T21 | `make refresh`, `RELEASE_PREFERENCE` list, `docs/data-updates.md` for refreshing on a new data release | "easy to update with the latest data releases" | HASH |

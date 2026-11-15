@@ -1,4 +1,4 @@
-.PHONY: dev test test-backend test-web verify verify-contract verify-docs verify-backend verify-web cache
+.PHONY: refresh dev test test-backend test-web verify verify-contract verify-docs verify-backend verify-web cache
 
 PY := .venv/bin/python
 
@@ -8,6 +8,11 @@ dev:
 # The only target that contacts IRSA (at most 4 requests in flight). Session A fills this in.
 cache:
 	$(PY) -m pipeline.build verify/targets.json
+
+# Like `make cache`, but asks the archive again which images exist (new data releases) instead of
+# using the saved search. Old cutouts stay in .cache/; only new images are downloaded. See docs/data-updates.md.
+refresh:
+	$(PY) -m pipeline.build verify/targets.json --refresh-tap
 
 # Offline: schemas are valid; fixtures and every cached series match the contract.
 verify-contract:
