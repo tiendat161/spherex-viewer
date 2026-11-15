@@ -15,7 +15,6 @@ Details of finished work (what, why, what is still missing) are in [`WORKLOG.md`
 
 | ID | Task | Owner | Touches |
 |---|---|---|---|
-| T15 | Overlay Gaia or WISE catalogue positions | branch `claude/t15-catalogue-overlay-2437ff` | `api/main.py`, `web/src/main.js`, `web/index.html` |
 | T41 | Cache three famous positions as demo targets (Orion M42, Eagle M16, Andromeda M31) so a demo never waits for the archive | parked on branch `t41-demo-targets` (entries added, series not built: the archive search service was down, HTTP 502). To finish: when the archive answers, on that branch run `python -m pipeline.build verify/targets.json --only m42 m16 m31`, then `--offline` for flux, then `make verify` | `verify/targets.json`, `static/series/`, `tests/pipeline/test_targets.py` |
 
 ## Todo
@@ -45,6 +44,7 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 | T18 | The 8 failed frames (Barnard's Star 3, R Draconis 5) retried: all 40 of 40 frames now load for every target | test targets | `dbd05fa` |
 | T14 | Spectrum on click: click the image, the Clicked point tab shows that point's flux in every frame (`GET /api/spectrum`, measured on the native cutouts with the T28 method, wavelength read at the clicked pixel). A click on a cached target builds a live series at the same position (about 40 frames, slow the first time) and the panel says its frames differ from the cached ones | "Extra kudos if your tool can generate spectra on the fly" | `a226402` (contract), `cae72f4`, `b9085dc`, `1fe2a65`, `c051d9f` |
 | T22 | Finished live series kept across restarts: document data and PNGs on disk (`.cache/live-series/`, newest 30, a week), restored at start; rebuilt from the remembered archive rows when pixels are needed | none | `48376af`, `7e0e675` |
+| T15 | WISE catalogue overlay: Advanced > "Show WISE catalogue sources" draws AllWISE sources as orange circles (`GET /api/catalogue`, IRSA TAP); labelled real catalogue data, positions at the catalogue epoch, not corrected for proper motion. Live query not yet confirmed against the service (IRSA returned 502 when built) | "overlay astronomical data from other telescopes" | `catalogue contract commit`, `2f44884` |
 | T01 | Day 1 prototype: pipeline, API, blink viewer, five cached targets, `make verify` | core objective, test targets | up to `2a34741` |
 | T02 | Coordinates in the URL (`?ra=&dec=`) | "query your tool by including coordinates in the URL" | Day 1 |
 | T03 | Per-frame metadata: date, wavelength, flagged fraction, REAL/SIMULATED badge | "display metadata" (partly, see T20) | Day 1 |
