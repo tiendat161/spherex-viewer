@@ -15,13 +15,12 @@ Commits: abc1234, def5678
 
 ---
 
-<<<<<<< HEAD
 ## 2026-11-15: Rate limit and memory cap for the public server (T45)
 Commit: see `git log` on branch `t45-limits` (message starts "T45").
 **What:** `GET /api/series` is limited per client address (120 a minute, `SPHEREX_RATE_LIMIT`; HTTP 429 with an error document). Live series now have a total memory budget (pixels plus PNGs, 600 MB): older finished series are evicted, the newest finished one is kept, and a new build is refused while running series alone fill the budget. The image starts uvicorn with `--proxy-headers` so the limit sees the real client behind Caddy. Tests in `tests/api/test_api.py` and `tests/pipeline/test_live.py`; `make verify` passed (no UI change, no screenshot).
 **Why:** T23 finding 2: one client could fill the build slots and memory was only bounded for pixels of finished series.
 **Gaps:** The 120 a minute and the 600 MB are chosen figures, not measured on the EC2 host (T45's own note said to measure first). `--forwarded-allow-ips='*'` is only safe while port 8000 is not public. One client can still fill the 8 build slots with different positions inside the rate limit (no per-client build quota). Rate-limit state is in memory and per process. Not run inside the container.
-=======
+
 ## 2026-11-15: SIA2 tried as the archive search; TAP stays (T43)
 Commit: see `git log` (branch `t31-tap-or-sia2`, message starts "T43").
 
@@ -41,7 +40,6 @@ Commit: see `git log` (branch `t31-tap-or-sia2`, message starts "Docs: T31").
 **Why:** TAP already returns both releases and works for every target, so switching would cost work and re-verification against a slow archive for no gain. The only thing that would force a switch is a rule that the tool must use SIA2.
 
 **Gaps:** (1) The phrase "Search DR1 and QR3 through SIA2" comes from the task board; it is not in `docs/PLAN.md`'s summary of the challenge text, and the official page was not re-read, so whether SIA2 is required is unverified. Re-read the Resources tab; if SIA2 is required, this needs a new task. (2) SIA2 got one quick test afterwards, from a laptop, not from the Sydney host: about 1 to 5 s per query, same 258 `dr1` rows for WISE 0855 and 0 `qr3`, while TAP did not answer for over 9 minutes (the archive's bad state of that day; earlier TAP took 10 to 45 s). The rows' columns were not checked. Follow-up: T43. (3) The counts come from searches saved on 2026-11-14 and may be older than the archive; `make refresh` would update them. (4) The WISE 0855 field has no `qr3` images; that is what the archive returned, not checked further.
->>>>>>> origin/main
 
 ## 2026-11-15: Reviewer pass over the whole diff since Day 1 (T23)
 Commit: see `git log` (message starts "Docs: record the T23 review").

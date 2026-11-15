@@ -78,10 +78,8 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 | T30 | Spectrum and Light curve next to the image, coloured by visit, click a point to show the frame | "Display spectrum and light curve" | `8283816` |
 | T19 | Sexagesimal RA and Dec input (`08h55m10.831s -7d14m42.53s`), alone or pasted together | "enter the coordinates" | `b76cb00` |
 | T10 | Public deployment: container on AWS EC2 (Sydney, `t3.small`) behind Caddy HTTPS at `https://16-179-73-6.sslip.io`; cached targets verified from outside. Live builds not verified (archive returned 502). README link goes with T12 | "public-facing web tool" | `044a7e3`, `26c9518`, and the commit that adds this row |
-<<<<<<< HEAD
 | T45 | Per-client rate limit on `/api/series` and a 600 MB total memory budget for live series (figures not measured on the host) | public deployment | the commit on branch `t45-limits` |
-=======
+
 | T31 | Archive search stays TAP (not SIA2); QR3 confirmed covered: about a third of each field's images are `qr3` and are kept. SIA2 was not tried; the repo's challenge text does not mention it (official page not re-read) | "Search DR1 and QR3 through SIA2" (wording from this board, source unverified) | the commit on branch `t31-tap-or-sia2` |
 | T43 | SIA2 tried as the archive search: same rows as TAP on 4 of 5 targets, but 539 of 2493 images for R Draconis, so TAP stays. `sia_rows` added, unused. Not timed from EC2 | "Search DR1 and QR3 through SIA2" (wording from this board, source unverified) | the commit on branch `t31-tap-or-sia2` |
->>>>>>> origin/main
 | T23 | Reviewer agent over the full diff since Day 1; 14 findings recorded in `WORKLOG.md`, follow-ups T44 to T47 (review by reading only, nothing fixed) | none | the commit that adds this row |
