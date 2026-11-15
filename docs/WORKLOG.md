@@ -580,3 +580,10 @@ With the backdrop on, `header`, `.topbar` and `main` all had `z-index:1`, and `m
 
 ## 2026-11-15: Redeployed b7feb5e to EC2
 **What:** idle backdrop and orange panel border deployed (server build, container swapped, about 10 s downtime). Checked from outside: page 200, 5 targets, new CSS and JS present, Barnard series (40 frames), healthy. **Gaps:** not looked at in a browser on the public site; IRSA-dependent paths not rechecked.
+
+## 2026-11-15: Extra work Dat asked for, logged as T51 to T53
+**What:** three pieces of work that were done on request in the same session but were not on the board, now logged. T51: the target dropdown covered by the page text when the backdrop is on (stacking fix, `69433e0`). T52: backdrop on a wide sky view before any Load, and the orange image-panel border (`b7feb5e`). T53: three redeploys to EC2 and their docs notes (`0007f3a`, `8ce7156`, `b5e0702`).
+
+**Why:** the board should show everything that changed, with a number, so the work can be found later. T17 (WISE 0855 marker) was cancelled by Dat the same day, see "Cancelled" in `TASKS.md`.
+
+**Gaps:** nothing new beyond the entries each piece already has. The info-icon text simplification is in progress under the next ID.
