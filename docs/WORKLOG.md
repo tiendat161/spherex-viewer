@@ -15,6 +15,13 @@ Commits: abc1234, def5678
 
 ---
 
+## 2026-11-15: Data-release updates (T21)
+Commit: `d26ff13`.
+
+**What:** `make refresh` asks the archive again for the image list and rebuilds the cached targets (it runs `pipeline.build --refresh-tap`). The release choice is one list, `RELEASE_PREFERENCE` in `pipeline/select.py` (was hard-coded to `dr1`; `dedupe_prefer_dr1` is now `dedupe_prefer_release`, same default behaviour, new test). `docs/data-updates.md` explains the steps.
+
+**Gaps:** not run against the real archive. Only unit tests, `verify-contract` and `verify-docs` ran here (no `make verify`: this worktree has no web build). Not automated: nothing checks for new releases on a schedule, and `make refresh` rebuilds every target. How IRSA names future releases, and whether a newer one supersedes `dr1`, was not checked.
+
 ## 2026-11-15: Staged loading of a live position (T40)
 Commits: `7e23de0` and `1ddb0f8` (contract, own commits), `5725cb3` (backend), see the T40 row for the web commit.
 

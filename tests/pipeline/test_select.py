@@ -29,6 +29,15 @@ def test_prefers_dr1_when_same_observation_in_both_releases():
     assert len(sel) == 1 and "/dr1/" in sel[0]["uri"]
 
 
+def test_release_preference_can_be_changed():
+    from pipeline.select import dedupe_prefer_release
+    rows = [row(5, "qr3"), row(5, "dr1"), row(6, "dr2")]
+    out = dedupe_prefer_release(rows, preference=("qr3", "dr1"))
+    assert sorted(r["uri"].split("/")[3] for r in out) == ["dr2", "qr3"]
+    out = dedupe_prefer_release(rows)  # default: dr1 first, unknown releases last
+    assert sorted(r["uri"].split("/")[3] for r in out) == ["dr1", "dr2"]
+
+
 from pipeline.select import select_per_wavelength
 
 
