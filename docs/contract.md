@@ -75,7 +75,7 @@ The client repeats the identical GET until `status` is `ready` or `error`. While
 
 ## Stacks
 
-Added 2026-11-14. Optional `stacks` object, present only on a `ready` series, plus the optional top-level `background` field (`"none"` or `"median_subtracted"`). Consecutive images of one position are in different wavelengths, so `frames` in time order mostly shows wavelength changing. `stacks` combines images so that only time changes between frames.
+Added 2026-11-14. Optional `stacks` object, present on a `ready` series (2026-11-15, T40: and, while a live series is extended with more frames by a larger `load`, on the `loading` series too, describing the frames loaded before, until the new stacks are built), plus the optional top-level `background` field (`"none"` or `"median_subtracted"`). Consecutive images of one position are in different wavelengths, so `frames` in time order mostly shows wavelength changing. `stacks` combines images so that only time changes between frames.
 
 | Field | Meaning |
 |---|---|

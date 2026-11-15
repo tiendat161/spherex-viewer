@@ -111,7 +111,7 @@
       ]
     },
     "stacks": {
-      "description": "Optional. Images combined per visit (a group of observation dates) and per band. Present only when status is ready. See docs/contract.md, Stacks.",
+      "description": "Optional. Images combined per visit (a group of observation dates) and per band. Present when status is ready; while a live series is being extended with more frames (status loading) it still carries the stacks of the frames loaded before, until the new ones are built. See docs/contract.md, Stacks.",
       "$ref": "#/$defs/stacks"
     }
   },
