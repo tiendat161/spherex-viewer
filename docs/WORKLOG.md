@@ -15,6 +15,27 @@ Commits: abc1234, def5678
 
 ---
 
+
+## 2026-11-15: Spectrum on click (T14)
+Commits: `846b646` (contract, own commit), `6588074`, `17dde52`
+
+**What:**
+- Click the image: the Clicked point tab shows that sky position's flux in every frame, with error bars. New `GET /api/spectrum?ra=&dec=&fov=&at_ra=&at_dec=&load=` and `contracts/spectrum.schema.json`; `series.schema.json` is unchanged.
+- It uses the T28 method (aperture, ring background, flag rule, error factor 2.2) on the native cutouts, with the aperture at the clicked position. Live series now keep each native cutout (image, flags, variance, WCS and a wavelength plane, about 0.5 MB a frame), counted in `HOT_PIXEL_BYTES` and dropped with the pixels.
+- The wavelength of a point is read at its own pixel from the WCS-WAVE table: on one real cutout it ran from 1.624 to 1.684 um across the 0.3 degree cutout, so using the frame's centre wavelength would put off-centre points at the wrong place on the spectrum.
+- Cached targets (Dat's choice A): their native cutouts are not on a deployed server, so a click starts a live series at the same position (fov 0.2, 40 frames). Its frames are chosen by the live rule, not the cached ones; the panel says so, and the dots cannot be opened as frames. The first click takes minutes (archive search and downloads), later ones are instant.
+- On a live series already on screen the click measures the same frames, so a dot opens its frame, and the spectrum is refreshed when more frames load.
+- Tests: off-centre source recovery, wavelength at the pixel, budget, endpoint polling and errors, TAN inverse against the grid WCS (python reference values), poll helper.
+
+**Why:** the 8-bit PNGs carry no flux. Measuring on the resampled grid pixels would have interpolated and lost the variance and the per-pixel wavelength, and it is not the method T32 validated.
+
+**Gaps:**
+- Checked in a browser on real cached R Draconis cutouts served through the live path (the archive's search service answered HTTP 502, so no download from IRSA was tried). Seen: a faint empty-sky point gives scatter around zero consistent with the error bars; the bright star's point is mostly flagged (1 of 40 frames).
+- Validation of the flux (T32) was at the target centre on bright stars; a clicked point uses the same code but off-centre accuracy is not separately checked. The panel says so.
+- A series whose pixels were released (memory budget) answers with an error and must be loaded again. No per-click rate limit (T45). The `at` of the series' own flux is still a fixed sky position (T48).
+- Cached-target clicks cost about 40 archive downloads each first time; no cap beyond the live builder limits.
+- The mock API (`web/mock/`) has no spectrum endpoint and `make verify` runs with live builds off, so the click path has unit tests and the manual check above but no Playwright test.
+
 ## 2026-11-15: Submission paperwork (T12)
 Commit: see `git log` (branch `t12-submission`, message starts "T12").
 
