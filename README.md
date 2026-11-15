@@ -11,6 +11,7 @@ A web tool for NASA Space Apps 2026, challenge "Planet X and SPHEREx". Enter a s
 - **Any other position is built live** from the IRSA archive: a first batch of 8 frames spread over dates and bands (the archive search is the slow part: usually under a few minutes, depending on the archive), then "Load more" or "Load up to 102".
 - **Views:** individual frames (step through visits at one wavelength, or through the wavelengths), stacked visits per detector band, and the difference from the first visit. Background is subtracted per image.
 - **Field of view:** 0.1°, 0.2° (default), 0.5° or 1°. Cached targets are 0.2° only; other sizes are built live.
+- **Flux charts:** Spectrum and Light curve at the target position (aperture photometry, microjansky, with uncertainty; method not yet validated).
 - **Metadata** per frame: date, wavelength, flagged-pixel fraction, and a REAL / SIMULATED badge. Everything built from the archive is real; the simulated badge appears only for the mock data used in frontend development.
 
 ## Run it
