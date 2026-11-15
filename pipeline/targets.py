@@ -3,7 +3,9 @@
 Positions are derived here, not typed in: sexagesimal -> degrees, and a linear
 proper-motion propagation from J2000.0 to `propagate_to_epoch` for targets
 flagged `propagate`. Linear propagation (no radial velocity, no perspective
-terms) is adequate at the ~0.01 arcsec level for 26 years and the targets used.
+terms) is an approximation. UNVERIFIED: that it is adequate for 26 years and these targets was not
+checked against a full astrometric propagation. The only check is the Barnard's Star cross-check
+in verify/targets.json (Gaia DR3 propagated by hand, tolerance max_sep_arcsec 5).
 """
 import json
 import math
