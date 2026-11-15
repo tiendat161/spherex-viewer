@@ -525,3 +525,28 @@ test('mock: with the backdrop on every option of the open target menu is on top 
   await expect(page.locator('#targets-current')).not.toHaveText('Your own position');
   await expect(page.locator('#ra')).not.toHaveValue(/^133\.795/); // the last target was loaded (the mock has no series for it, so no frames are checked)
 });
+
+test('mock: the backdrop starts on its own with no position chosen, then flies when one is loaded', async ({ page }) => {
+  await page.setViewportSize(wide);
+  await page.addInitScript((h) => { window.__skyHash = h; }, stubHash);
+  await page.route(ALADIN, (r) => r.fulfill({ contentType: 'text/javascript', body: STUB }));
+  await page.route(TILE, (r) => r.fulfill({ contentType: 'image/jpeg', body: pixel }));
+  await page.goto('/?backdrop=on');
+  await expect(page.locator('body')).toHaveClass(/sky-on/);
+  expect(await page.evaluate(() => window.__flights)).toBe(0);
+  await expect(page.locator('#sky-label .sky-idle')).toBeVisible();
+  await page.evaluate(() => { document.getElementById('ra').value = '133.795'; document.getElementById('dec').value = '-7.245'; });
+  await page.locator('#coords button[type=submit]').click();
+  await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
+  await expect.poll(() => page.evaluate(() => window.__flights)).toBeGreaterThanOrEqual(1);
+  await expect(page.locator('#sky-label .sky-idle')).toBeHidden();
+});
+
+test('mock: the image panel has the orange panel border', async ({ page }) => {
+  await page.goto(wise);
+  const c = await page.evaluate(() => {
+    const st = getComputedStyle(document.querySelector('.stage'));
+    return [st.borderTopColor, st.borderTopWidth, getComputedStyle(document.documentElement).getPropertyValue('--accent-panel').trim()];
+  });
+  expect(c).toEqual(['rgb(224, 123, 0)', '2px', '#e07b00']);
+});

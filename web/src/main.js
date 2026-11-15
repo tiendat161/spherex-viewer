@@ -1,4 +1,4 @@
-import { showSky } from './sky.js';
+import { idleSky, showSky } from './sky.js';
 import { fetchCatalogue, fetchTargets, pollSeries, pollSpectrum } from './api.js';
 import { PALETTE, fluxPoints, fluxSummary, lightCurveLayout, reasonText, reasonWords, spectrumLayout } from './chart.js';
 import { FOV_DEG, SPECTRUM_LOAD, clickToImage, imageToBox, pixelToSky, skyToPixel, medianMjd, parseAngle, INITIAL_LOAD, MB_PER_IMAGE, isCachedPosition, loadPlan, loadTimeText, captionText, splitCoordinates, WIDE_FOV_DEG, bandLabel, blinkPair, buildSlots, cycleVisit, pingPong, formatFlag, gridFovDeg, isWideField, locationQuery, mjdToUtc, nearestWavelength, nearestY, nextSlot, orderSlots, padPosition, padSpec, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, stackSlots, stepVisit, stepWavelength, visitsOf, zoomRect } from './model.js';
@@ -798,6 +798,7 @@ window.addEventListener('popstate', () => {
   if (p) load(p.ra, p.dec, { fov: p.fov });
 });
 
+idleSky();
 (async function init() {
   render();
   try {

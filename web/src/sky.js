@@ -41,6 +41,9 @@ export function backdropEnabled(win = window) {
   }
 }
 
+let decided = null; // the on/off decision is made once per page load: Load rewrites the URL and drops ?backdrop=
+const wanted = () => (decided ??= backdropEnabled());
+
 let starting = null; // promise of the aladin object, or null when it failed or is not wanted
 let gaveUp = false;
 let latest = 0; // number of the newest showSky call; an older call does nothing when it is overtaken
@@ -95,18 +98,38 @@ function giveUp() {
   document.body.classList.remove('sky-on');
 }
 
+// Where the idle view is centred before any position is chosen. Arbitrary: it is not a target and is not meant to show anything.
+const IDLE_RA = 150;
+const IDLE_DEC = 20;
+
+function begin(ra, dec) {
+  if (!starting) {
+    starting = start(ra, dec).then((a) => { document.body.classList.add('sky-on'); return a; }).catch(() => { giveUp(); return null; });
+  }
+  return starting;
+}
+
+/** Start the backdrop on a wide view of the sky before any position is chosen, once the page has finished loading and is idle
+ *  (the 2.4 MB script and its hash check must not compete with the first screen). Never throws. */
+export function idleSky() {
+  try {
+    if (gaveUp || !wanted()) return;
+    const go = () => { try { begin(IDLE_RA, IDLE_DEC); } catch { giveUp(); } };
+    const later = () => (window.requestIdleCallback ? window.requestIdleCallback(go, { timeout: 3000 }) : setTimeout(go, 500));
+    if (document.readyState === 'complete') later(); else window.addEventListener('load', later, { once: true });
+  } catch { giveUp(); }
+}
+
 /** Fly the backdrop to the position. Never throws; the first call starts Aladin Lite. The page is changed
  *  (body.sky-on: backdrop and label shown) only after the library is running and a survey tile has loaded. */
 export function showSky(ra, dec, fov) {
   try {
-    if (gaveUp || !backdropEnabled()) return;
+    if (gaveUp || !wanted()) return;
     const me = ++latest;
-    if (!starting) {
-      starting = start(ra, dec).then((a) => { document.body.classList.add('sky-on'); return a; }).catch(() => { giveUp(); return null; });
-    }
-    starting.then((a) => {
+    begin(ra, dec).then((a) => {
       if (!a || me !== latest) return;
       try {
+        document.body.classList.add('sky-flown');
         const w = backdropFov(fov);
         if (matchMedia('(prefers-reduced-motion: reduce)').matches) { a.gotoRaDec(ra, dec); a.setFoV(w); return; }
         a.animateToRaDec(ra, dec, FLY_S);

@@ -1,4 +1,4 @@
-:root { --bg:#0f1115; --panel:#181b22; --line:#2c313c; --text:#e6e8ec; --muted:#9aa1ad; --accent:#6aa7ff; --sim:#ff9f1a; --real:#2ecc71; }
+:root { --accent-panel:#e07b00; --bg:#0f1115; --panel:#181b22; --line:#2c313c; --text:#e6e8ec; --muted:#9aa1ad; --accent:#6aa7ff; --sim:#ff9f1a; --real:#2ecc71; }
 * { box-sizing: border-box; }
 body { margin:0; background:var(--bg); color:var(--text); font:15px/1.45 system-ui, sans-serif; }
 header { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 20px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
@@ -34,7 +34,7 @@ button:hover:not(:disabled) { border-color:var(--accent); } button:disabled { op
 .progress { display:flex; align-items:center; gap:12px; margin-bottom:8px; } progress { flex:1; height:8px; }
 .note-wide { padding:8px 12px; border-radius:6px; margin:10px 0 0; background:#2e2a17; border:1px solid #7a6a2a; color:#f0e3a8; }
 .message { padding:10px 12px; border-radius:6px; margin-bottom:8px; background:#3a1d1d; border:1px solid #8a3a3a; }
-.stage { display:flex; justify-content:center; gap:6px; background:#000; border:1px solid var(--line); border-radius:6px; min-height:200px; padding:8px; }
+.stage { display:flex; justify-content:center; gap:6px; background:#000; border:2px solid var(--accent-panel); border-radius:6px; min-height:200px; padding:8px; }
 .frame-box { position:relative; flex:0 1 clamp(280px, calc(100vh - 440px), 580px); min-width:0; aspect-ratio:1; }
 canvas { width:100%; height:100%; image-rendering:pixelated; image-rendering:crisp-edges; display:block; background:#000; }
 .cat-canvas { position:absolute; inset:0; background:transparent; pointer-events:none; cursor:auto; image-rendering:auto; }
@@ -89,6 +89,7 @@ select.visually-hidden { position:absolute; width:1px; height:1px; opacity:0; ov
 /* Sky backdrop (T50): wide screens only. The box is laid out at full size from the start (Aladin measures it when it
    starts) but stays invisible until Aladin Lite is running (body.sky-on). It takes no clicks. */
 .sky, .sky-label { display:none; }
+.sky-flown .sky-idle { display:none; }
 @media (min-width:900px) {
   .sky { display:block; position:fixed !important; inset:0; width:100%; height:100%; z-index:0; pointer-events:none; opacity:.01; }
   body.sky-on .sky { opacity:.6; filter:brightness(.9); transition:opacity 1.5s; }
