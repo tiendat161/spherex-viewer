@@ -7,7 +7,7 @@ from pipeline import irsa
 from pipeline.irsa import IrsaClient, IrsaError, Response
 
 
-def test_never_more_than_four_in_flight_across_tap_and_cutouts():
+def test_never_more_than_eight_in_flight_across_tap_and_cutouts():
     lock = threading.Lock()
     state = {"now": 0, "max": 0, "calls": 0}
 
@@ -35,8 +35,8 @@ def test_never_more_than_four_in_flight_across_tap_and_cutouts():
     for t in threads:
         t.join()
     assert state["calls"] == 40
-    assert state["max"] <= irsa.MAX_IN_FLIGHT == 4
-    assert state["max"] == 4  # the fake is slow enough that the limit is actually reached
+    assert state["max"] <= irsa.MAX_IN_FLIGHT == 8
+    assert state["max"] == 8  # the fake is slow enough that the limit is actually reached
 
 
 def test_retry_after_is_honoured_then_succeeds():

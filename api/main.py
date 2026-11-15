@@ -2,7 +2,8 @@
 cached is built live from IRSA in the background (`pipeline/live.py`) while the client polls;
 set SPHEREX_LIVE=0 to serve the cache only, in which case nothing here contacts IRSA.
 
-    GET /api/series?ra=&dec=&fov=0.2&max_frames=102     (fov: 0.1, 0.2, 0.5 or 1; only 0.2 is cached)
+    GET /api/series?ra=&dec=&fov=0.2&max_frames=102&load=8     (fov: 0.1, 0.2, 0.5 or 1; only 0.2 is cached;
+                                                                `load`: frames of a live series to have loaded, a larger value extends it)
     GET /api/targets
     GET /api/frames/<id>/NN.png            (also s_<band>_<visit>.png and d_<band>_<visit>.png for stacks)
     web/dist (when it exists) is served at /
@@ -19,7 +20,7 @@ from fastapi.staticfiles import StaticFiles
 
 from pipeline import targets as targets_mod
 from pipeline.grid import FOVS_DEG, allowed_fov
-from pipeline.live import LiveBuilder, LiveBusy
+from pipeline.live import LIVE_FRAMES, MAX_LIVE_FRAMES, LiveBuilder, LiveBusy
 
 ROOT = Path(__file__).resolve().parent.parent
 MATCH_ARCSEC = 1.0
@@ -78,6 +79,7 @@ def create_app(series_dir: Optional[Path] = None, web_dist: Optional[Path] = Non
             dec = _num(request, "dec")
             fov = _num(request, "fov", CACHED_FOV)
             max_frames = _num(request, "max_frames", CACHED_MAX_FRAMES)
+            load = _num(request, "load", 0)  # live series only; 0 means not given
             if not (0 <= ra < 360) or not (-90 <= dec <= 90):
                 raise ValueError("ra must satisfy 0 <= ra < 360 and dec -90 to 90 (ICRS degrees)")
         except ValueError as e:
@@ -86,6 +88,8 @@ def create_app(series_dir: Optional[Path] = None, web_dist: Optional[Path] = Non
         if fov is None or not (1 <= max_frames <= CACHED_MAX_FRAMES):
             return JSONResponse(error_doc(
                 f"fov must be one of {', '.join(f'{f:g}' for f in FOVS_DEG)} (degrees) and 1 <= max_frames <= {CACHED_MAX_FRAMES}."))
+        if load != 0 and not (1 <= load <= MAX_LIVE_FRAMES and load == int(load)):
+            return JSONResponse(error_doc(f"load must be a whole number from 1 to {MAX_LIVE_FRAMES}."))
         # The static cache holds fov=0.2 only; every other size is built live, also at a cached position.
         for _id, doc in (cached() if fov == CACHED_FOV else []):
             c = doc["grid"]["center"]
@@ -96,7 +100,8 @@ def create_app(series_dir: Optional[Path] = None, web_dist: Optional[Path] = Non
                 return JSONResponse(doc)
         if live is not None:
             try:
-                return JSONResponse(live.get_or_start(ra, dec, fov, max_frames).doc())
+                cap = int(load) if load else min(int(max_frames), LIVE_FRAMES)  # without `load`: as before, at most LIVE_FRAMES
+                return JSONResponse(live.get_or_start(ra, dec, fov, cap).doc())
             except LiveBusy as e:
                 return JSONResponse(error_doc(str(e)))
         if fov != CACHED_FOV:

@@ -1,4 +1,4 @@
-from pipeline.select import select_frames
+from pipeline.select import select_frames, spread_order
 
 
 def row(i, rel="dr1", mjd=None):
@@ -55,3 +55,45 @@ def test_cap_drops_the_most_flagged_bands_and_keeps_wavelength_order():
 
 def test_empty_input():
     assert select_per_wavelength([], cap=102) == []
+
+
+def vrow(i, mjd, band):
+    r = row(i, mjd=mjd)
+    r["energy_bandpassname"] = band
+    return r
+
+
+def three_visits_six_bands():
+    """SIMULATED archive rows: 3 visits (days 0, 150, 300) of 4 images, each image in a different band, plus a few more."""
+    rows, k = [], 0
+    for day in (0, 150, 300):
+        for b in range(6):
+            rows.append(vrow(k, 60000 + day + b * 0.1, f"SPHEREx-D{b + 1}")); k += 1
+    return rows
+
+
+def test_spread_order_is_a_permutation_of_the_distinct_images_starting_with_the_earliest():
+    rows = three_visits_six_bands() + [row(99, "qr3", mjd=60000.0)]
+    out = spread_order(rows)
+    assert len(out) == len(three_visits_six_bands()) + 1
+    assert len({r["uri"] for r in out}) == len(out)
+    assert float(out[0]["time_bounds_lower"]) == min(float(r["time_bounds_lower"]) for r in rows)
+    assert spread_order(rows) == out  # deterministic
+    assert spread_order([]) == [] and len(spread_order([row(1), row(2)])) == 2
+
+
+def test_any_first_batch_covers_the_dates_and_the_bands():
+    out = spread_order(three_visits_six_bands())
+    first = out[:8]
+    assert len({r["energy_bandpassname"] for r in first}) >= 5  # nearly every band in the first eight
+    visits = {round((float(r["time_bounds_lower"]) - 60000) / 150) for r in first}
+    assert visits == {0, 1, 2}                                   # and every visit
+    # the first 8 in time order would all be one visit; this is not that
+    assert [r["uri"] for r in first] != [r["uri"] for r in sorted(out, key=lambda r: float(r["time_bounds_lower"]))[:8]]
+
+
+def test_one_band_is_spread_over_time():
+    rows = [row(i) for i in range(100)]
+    first = [float(r["time_bounds_lower"]) for r in spread_order(rows)[:5]]
+    assert first[0] == 60000 and first[1] == 60099          # earliest, then the other end
+    assert sorted(first) == [60000, 60025, 60050, 60074, 60099] or max(b - a for a, b in zip(sorted(first), sorted(first)[1:])) <= 30

@@ -1,7 +1,7 @@
 """The one IRSA client: TAP sync join query and cutout fetch.
 
 Every request to IRSA, TAP or cutout, goes through `IrsaClient._send`, which
-holds a single process-wide semaphore (MAX_IN_FLIGHT = 4). Nothing else in the
+holds a single process-wide semaphore (MAX_IN_FLIGHT = 8). Nothing else in the
 repository talks to IRSA. The transport is injectable so tests use a fake and
 never touch the network.
 """
@@ -14,7 +14,9 @@ from typing import Callable, Dict, List, NamedTuple, Optional
 
 BASE = "https://irsa.ipac.caltech.edu/"
 TAP_URL = BASE + "TAP/sync"
-MAX_IN_FLIGHT = 4
+# 2026-11-15, T40: was 4. A direct test (8 images at once: 12 of 12 ok, about twice the rate of 4 at once) was fine;
+# 12 at once had the server reset a connection (docs/WORKLOG.md). Network errors are retried like HTTP 503s.
+MAX_IN_FLIGHT = 8
 CUTOUT_ATTEMPTS = 4          # contract decision 11
 TAP_ATTEMPTS = 3
 DEFAULT_RETRY_WAIT_S = 5.0   # spike: 503 carried retry-after: 5

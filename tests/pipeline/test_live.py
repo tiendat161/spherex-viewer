@@ -65,7 +65,7 @@ def test_partial_docs_while_loading_are_valid_and_urls_follow_the_stretch_genera
 def test_fewer_images_than_cap_uses_them_all():
     job = LiveSeries(RA, DEC, 0.2, 40)
     job.run(FakeClient(n=3))
-    assert job.doc()["progress"] == {"done": 3, "total": 3, "failed": 0}
+    assert job.doc()["progress"] == {"done": 3, "total": 3, "failed": 0, "available": 3}
 
 
 @pytest.mark.parametrize("client, text", [
@@ -96,18 +96,91 @@ def wait(job, seconds=30):
     assert job.finished
 
 
-def test_builder_shares_a_job_within_one_arcsec_and_caps_frames():
+def test_builder_shares_a_job_within_one_arcsec_per_field_of_view():
     client = FakeClient()
     b = LiveBuilder(client)
-    j1 = b.get_or_start(RA, DEC, 0.2, 102)
-    assert b.get_or_start(RA, DEC, 0.5, 102) is not j1  # another field of view is another series
-    j2 = b.get_or_start(RA + 0.5 / 3600, DEC, 0.2, 102)
-    j3 = b.get_or_start(RA + 5 / 3600, DEC, 0.2, 102)
+    j1 = b.get_or_start(RA, DEC, 0.2, 40)
+    assert b.get_or_start(RA, DEC, 0.5, 40) is not j1  # another field of view is another series
+    j2 = b.get_or_start(RA + 0.5 / 3600, DEC, 0.2, 40)
+    j3 = b.get_or_start(RA + 5 / 3600, DEC, 0.2, 40)
     assert j1 is j2 and j3 is not j1 and j1.cap == 40
     assert b.find(j1.id) is j1 and b.find("livenope") is None
     wait(j1), wait(j3)
     assert j1.doc()["progress"]["total"] == 40
     assert b.get_or_start(RA, DEC, 0.2, 40) is j1  # a finished series is reused, not rebuilt
+    assert b.get_or_start(RA, DEC, 0.2, 10) is j1 and j1.doc()["progress"]["total"] == 40  # fewer asked: it keeps what it has
+    assert b.get_or_start(RA, DEC, 0.2, 500).cap == 102  # the ceiling
+
+
+class Counting(FakeClient):
+    def __init__(self, *a, **k):
+        super().__init__(*a, **k)
+        self.searches = 0
+
+    def tap_rows(self, ra, dec):
+        self.searches += 1
+        return super().tap_rows(ra, dec)
+
+
+def test_first_batch_then_more_keeps_the_frames_and_fetches_only_the_new_ones():
+    client = Counting()
+    b = LiveBuilder(client)
+    j = b.get_or_start(RA, DEC, 0.2, 8)
+    wait(j)
+    d1 = j.doc()
+    valid(d1)
+    assert d1["status"] == "ready" and d1["progress"] == {"done": 8, "total": 8, "failed": 0, "available": 50}
+    first_urls = {f["index"]: f["url"].split("?")[0] for f in d1["frames"]}
+    assert len(client.fetched) == 8 and "stacks" in d1
+
+    assert b.get_or_start(RA, DEC, 0.2, 20) is j  # the same series, extended
+    d2 = j.doc()
+    valid(d2)
+    assert d2["status"] == "loading" and "stacks" in d2  # the stacks of the first 8 stay until the new ones are built
+    wait(j)
+    d3 = j.doc()
+    valid(d3)
+    assert d3["status"] == "ready" and d3["progress"] == {"done": 20, "total": 20, "failed": 0, "available": 50}
+    assert len(client.fetched) == 20 and len(set(client.fetched)) == 20 and client.searches == 1  # nothing fetched twice, one search
+    assert {f["index"]: f["url"].split("?")[0] for f in d3["frames"] if f["index"] in first_urls} == first_urls  # same indices and ids
+    assert all(j.png(f"{i:02d}.png").startswith(PNG_MAGIC) for i in range(20))
+    assert sum(len(v) for v in [d3["stacks"]["images"]]) > 0
+
+
+def test_asking_for_more_while_still_loading_is_picked_up_by_the_running_worker():
+    import threading
+    gate = threading.Event()
+
+    class Held(Counting):
+        def fetch_cutout(self, *a):
+            gate.wait(10)
+            return super().fetch_cutout(*a)
+
+    client = Held()
+    b = LiveBuilder(client)
+    j = b.get_or_start(RA, DEC, 0.2, 6)
+    time.sleep(0.1)
+    assert b.get_or_start(RA, DEC, 0.2, 14) is j and j.doc()["status"] == "loading"
+    gate.set()
+    wait(j)
+    assert j.doc()["progress"] == {"done": 14, "total": 14, "failed": 0, "available": 50} and len(set(client.fetched)) == 14
+
+
+def test_a_series_that_let_go_of_its_pixels_is_rebuilt_without_searching_again():
+    client = Counting()
+    b = LiveBuilder(client, hot_pixel_bytes=1)  # a budget so small that only the most recent series keeps its pixels
+    a = b.get_or_start(1.0, 1.0, 0.2, 5)
+    wait(a)
+    c = b.get_or_start(2.0, 2.0, 0.2, 5)
+    wait(c)
+    b._trim()
+    assert c.pix_dropped is False and a.pix_dropped is True and a.pixel_bytes() == 0
+    assert a.doc()["progress"]["done"] == 5 and a.png("00.png") is not None  # it can still be shown
+    assert client.searches == 2
+    again = b.get_or_start(1.0, 1.0, 0.2, 9)
+    assert again is not a and again.id == a.id  # a new job with the same id, so the frame URLs stay valid
+    wait(again)
+    assert again.doc()["progress"]["done"] == 9 and client.searches == 2  # the rows were reused
 
 
 def test_builder_refuses_when_the_queue_is_full_and_retries_old_errors():

@@ -116,7 +116,7 @@ def test_uncached_position_is_built_live_when_a_builder_is_given(tmp_path):
                 break
             time.sleep(0.05)
     assert body["status"] == "ready" and body["data_origin"] == "real"
-    assert body["progress"] == {"done": 40, "total": 40, "failed": 0}
+    assert body["progress"] == {"done": 40, "total": 40, "failed": 0, "available": 50}
     r = c.get(body["frames"][-1]["url"])
     assert r.status_code == 200 and r.headers["content-type"] == "image/png" and r.content.startswith(b"\x89PNG")
     assert c.get(body["frames"][-1]["url"].replace("39.png", "77.png")).status_code == 404
@@ -150,3 +150,38 @@ def test_other_fov_is_built_live_even_at_a_cached_position(tmp_path):
     im = Image.open(__import__("io").BytesIO(c.get(body["frames"][0]["url"]).content))
     assert im.size == (290, 290)
     assert c.get("/api/series", params={"ra": RA, "dec": DEC, "fov": 0.2}).json() == doc  # 0.2 is still the cache
+
+
+def test_load_parameter_sets_the_frames_of_a_live_series_and_extends_it(tmp_path):
+    import time
+    from unittest import mock
+    from pipeline.live import LiveBuilder
+    from tests.pipeline.test_build import FakeClient
+    series, doc = make_cache(tmp_path)
+    with mock.patch("pipeline.cutout.wavelength_um_at", return_value=2.5):
+        c = TestClient(create_app(series_dir=series, web_dist=tmp_path / "nodist", live=LiveBuilder(FakeClient())))
+
+        def get(**params):
+            end = time.time() + 30
+            while True:
+                body = c.get("/api/series", params={"ra": 10, "dec": 10, **params}).json()
+                valid(body)
+                if body["status"] != "loading" or time.time() > end:
+                    return body
+                time.sleep(0.05)
+
+        a = get(load=8)
+        assert a["status"] == "ready" and a["progress"] == {"done": 8, "total": 8, "failed": 0, "available": 50}
+        b = get(load=20)  # the same position again with a larger load: the same series, extended
+        assert b["progress"]["done"] == 20 and {f["url"].split("?")[0] for f in a["frames"]} <= {f["url"].split("?")[0] for f in b["frames"]}
+        assert get(load=8)["progress"]["done"] == 20  # a smaller load keeps what it has
+        # `load` is ignored for a cached position
+        assert c.get("/api/series", params={"ra": RA, "dec": DEC, "load": 8}).json() == doc
+
+
+@pytest.mark.parametrize("load", ["103", "1.5", "-3", "abc"])
+def test_a_bad_load_is_an_error_document(tmp_path, load):
+    series, _ = make_cache(tmp_path)
+    body = TestClient(create_app(series_dir=series, web_dist=tmp_path / "nodist")).get("/api/series", params={"ra": 10, "dec": 10, "load": load}).json()
+    valid(body)
+    assert body["status"] == "error"
