@@ -34,8 +34,8 @@ function errorResponse(message) {
  * Calls onUpdate with every parsed response. Resolves with the final one.
  * Network and HTTP failures become a client-side 'error' response.
  */
-export async function pollSeries(ra, dec, { fov, fetchFn = fetch, sleep = sleepMs, onUpdate, signal, intervalMs = POLL_MS } = {}) {
-  const url = seriesUrl(ra, dec, fov);
+export async function pollSeries(ra, dec, { fov, load = null, fetchFn = fetch, sleep = sleepMs, onUpdate, signal, intervalMs = POLL_MS } = {}) {
+  const url = seriesUrl(ra, dec, fov, load);
   for (;;) {
     let resp;
     try {

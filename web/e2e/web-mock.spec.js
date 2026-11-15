@@ -308,3 +308,39 @@ test('top bar: target menu, pasting RA and Dec, view toggle, caption', async ({ 
   await expect(page.locator('#zoom')).toBeVisible();
   await page.screenshot({ path: outDir + 'web-mock-topbar.png', fullPage: true });
 });
+
+test('a new position loads a first batch, says it is searching, then loads more on request', async ({ page }) => {
+  const urls = [];
+  page.on('request', (r) => { if (r.url().includes('/api/series')) urls.push(new URL(r.url())); });
+
+  // A cached target is opened whole: no `load` parameter, no load buttons.
+  await page.goto(wise);
+  await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
+  await expect(page.locator('#more')).toBeHidden();
+  expect(urls.every((u) => !u.searchParams.has('load'))).toBe(true);
+
+  // Any other position: the archive search first (nothing to show yet), then the first 8 frames.
+  urls.length = 0;
+  await page.goto('/?ra=10&dec=20');
+  await expect(page.locator('#progress-text')).toContainText('Asking the archive');
+  await expect(page.locator('#progress-text')).toContainText(' s ');
+  await expect(page.locator('#progress-text')).toHaveText('8 of 40 images loaded', { timeout: 10000 });
+  expect(urls[0].searchParams.get('load')).toBe('8');
+  await expect(page.locator('#more')).toBeVisible();
+  await expect(page.locator('#more-btn')).toHaveText(/^Load 16 more \(under a minute\)$/);
+  await expect(page.locator('#more-all')).toHaveText(/^Load all 40 \(.+, about 141 MB\)$/);
+  await expect(page.locator('#slider')).toHaveAttribute('max', '7');
+
+  // Load more: the same position asks for 24 in all and the screen keeps working; then the rest.
+  await page.locator('#more-btn').click();
+  await expect(page.locator('#progress-text')).toHaveText('24 of 40 images loaded');
+  expect(urls.at(-1).searchParams.get('load')).toBe('24');
+  await expect(page.locator('#slider')).toHaveAttribute('max', '23');
+  await expect(page.locator('#more-btn')).toHaveText(/^Load 16 more/);
+  await expect(page.locator('#more-all')).toBeHidden(); // one more step reaches everything, so there is only one button
+  await page.locator('#more-btn').click();
+  await expect(page.locator('#progress-text')).toHaveText('40 of 40 images loaded');
+  expect(urls.at(-1).searchParams.get('load')).toBe('40');
+  await expect(page.locator('#more')).toBeHidden(); // everything the archive lists is in
+  await page.screenshot({ path: outDir + 'web-mock-staged.png', fullPage: true });
+});

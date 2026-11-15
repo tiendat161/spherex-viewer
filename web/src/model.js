@@ -5,16 +5,54 @@ export const FOV_DEG = 0.2; // default, and the only size in the static cache
 export const WIDE_FOV_DEG = 0.5; // from here on the UI says the wavelength is exact at the centre only
 export const MAX_FRAMES = 102; // ceiling the API accepts; each cached series has its own frame count
 export const POLL_MS = 2000;
+export const INITIAL_LOAD = 8; // frames asked for first when a position is built live (docs/contract.md, `load`)
+export const MORE_STEP = 16; // what "Load more" adds
+export const MAX_LOAD = 102; // the most a live series holds
+export const IMAGES_PER_MIN = 30; // about, with 8 archive downloads at once (one position, one run: indicative only)
+export const MB_PER_IMAGE = 4.4; // size of one archive cutout, whatever the field of view
 
-/** The one request for a position. Identical on every poll (docs/contract.md, Polling). */
-export function seriesUrl(ra, dec, fov = FOV_DEG) {
+/** The one request for a position. Identical on every poll (docs/contract.md, Polling). `load` is for live series only. */
+export function seriesUrl(ra, dec, fov = FOV_DEG, load = null) {
   const q = new URLSearchParams({
     ra: String(ra),
     dec: String(dec),
     fov: String(fov),
     max_frames: String(MAX_FRAMES),
   });
+  if (load) q.set('load', String(load));
   return `/api/series?${q}`;
+}
+
+/** Angular separation in arcseconds between two {ra, dec} positions in degrees. */
+export function sepArcsec(a, b) {
+  const r = Math.PI / 180;
+  const h = Math.sin(((b.dec - a.dec) * r) / 2) ** 2 + Math.cos(a.dec * r) * Math.cos(b.dec * r) * Math.sin(((b.ra - a.ra) * r) / 2) ** 2;
+  return 2 * Math.asin(Math.min(1, Math.sqrt(h))) * (180 / Math.PI) * 3600;
+}
+
+/** A position is one of the cached targets (opened at once, nothing is built) when it is within 1 arcsec of one at the cached field of view. */
+export function isCachedPosition(targets, ra, dec, fov) {
+  return fov === FOV_DEG && targets.some((t) => sepArcsec({ ra, dec }, t) <= 1);
+}
+
+/** Rough wait for `count` more images, in words. Indicative only (IMAGES_PER_MIN). */
+export function loadTimeText(count) {
+  const s = (count * 60) / IMAGES_PER_MIN;
+  return s < 60 ? 'under a minute' : `about ${Math.round(s / 60)} min`;
+}
+
+/**
+ * What can still be loaded for a finished live series: null when nothing (a cached series, or everything up to MAX_LOAD is in).
+ * {have, available, more: frames in total after "Load more", all: frames in total after "Load all" or null if that is the same,
+ * allIsCapped: the archive has more than MAX_LOAD}.
+ */
+export function loadPlan(resp) {
+  const p = resp?.progress;
+  if (!p || resp.status !== 'ready' || typeof p.available !== 'number') return null;
+  const cap = Math.min(MAX_LOAD, p.available);
+  if (p.total >= cap) return null;
+  const more = Math.min(cap, p.total + MORE_STEP);
+  return { have: p.total, available: p.available, more, all: cap > more ? cap : null, allIsCapped: p.available > MAX_LOAD };
 }
 
 /** Read ?ra=&dec=&fov= from a query string. Returns {ra, dec, fov} or null. A missing or unsupported fov is the default. */
@@ -145,14 +183,19 @@ export function formatFlag(fraction) {
   return `${(fraction * 100).toFixed(1)} %`;
 }
 
-/** Short status line for the progress area. */
-export function progressText(resp) {
-  const { done, total, failed } = resp.progress;
+/** Short status line for the progress area. `elapsedS`: seconds since the request, to say how long the archive search has taken. */
+export function progressText(resp, elapsedS = null) {
+  const { done, total, failed, available } = resp.progress;
   if (resp.status === 'error') return 'Error';
-  const base = total === 0 ? 'Waiting for the archive query (0 / 0)' : `${done} / ${total} frames`;
   const fail = failed > 0 ? `, ${failed} failed` : '';
-  if (resp.status === 'loading') return `Loading: ${base}${fail}`;
-  return `${base}${fail}`;
+  if (resp.status === 'loading' && total === 0) {
+    return elapsedS == null
+      ? 'Waiting for the archive query (0 / 0)'
+      : `Asking the archive which images cover this position… ${Math.round(elapsedS)} s (it usually takes about a minute)`;
+  }
+  if (resp.status === 'loading') return `Loading: ${done} / ${total} frames${fail}${typeof available === 'number' ? ` · ${available} images found` : ''}`;
+  if (typeof available === 'number') return `${done} of ${available} images loaded${fail}`;
+  return `${done} / ${total} frames${fail}`;
 }
 
 /**

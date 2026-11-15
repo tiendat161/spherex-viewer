@@ -2,6 +2,8 @@
 // it is a serve-time plugin, so it can never be part of `vite build`.
 // Serves fixtures/wise0855.json (data_origin "simulated"), a targets list, and generated placeholder frames.
 // MOCK_LOADING=1 makes the series answer `loading` (growing frame count) for the first few polls.
+// A position with a `load` parameter that is not WISE 0855 or Barnard's Star stands in for a live position (T40): the first poll answers
+// `loading` with 0 frames (the archive search), then the first `load` fixture frames (at most 40) with `progress.available` 40, all SIMULATED.
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { placeholderFrame } from './png.js';
@@ -46,6 +48,7 @@ const sepArcsec = (a, b) => Math.hypot((a.ra - b.ra) * Math.cos((a.dec * Math.PI
 
 export function mockApi() {
   let polls = 0;
+  const searched = new Set(); // staged positions that have answered their first poll
   const send = (res, code, type, body) => {
     res.statusCode = code;
     res.setHeader('content-type', type);
@@ -69,6 +72,17 @@ export function mockApi() {
           const barnard = targets.find((t) => t.id === 'barnard');
           const isBarnard = sepArcsec(pos, barnard) <= 1;
           const c = fixture.grid.center;
+          const load = Number(url.searchParams.get('load') ?? 0);
+          if (!isBarnard && !(sepArcsec(pos, c) <= 1) && load > 0) {
+            const key = `${pos.ra},${pos.dec}`;
+            if (!searched.has(key)) {
+              searched.add(key);
+              return json(res, { status: 'loading', data_origin: 'simulated', progress: { done: 0, total: 0, failed: 0 }, grid: null, stretch: null, frames: [] });
+            }
+            const n = Math.min(load, fixture.frames.length);
+            const fov = Number(url.searchParams.get('fov') ?? 0.2);
+            return json(res, sized({ ...fixture, progress: { done: n, total: n, failed: 0, available: fixture.frames.length }, grid: { ...fixture.grid, center: { ra: pos.ra, dec: pos.dec } }, frames: fixture.frames.slice(0, n) }, fov));
+          }
           if (!isBarnard && !(sepArcsec(pos, c) <= 1)) {
             return json(res, { status: 'error', data_origin: 'simulated', progress: { done: 0, total: 0, failed: 0 }, grid: null, stretch: null, frames: [], error: { message: 'MOCK: only WISE 0855 and Barnard Star have (simulated) series in this mock. The real API serves all cached targets.' } });
           }

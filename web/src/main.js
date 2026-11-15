@@ -1,10 +1,10 @@
 import { fetchTargets, pollSeries } from './api.js';
-import { FOV_DEG, captionText, splitCoordinates, WIDE_FOV_DEG, bandLabel, blinkPair, buildSlots, cycleVisit, pingPong, formatFlag, gridFovDeg, isWideField, locationQuery, mjdToUtc, nearestWavelength, nearestY, nextSlot, orderSlots, padPosition, padSpec, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, stackSlots, stepVisit, stepWavelength, visitsOf, zoomRect } from './model.js';
+import { FOV_DEG, INITIAL_LOAD, MB_PER_IMAGE, isCachedPosition, loadPlan, loadTimeText, captionText, splitCoordinates, WIDE_FOV_DEG, bandLabel, blinkPair, buildSlots, cycleVisit, pingPong, formatFlag, gridFovDeg, isWideField, locationQuery, mjdToUtc, nearestWavelength, nearestY, nextSlot, orderSlots, padPosition, padSpec, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, stackSlots, stepVisit, stepWavelength, visitsOf, zoomRect } from './model.js';
 
 const $ = (id) => document.getElementById(id);
 const el = {
   badge: $('badge'), targets: $('targets'), ra: $('ra'), dec: $('dec'), fov: $('fov'), fovNote: $('fov-note'), coords: $('coords'),
-  progressText: $('progress-text'), bar: $('bar'), message: $('message'),
+  progressText: $('progress-text'), bar: $('bar'), more: $('more'), moreText: $('more-text'), moreBtn: $('more-btn'), moreAll: $('more-all'), message: $('message'),
   frameBox: $('frame-box'), canvas: $('canvas'), scalebar: $('scalebar'), scalebarLabel: $('scalebar-label'), skipped: $('skipped'),
   prev: $('prev'), play: $('play'), next: $('next'), slider: $('slider'), visitBar: $('visit-bar'), vtrack: $('visit-track'), vmarks: $('visit-marks'), vhandle: $('visit-handle'), vlabels: $('visit-labels'), vaxis: $('vaxis'), segDate: $('seg-date'), segWl: $('seg-wl'), caption: $('caption'), targetsMenu: $('targets-menu'), targetsCurrent: $('targets-current'), vTrack: $('vaxis-track'), vTicks: $('vaxis-ticks'), vHandle: $('vaxis-handle'), vLabels: $('vaxis-labels'), fps: $('fps'), zoom: $('zoom'), pair: $('pair'), pairNote: $('pair-note'), playNote: $('play-note'), wdown: $('wdown'), wup: $('wup'), playWl: $('play-wl'),
   view: $('view'), band: $('band'), bandWrap: $('band-wrap'), diff: $('diff'), diffWrap: $('diff-wrap'),
@@ -12,7 +12,7 @@ const el = {
   rFrame: $('r-frame'), rDate: $('r-date'), rWave: $('r-wave'), rFlag: $('r-flag'), legend: $('legend'),
 };
 
-const state = { holdWl: null, playMode: null, dir: 1, targets: [], resp: null, slots: [], current: 0, playing: false, timer: null, abort: null, pos: null, pair: null };
+const state = { load: null, startedAt: 0, holdWl: null, playMode: null, dir: 1, targets: [], resp: null, slots: [], current: 0, playing: false, timer: null, abort: null, pos: null, pair: null };
 let padShown = null; // {slots, stacks, key, spec, visit} of the visit and wavelength controls as drawn
 const images = new Map(); // url -> HTMLImageElement, preloaded so blinking does not stutter
 const ctx = el.canvas.getContext('2d');
@@ -119,12 +119,13 @@ function render() {
   el.pair.checked = !!state.pair;
   renderPairNote();
   renderPlayNote();
+  renderMore();
   el.slider.max = String(Math.max(0, state.slots.length - 1));
   el.slider.value = String(state.current);
   renderPad();
   renderButtons();
   if (r) {
-    el.progressText.textContent = progressText(r);
+    el.progressText.textContent = progressText(r, (Date.now() - state.startedAt) / 1000);
     el.bar.max = Math.max(1, r.progress.total);
     el.bar.value = r.progress.done + r.progress.failed;
     el.message.hidden = r.status !== 'error';
@@ -280,6 +281,23 @@ function renderPlayNote() {
     : `Playing through the wavelengths of visit ${at.visit + 1}, shortest to longest and back.`;
 }
 
+/** "Load more" and "Load all" for a finished live series that has more images in the archive than it has loaded. */
+function renderMore() {
+  const plan = loadPlan(state.resp);
+  el.more.hidden = !plan;
+  if (!plan) return;
+  const n1 = plan.more - plan.have;
+  el.moreText.textContent = `The other images are not downloaded yet. The ones shown are spread over the observation dates and the detector bands.`;
+  el.moreBtn.textContent = `Load ${n1} more (${loadTimeText(n1)})`;
+  el.moreBtn.dataset.total = String(plan.more);
+  el.moreAll.hidden = !plan.all;
+  if (plan.all) {
+    const n2 = plan.all - plan.have;
+    el.moreAll.textContent = `${plan.allIsCapped ? `Load up to ${plan.all}` : `Load all ${plan.all}`} (${loadTimeText(n2)}, about ${Math.round(n2 * MB_PER_IMAGE)} MB)`;
+    el.moreAll.dataset.total = String(plan.all);
+  }
+}
+
 function renderPairNote() {
   el.pairNote.hidden = !state.pair;
   if (!state.pair) return;
@@ -378,12 +396,30 @@ async function load(ra, dec, { fov = FOV_DEG, push = false } = {}) {
   markTargets();
   el.progressText.textContent = 'Requesting series…';
   el.message.hidden = true;
+  state.startedAt = Date.now();
+  // A cached target is served whole; any other position is built live, a first batch at a time.
+  state.load = isCachedPosition(state.targets, ra, dec, fov) ? null : INITIAL_LOAD;
   render();
+  await poll(ra, dec, fov, state.load);
+}
+
+async function poll(ra, dec, fov, load) {
   try {
-    await pollSeries(ra, dec, { fov, onUpdate, signal: state.abort.signal });
+    await pollSeries(ra, dec, { fov, load, onUpdate, signal: state.abort.signal });
   } catch (e) {
     if (e.name !== 'AbortError') throw e;
   }
+}
+
+/** Ask for `total` frames in all: the same series is extended, what is on screen stays while the new frames arrive. */
+async function loadMore(total) {
+  if (!state.pos) return;
+  state.abort?.abort();
+  state.abort = new AbortController();
+  state.load = total;
+  state.startedAt = Date.now();
+  render();
+  await poll(state.pos.ra, state.pos.dec, state.pos.fov, total);
 }
 
 function markTargets() {
@@ -414,6 +450,8 @@ function renderTargets() {
   markTargets();
 }
 
+el.moreBtn.addEventListener('click', () => loadMore(Number(el.moreBtn.dataset.total)));
+el.moreAll.addEventListener('click', () => loadMore(Number(el.moreAll.dataset.total)));
 el.play.addEventListener('click', () => { state.playing ? stopPlaying() : startPlaying(); render(); });
 el.playWl.addEventListener('click', () => { state.playing ? stopPlaying() : startPlaying('wl'); render(); });
 el.prev.addEventListener('click', () => { stopPlaying(); if (padMode() === 'multi') pickSlot(stepVisit(padActive(), state.current, -1)); else go(advance(-1)); render(); });

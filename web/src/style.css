@@ -67,3 +67,5 @@ canvas { width:100%; height:100%; image-rendering:pixelated; image-rendering:cri
 
 select.visually-hidden { position:absolute; width:1px; height:1px; opacity:0; overflow:hidden; pointer-events:none; }
 @media (max-width:640px) { .visit-labels .sub { display:none; } .visit-labels { height:20px; } .coords input { width:110px; } header { padding:10px 14px; } .topbar, main { padding-left:14px; padding-right:14px; } .visit-bar { margin:0 40px; } }
+
+.more { display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; margin:0 0 8px; } .more span { flex:1 1 240px; }

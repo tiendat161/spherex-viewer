@@ -22,7 +22,7 @@ IRSA archive ──────────────────────�
 
 1. **Browser.** `web/src/main.js` reads `?ra=&dec=&fov=` from the page URL (`parseLocation` in `web/src/model.js`) or takes the form values, and calls `load`. `load` calls `pollSeries` in `web/src/api.js`, which requests `GET /api/series?ra=&dec=&fov=&max_frames=` (`seriesUrl`) and repeats every `POLL_MS` until the status is final.
 2. **API, cached path.** `series` in `api/main.py` validates the numbers (`allowed_fov` in `pipeline/grid.py`). For `fov` 0.2 it looks for a `static/series/<id>/series.json` whose grid centre is within `MATCH_ARCSEC` of the position and returns that file unchanged.
-3. **API, live path.** Any other position, and any other field of view, goes to `LiveBuilder.get_or_start` in `pipeline/live.py`. It starts (or finds) a `LiveSeries` running in a background thread and returns its current document at once. Too many series running or waiting raises `LiveBusy`, which the API returns as a `status: "error"` document. With live builds off the API returns an error document instead.
+3. **API, live path.** Any other position, and any other field of view, goes to `LiveBuilder.get_or_start` in `pipeline/live.py`. It starts (or finds) a `LiveSeries` running in a background thread and returns its current document at once; the `load` parameter says how many frames to have loaded (the web app asks for 8, then more on request), and a larger `load` for a series that already exists extends it. Too many series running or waiting raises `LiveBusy`, which the API returns as a `status: "error"` document. With live builds off the API returns an error document instead.
 4. **Live build.** `LiveSeries` queries the archive (`IrsaClient.tap_rows`), picks frames (`select_frames` in `pipeline/select.py`), then for each one downloads the cutout, reads it (`pipeline/cutout.py`), subtracts the background (`pipeline/stack.py`) and resamples it onto the shared grid (`pipeline/grid.py`). Frames are kept in memory only.
 5. **Stretch refresh.** The brightness mapping (`pipeline/stretch.py`) is recomputed as frames arrive (after 1, 2, 4, 8, … frames and once at the end). Each recompute re-renders every PNG and raises a counter that is added to frame URLs as `?v=<gen>`, so the browser fetches the new images. When all frames are in, `build_stacks` adds the stacked and difference images.
 6. **Frames.** The browser loads each `url` from the document: `GET /api/frames/<id>/<name>`. The API serves the file from `static/series/<id>/frames/` if it exists, otherwise the PNG held in memory by the live series (sent with `Cache-Control: no-cache`).
@@ -41,7 +41,7 @@ The cached path runs the same steps as 4 and 5, once, in `pipeline/build.py`, an
 | Archive queries, download limits, retries | `pipeline/irsa.py` (`MAX_IN_FLIGHT`, `CUTOUT_ATTEMPTS`, `TAP_ATTEMPTS`) |
 | Brightness mapping | `pipeline/stretch.py` |
 | Background subtraction, visit grouping, stacked and difference images | `pipeline/stack.py` |
-| Live build limits (how many at once, how many kept, frame count) | constants at the top of `pipeline/live.py` |
+| Live build limits (how many at once, how many kept, frame counts, memory for kept pixels) | constants at the top of `pipeline/live.py` (`LIVE_FRAMES`, `MAX_LIVE_FRAMES`, `HOT_PIXEL_BYTES`); the first batch size and the "Load more" step are `INITIAL_LOAD` and `MORE_STEP` in `web/src/model.js` |
 | The cached targets, their positions, frame counts, proper motion | `verify/targets.json`, read by `pipeline/targets.py`; then `make cache` |
 | Player behaviour: controls, blink, zoom, frame order, badge, readouts | `web/src/main.js`; pure logic it uses is in `web/src/model.js` |
 | Page markup and styling | `web/index.html`, `web/src/style.css` |
@@ -93,16 +93,16 @@ Turns archive data into series. Used in two ways: `build.py` writes the static c
 
 | File | Does |
 |---|---|
-| `irsa.py` | The one IRSA client (`IrsaClient`): archive query and cutout download, a process-wide limit on requests in flight, retries on HTTP 503, de-duplication across data releases |
+| `irsa.py` | The one IRSA client (`IrsaClient`): archive query and cutout download, a process-wide limit on requests in flight (8), retries on HTTP 503, de-duplication across data releases |
 | `targets.py` | Reads `verify/targets.json`, converts positions to degrees, applies proper motion where the target asks for it; `sep_arcsec` |
-| `select.py` | Picks which images make a series: evenly spaced in time (`select_frames`) or one per wavelength band (`select_per_wavelength`); prefers the `dr1` release |
+| `select.py` | Picks which images make a series: evenly spaced in time (`select_frames`), one per wavelength band (`select_per_wavelength`), or for live series an order in which any first N spread over the dates and detector bands (`spread_order`); prefers the `dr1` release |
 | `cutout.py` | Reads one downloaded cutout: image, flags, sky coordinates, unit and wavelength |
 | `grid.py` | The shared north-up grid: allowed fields of view, grid size, resampling every frame onto it, which pixels count as flagged |
 | `stretch.py` | Computes one brightness mapping per series and converts frames to 8-bit |
 | `stack.py` | Median background subtraction, grouping dates into visits, stacking per visit and detector band, difference from the first visit |
 | `writer.py` | Writes `series.json` and the frame, stack and difference PNGs |
 | `build.py` | Command-line entry point for the cache: `python -m pipeline.build verify/targets.json [--only id] [--refresh-tap] [--offline]`. Resumes from `.cache/` |
-| `live.py` | Live series for positions or fields of view that are not cached: `LiveBuilder` (queue and limits) and `LiveSeries` (one build, in memory, with progress) |
+| `live.py` | Live series for positions or fields of view that are not cached: `LiveBuilder` (queue, limits, which finished series keep their pixels) and `LiveSeries` (one per position and field of view, in memory, with progress; loads a first batch and is extended when a larger `load` is asked for) |
 | `tapcount.py` | Small helper that prints how many archive images cover each target |
 
 Environment: `SPHEREX_CACHE_DIR` moves the raw download folder (default `.cache/`).
@@ -112,7 +112,7 @@ Environment: `SPHEREX_CACHE_DIR` moves the raw download folder (default `.cache/
 `main.py` is the whole service (`create_app`).
 
 - `GET /api/targets` lists the cached targets.
-- `GET /api/series?ra=&dec=&fov=&max_frames=` returns the cached series for that position, or starts and reports a live build. Every failure is a contract-valid `status: "error"` document, not an HTTP error.
+- `GET /api/series?ra=&dec=&fov=&max_frames=&load=` returns the cached series for that position, or starts, extends and reports a live build (`load`: frames to have loaded, live only). Every failure is a contract-valid `status: "error"` document, not an HTTP error.
 - `GET /api/frames/<id>/<name>` serves a frame (`NN.png`), stack (`s_<band>_<visit>.png`) or difference (`d_<band>_<visit>.png`) image, from disk or from a live series.
 - Any other `/api/` path is a 404. Everything else is served from `web/dist`, so the app and the API share one origin.
 
@@ -127,7 +127,7 @@ The frontend, built with Vite and no UI framework. It only ever calls relative `
 | `index.html`, `src/style.css` | Page markup and styling: the top bar (target dropdown, RA and Dec boxes), the image with its sliders, the buttons, and the folded "Advanced" settings |
 | `src/model.js` | Pure helpers, no DOM: URL parsing and building, field-of-view list, frame slots and ordering, visits and the wavelength pad (`visitsOf`, `padSpec`, `labelIndexes`, `stepWavelength`, `stepVisit`, `cycleVisit`, `pingPong`), blink pair, zoom rectangle, scale bar, progress text, date conversion, splitting a pasted "RA Dec" (`splitCoordinates`), the one-line caption (`captionText`) |
 | `src/api.js` | `fetchTargets` and `pollSeries` |
-| `src/main.js` | The player: target list, form, canvas, controls, the target dropdown and paste handling, the By date and By wavelength toggle, the visit slider (for stacks and frames) and the vertical wavelength slider (`renderPad`), the visit and wavelength step buttons, the play loop (across visits, through wavelengths, or plain frames), badge, readouts |
+| `src/main.js` | The player: target list, form, canvas, controls, the target dropdown and paste handling, the By date and By wavelength toggle, the visit slider (for stacks and frames) and the vertical wavelength slider (`renderPad`), "Load more" and "Load all" for a live series, the visit and wavelength step buttons, the play loop (across visits, through wavelengths, or plain frames), badge, readouts |
 | `mock/plugin.js`, `mock/png.js` | Dev-only stand-in for the API (`npm run dev:mock`): serves the fixture and generated placeholder frames, labelled simulated. Never part of a build |
 | `test/model.test.js`, `test/api.test.js` | Vitest unit tests for the two modules |
 | `test/bundle.test.js` | Checks the built bundle contains no archive hostname |

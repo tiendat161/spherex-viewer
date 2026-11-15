@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { captionText, splitCoordinates, blinkPair, buildSlots, cycleVisit, pingPong, labelIndexes, nearestWavelength, nearestY, padPosition, padSpec, stepVisit, stepWavelength, visitsOf, gridFovDeg, isWideField, locationQuery, mjdToUtc, nextSlot, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, seriesUrl, zoomRect } from '../src/model.js';
+import { isCachedPosition, loadPlan, loadTimeText, sepArcsec, captionText, splitCoordinates, blinkPair, buildSlots, cycleVisit, pingPong, labelIndexes, nearestWavelength, nearestY, padPosition, padSpec, stepVisit, stepWavelength, visitsOf, gridFovDeg, isWideField, locationQuery, mjdToUtc, nextSlot, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, seriesUrl, zoomRect } from '../src/model.js';
 import { errorResponse, fixture, gapResponse, loadingResponse, validateSeries, validateTargets } from './helpers.js';
 
 describe('hand-built responses are schema-valid', () => {
@@ -278,5 +278,44 @@ describe('captionText', () => {
   it('is empty without a frame, or for a failed one', () => {
     expect(captionText(undefined)).toBe('');
     expect(captionText({ skipped: true, index: 3 })).toBe('');
+  });
+});
+
+describe('staged loading helpers', () => {
+  const resp = (p, status = 'ready') => ({ status, progress: { done: p.total, failed: 0, ...p } });
+  it('seriesUrl adds load only when given', () => {
+    expect(seriesUrl(1, 2, 0.2)).toBe('/api/series?ra=1&dec=2&fov=0.2&max_frames=102');
+    expect(seriesUrl(1, 2, 0.2, 8)).toBe('/api/series?ra=1&dec=2&fov=0.2&max_frames=102&load=8');
+  });
+  it('sepArcsec and isCachedPosition: within 1 arcsec at the cached field of view', () => {
+    expect(sepArcsec({ ra: 10, dec: 20 }, { ra: 10, dec: 20 + 1 / 3600 })).toBeCloseTo(1, 3);
+    const targets = [{ ra: 133.795129, dec: -7.245147 }];
+    expect(isCachedPosition(targets, 133.795129, -7.245147, 0.2)).toBe(true);
+    expect(isCachedPosition(targets, 133.795129 + 0.5 / 3600, -7.245147, 0.2)).toBe(true);
+    expect(isCachedPosition(targets, 133.795129 + 3 / 3600, -7.245147, 0.2)).toBe(false);
+    expect(isCachedPosition(targets, 133.795129, -7.245147, 0.5)).toBe(false); // the cache holds 0.2 only
+  });
+  it('says how long loading more takes, in words', () => {
+    expect(loadTimeText(16)).toBe('under a minute');
+    expect(loadTimeText(62)).toBe('about 2 min');
+    expect(loadTimeText(94)).toBe('about 3 min');
+  });
+  it('plans what can still be loaded', () => {
+    expect(loadPlan(resp({ total: 8, available: 269 }))).toEqual({ have: 8, available: 269, more: 24, all: 102, allIsCapped: true });
+    expect(loadPlan(resp({ total: 8, available: 20 }))).toEqual({ have: 8, available: 20, more: 20, all: null, allIsCapped: false }); // one step reaches them all
+    expect(loadPlan(resp({ total: 90, available: 269 }))).toEqual({ have: 90, available: 269, more: 102, all: null, allIsCapped: true });
+    expect(loadPlan(resp({ total: 102, available: 269 }))).toBeNull(); // at the ceiling
+    expect(loadPlan(resp({ total: 40, available: 40 }))).toBeNull();   // everything is in
+    expect(loadPlan(resp({ total: 40 }))).toBeNull();                 // a cached series has no `available`
+    expect(loadPlan(resp({ total: 8, available: 269 }, 'loading'))).toBeNull();
+    expect(loadPlan(null)).toBeNull();
+  });
+  it('progressText: the archive search with elapsed time, images found, images loaded', () => {
+    expect(progressText(loadingResponse(0, 0), 12.4)).toContain('12 s');
+    expect(progressText(loadingResponse(0, 0), 12.4)).toContain('Asking the archive');
+    const found = { status: 'loading', progress: { done: 3, total: 8, failed: 0, available: 269 } };
+    expect(progressText(found)).toBe('Loading: 3 / 8 frames · 269 images found');
+    expect(progressText(resp({ total: 8, available: 269 }))).toBe('8 of 269 images loaded');
+    expect(progressText({ status: 'ready', progress: { done: 7, total: 8, failed: 1, available: 269 } })).toBe('7 of 269 images loaded, 1 failed');
   });
 });
