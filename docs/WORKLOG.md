@@ -24,7 +24,7 @@ Commits: abc1234, def5678
 
 
 ## 2026-11-15: Live series survive a restart (T22)
-Commits: `87f6ae0` (branch `claude/t22-persist-live`, on top of the T14 branch because both change `pipeline/live.py`)
+Commits: `39ac0e5`, `999b903` (branch `claude/t22-persist-live`, on top of the T14 branch because both change `pipeline/live.py`)
 
 **What:**
 - A finished live series is written to `.cache/live-series/<id>/` (`pipeline/livestore.py`): frame metadata, flux, stretch, stacks and every PNG; no pixels. The builder loads the newest 30 (not older than a week) at start. Checked with the real API on real cached cutouts: build, stop the server, start it again, the series answers `ready` at once with the same frame URLs, and a frame PNG is served.
