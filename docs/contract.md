@@ -121,6 +121,16 @@ GET /api/targets
 
 Returns the targets whose series are cached, validated by [`contracts/targets.schema.json`](../contracts/targets.schema.json): an array of `{id, name, ra, dec, position_note}`. `ra`/`dec` are the cached request position (ICRS degrees); passing them to `/api/series` with the default `fov` and `max_frames` returns that target's cached series. The UI must show `position_note`. The source list is [`verify/targets.json`](../verify/targets.json).
 
+## Spectrum endpoint (T14)
+
+```
+GET /api/spectrum?ra=&dec=&fov=0.2&at_ra=&at_dec=&load=40
+```
+
+Validated by [`contracts/spectrum.schema.json`](../contracts/spectrum.schema.json). `ra`, `dec`, `fov` name a **live series** exactly as for `/api/series`; `at_ra`, `at_dec` are the clicked position (ICRS degrees, inside the field of view). The response lists, for every frame of that live series, the flux at the clicked position: the same aperture photometry as `frames[].flux`, measured on the archive cutout as downloaded, with the aperture at the clicked position and with the wavelength taken **at that pixel** (it varies across the detector, so it differs from the frame's `wavelength_um` in the series document). Always `data_origin: "real"`. `status: "loading"` means frames are still arriving: poll again.
+
+Cached targets are not built from cutouts the server has, so a request at a cached position starts a live series there (as `/api/series` does for any other field of view). Its frames are chosen by the live rule and are **not** the frames of the cached series: `index` is the index in the live series. The UI must say so.
+
 ## Prototype choices (2026-11-14)
 
 Provisional answers adopted for the prototype so the build sessions are not blocked. They are choices, not findings; none changes `series.schema.json`. Numbers match the open decisions below.

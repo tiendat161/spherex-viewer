@@ -1,0 +1,265 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "spectrum.schema.json",
+  "title": "SPHEREx spectrum at a clicked position",
+  "description": "Response of GET /api/spectrum (T14): the brightness at one sky position in every frame of a live series. Measured on the archive cutouts as downloaded, with the same method as `frames[].flux` in series.schema.json, except that the aperture is placed at the clicked position and the wavelength is the one at that pixel (the wavelength changes across the detector). Always real data. The frames are those of the live series at `series`, which are not necessarily the frames of a cached series shown for the same position: `index` here is the index in that live series.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "data_origin",
+    "progress",
+    "frames"
+  ],
+  "properties": {
+    "status": {
+      "description": "loading: frames are still arriving, `frames` holds those measured so far (poll again). ready: every frame is in. error: see `error`.",
+      "enum": [
+        "loading",
+        "ready",
+        "error"
+      ]
+    },
+    "data_origin": {
+      "const": "real"
+    },
+    "series": {
+      "description": "The live series the frames come from: its position (the one in the request) and field of view. Present unless status is error.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ra",
+        "dec",
+        "fov_deg"
+      ],
+      "properties": {
+        "ra": {
+          "type": "number"
+        },
+        "dec": {
+          "type": "number"
+        },
+        "fov_deg": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "point": {
+      "description": "The clicked position, ICRS degrees, as requested.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ra",
+        "dec"
+      ],
+      "properties": {
+        "ra": {
+          "type": "number"
+        },
+        "dec": {
+          "type": "number"
+        }
+      }
+    },
+    "progress": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "done",
+        "total",
+        "failed"
+      ],
+      "properties": {
+        "done": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "available": {
+          "description": "Distinct images the archive lists for the position, once known. Only `total` of them are loaded.",
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "photometry": {
+      "description": "How `frames[].flux` was measured. Present when any frame has a flux.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "aperture_radius_pix",
+        "annulus_inner_pix",
+        "annulus_outer_pix",
+        "aperture_corrected",
+        "at"
+      ],
+      "properties": {
+        "method": {
+          "const": "aperture"
+        },
+        "aperture_radius_pix": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "annulus_inner_pix": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "annulus_outer_pix": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "aperture_corrected": {
+          "const": false
+        },
+        "at": {
+          "description": "The aperture is placed at `point`, fixed in the sky; a moving object is not followed.",
+          "const": "clicked_position"
+        }
+      }
+    },
+    "frames": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "index",
+          "obs_mjd",
+          "wavelength_um",
+          "flux"
+        ],
+        "properties": {
+          "index": {
+            "description": "Index in the live series.",
+            "type": "integer",
+            "minimum": 0
+          },
+          "obs_mjd": {
+            "type": "number"
+          },
+          "mjd_avg": {
+            "description": "Mid-exposure time (header MJD-AVG), when the file has it.",
+            "type": "number"
+          },
+          "wavelength_um": {
+            "description": "Wavelength at the clicked pixel of this frame (from the WCS-WAVE table), micrometres.",
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "flux": {
+            "$ref": "#/$defs/flux"
+          }
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "message"
+      ],
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "if": {
+    "properties": {
+      "status": {
+        "const": "error"
+      }
+    },
+    "required": [
+      "status"
+    ]
+  },
+  "then": {
+    "required": [
+      "error"
+    ]
+  },
+  "$defs": {
+    "flux": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ok"
+      ],
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "flux_ujy": {
+          "description": "Flux in microjansky: the background-subtracted sum over the aperture. Not aperture-corrected. May be negative or zero for a faint or absent source.",
+          "type": "number"
+        },
+        "flux_err_ujy": {
+          "description": "1 sigma uncertainty in microjansky: the VARIANCE extension summed over the aperture plus the uncertainty of the background level.",
+          "type": "number",
+          "minimum": 0
+        },
+        "reason": {
+          "description": "Why there is no flux. aperture_flagged: a pixel of the aperture is not finite or carries a flag other than SOURCE and FULLSAMPLE (bright stars give this: saturation and blooming flags). aperture_off_image: the aperture is not fully on the cutout. background_too_few_pixels: fewer clean pixels in the background ring than needed. unexpected_unit: the image is not in MJy/sr.",
+          "enum": [
+            "aperture_flagged",
+            "aperture_off_image",
+            "background_too_few_pixels",
+            "unexpected_unit"
+          ]
+        }
+      },
+      "if": {
+        "properties": {
+          "ok": {
+            "const": true
+          }
+        },
+        "required": [
+          "ok"
+        ]
+      },
+      "then": {
+        "required": [
+          "flux_ujy",
+          "flux_err_ujy"
+        ],
+        "not": {
+          "required": [
+            "reason"
+          ]
+        }
+      },
+      "else": {
+        "required": [
+          "reason"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "flux_ujy"
+              ]
+            },
+            {
+              "required": [
+                "flux_err_ujy"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}
