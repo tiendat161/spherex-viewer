@@ -117,6 +117,11 @@ def method_block():
             "annulus_outer_pix": ANNULUS_PIX[1], "aperture_corrected": False, "at": "request_position"}
 
 
+def spectrum_method_block():
+    """The `photometry` object of the spectrum document: the same method, with the aperture at the clicked position."""
+    return dict(method_block(), at="clicked_position")
+
+
 def flux_for_series(c, ra, dec):
     """The contract's `frames[].flux` object for one cutout: flux and uncertainty in microjansky, or ok false and a reason."""
     try:

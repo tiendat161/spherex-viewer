@@ -233,3 +233,45 @@ def test_rate_limiter_window_slides_and_bounds_its_table():
     for k in "bcd":
         rl.allow(k, 100)
     assert len(rl._hits) <= 3
+
+
+SPECTRUM = Draft202012Validator(json.loads((ROOT / "contracts" / "spectrum.schema.json").read_text()))
+
+
+def test_spectrum_at_a_cached_position_starts_a_live_series_and_measures_the_clicked_point(tmp_path):
+    import time
+    from unittest import mock
+    from pipeline.live import LiveBuilder
+    from tests.pipeline.test_build import FakeClient
+    series, _ = make_cache(tmp_path)
+    with mock.patch("pipeline.cutout.wavelength_um_at", return_value=2.5):
+        c = TestClient(create_app(series_dir=series, web_dist=tmp_path / "nodist", live=LiveBuilder(FakeClient())))
+        params = {"ra": RA, "dec": DEC, "at_ra": RA + 0.01, "at_dec": DEC + 0.01, "load": 8}
+        end = time.time() + 30
+        while True:
+            body = c.get("/api/spectrum", params=params).json()
+            assert not list(SPECTRUM.iter_errors(body)), body
+            if body["status"] != "loading" or time.time() > end:
+                break
+            time.sleep(0.05)
+    assert body["status"] == "ready" and body["data_origin"] == "real" and len(body["frames"]) == 8
+    assert body["photometry"]["at"] == "clicked_position" and body["series"]["fov_deg"] == 0.2
+    assert c.get("/api/series", params={"ra": RA, "dec": DEC}).json()["data_origin"] == "simulated"  # the cached series is untouched
+
+
+@pytest.mark.parametrize("params", [{"at_ra": 11, "at_dec": 10}, {"at_ra": 10.5, "at_dec": 10}, {"at_ra": 10, "at_dec": 10.2},
+                                    {"at_ra": 10}, {"at_ra": "x", "at_dec": 10}, {"at_ra": 10, "at_dec": 10, "load": 500},
+                                    {"at_ra": 10, "at_dec": 10, "fov": 0.3}])
+def test_a_bad_spectrum_request_is_an_error_document(tmp_path, params):
+    from pipeline.live import LiveBuilder
+    from tests.pipeline.test_build import FakeClient
+    series, _ = make_cache(tmp_path)
+    c = TestClient(create_app(series_dir=series, web_dist=tmp_path / "nodist", live=LiveBuilder(FakeClient())))
+    body = c.get("/api/spectrum", params={"ra": 10, "dec": 10, **params}).json()
+    assert not list(SPECTRUM.iter_errors(body)), body
+    assert body["status"] == "error"
+
+
+def test_spectrum_without_live_builds_says_so(client):
+    body = client.get("/api/spectrum", params={"ra": RA, "dec": DEC, "at_ra": RA, "at_dec": DEC}).json()
+    assert not list(SPECTRUM.iter_errors(body)) and body["status"] == "error" and "live" in body["error"]["message"]

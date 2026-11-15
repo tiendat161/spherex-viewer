@@ -4,11 +4,14 @@ set SPHEREX_LIVE=0 to serve the cache only, in which case nothing here contacts 
 
     GET /api/series?ra=&dec=&fov=0.2&max_frames=102&load=8     (fov: 0.1, 0.2, 0.5 or 1; only 0.2 is cached;
                                                                 `load`: frames of a live series to have loaded, a larger value extends it)
+    GET /api/spectrum?ra=&dec=&fov=0.2&at_ra=&at_dec=&load=40    (flux at a clicked position in every frame of the live series
+                                                                at ra, dec, fov; always live, also at a cached position)
     GET /api/targets
     GET /api/frames/<id>/NN.png            (also s_<band>_<visit>.png and d_<band>_<visit>.png for stacks)
     web/dist (when it exists) is served at /
 """
 import json
+import math
 import os
 import re
 import threading
@@ -69,6 +72,11 @@ def error_doc(message: str) -> dict:
         "frames": [],
         "error": {"message": message},
     }
+
+
+def spectrum_error_doc(message: str) -> dict:
+    return {"status": "error", "data_origin": "real", "progress": {"done": 0, "total": 0, "failed": 0}, "frames": [],
+            "error": {"message": message}}
 
 
 def _num(request: Request, name: str, default: Optional[float] = None) -> float:
@@ -155,6 +163,38 @@ def create_app(series_dir: Optional[Path] = None, web_dist: Optional[Path] = Non
         return JSONResponse(error_doc(
             "No cached series within 1 arcsec of this position. This prototype serves only its cached targets "
             "(see /api/targets); nothing is built live."))
+
+    @app.get("/api/spectrum")
+    def spectrum(request: Request):
+        """The flux at a clicked position in every frame of the live series at (ra, dec, fov). Polled like /api/series."""
+        try:
+            ra, dec = _num(request, "ra"), _num(request, "dec")
+            at_ra, at_dec = _num(request, "at_ra"), _num(request, "at_dec")
+            fov = _num(request, "fov", CACHED_FOV)
+            load = _num(request, "load", LIVE_FRAMES)
+            if not (0 <= ra < 360) or not (-90 <= dec <= 90) or not (0 <= at_ra < 360) or not (-90 <= at_dec <= 90):
+                raise ValueError("ra must satisfy 0 <= ra < 360 and dec -90 to 90 (ICRS degrees)")
+        except ValueError as e:
+            return JSONResponse(spectrum_error_doc(str(e)))
+        fov = allowed_fov(fov)
+        if fov is None:
+            return JSONResponse(spectrum_error_doc(f"fov must be one of {', '.join(f'{f:g}' for f in FOVS_DEG)} (degrees)."))
+        if not (1 <= load <= MAX_LIVE_FRAMES and load == int(load)):
+            return JSONResponse(spectrum_error_doc(f"load must be a whole number from 1 to {MAX_LIVE_FRAMES}."))
+        # Inside the field of view (a square of side fov around the position; flat-sky approximation, fine at one degree).
+        d_dec = abs(at_dec - dec)
+        d_ra = abs((at_ra - ra + 180) % 360 - 180) * math.cos(math.radians(dec))
+        if d_dec > fov / 2 or d_ra > fov / 2:
+            return JSONResponse(spectrum_error_doc("The clicked position is outside the field of view."))
+        if live is None:
+            return JSONResponse(spectrum_error_doc(
+                "This server does not build series live, so a spectrum at a clicked position cannot be measured "
+                "(it needs the archive cutouts, which only live series keep)."))
+        try:
+            doc = live.get_or_start(ra, dec, fov, int(load)).spectrum(at_ra, at_dec)
+        except LiveBusy as e:
+            return JSONResponse(spectrum_error_doc(str(e)))
+        return JSONResponse(doc)
 
     @app.get("/api/targets")
     def targets():

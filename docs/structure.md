@@ -88,6 +88,7 @@ The source of truth for every interface. Read it before changing anything that c
 | File | Defines |
 |---|---|
 | `series.schema.json` | Response of `GET /api/series`: status, real or simulated label, progress, the shared grid, the stretch, the list of frames, and the optional stacks |
+| `spectrum.schema.json` | Response of `GET /api/spectrum` (T14): the flux at a clicked position in every frame of a live series |
 | `targets.schema.json` | Response of `GET /api/targets`: the cached targets and where each position comes from |
 
 The prose explanation, with the choices made and the open decisions, is in `docs/contract.md`.
@@ -101,14 +102,14 @@ Turns archive data into series. Used in two ways: `build.py` writes the static c
 | `irsa.py` | The one IRSA client (`IrsaClient`): archive query (`tap_rows`, TAP, the complete list; `sia_rows`, SIA2, the live path's backup when TAP fails) and cutout download, a process-wide limit on requests in flight (8), retries on HTTP 503, de-duplication across data releases |
 | `targets.py` | Reads `verify/targets.json`, converts positions to degrees, applies proper motion where the target asks for it; `sep_arcsec` |
 | `select.py` | Picks which images make a series: evenly spaced in time (`select_frames`), one per wavelength band (`select_per_wavelength`), or for live series an order in which any first N spread over the dates and detector bands (`spread_order`); prefers releases in the order of `RELEASE_PREFERENCE` (`dr1` first) |
-| `cutout.py` | Reads one downloaded cutout: image, flags, variance, sky coordinates, unit, wavelength and `MJD-AVG`; helpers for sky-to-pixel and pixel solid angle |
+| `cutout.py` | Reads one downloaded cutout: image, flags, variance, sky coordinates, unit, wavelength and `MJD-AVG`; optionally the wavelength at every pixel (`wave_map`, for a clicked position); helpers for sky-to-pixel and pixel solid angle |
 | `photometry.py` | Flux at a sky position on one native cutout: aperture photometry with a ring background, in microjansky with an uncertainty; says why when it cannot measure. Called by the build and the live path; the result is in each frame's `flux` and the series' `photometry` block |
 | `grid.py` | The shared north-up grid: allowed fields of view, grid size, resampling every frame onto it, which pixels count as flagged |
 | `stretch.py` | Computes one brightness mapping per series and converts frames to 8-bit |
 | `stack.py` | Median background subtraction, grouping dates into visits, stacking per visit and detector band, difference from the first visit |
 | `writer.py` | Writes `series.json` and the frame, stack and difference PNGs (with each frame's flux and the photometry method) |
 | `build.py` | Command-line entry point for the cache: `python -m pipeline.build verify/targets.json [--only id] [--refresh-tap] [--offline]`. Resumes from `.cache/` |
-| `live.py` | Live series for positions or fields of view that are not cached: `LiveBuilder` (queue, limits, which finished series keep their pixels) and `LiveSeries` (one per position and field of view, in memory, with progress; loads a first batch and is extended when a larger `load` is asked for) |
+| `live.py` | Live series for positions or fields of view that are not cached: `LiveBuilder` (queue, limits, which finished series keep their pixels) and `LiveSeries` (one per position and field of view, in memory, with progress; keeps each native cutout so `spectrum` can measure any clicked position; loads a first batch and is extended when a larger `load` is asked for) |
 | `tapcache.py` | Remembers the archive's answer to "which images cover this position" for live series on disk (`.cache/tap/live/`, a week), so a repeated position, also after a restart, skips the slow search |
 | `tapcount.py` | Small helper that prints how many archive images cover each target |
 
@@ -120,6 +121,7 @@ Environment: `SPHEREX_CACHE_DIR` moves the raw download folder (default `.cache/
 
 - `GET /api/targets` lists the cached targets.
 - `GET /api/series?ra=&dec=&fov=&max_frames=&load=` returns the cached series for that position, or starts, extends and reports a live build (`load`: frames to have loaded, live only). Every failure is a contract-valid `status: "error"` document, not an HTTP error.
+- `GET /api/spectrum?ra=&dec=&fov=&at_ra=&at_dec=&load=` returns the flux at the clicked position `at_ra, at_dec` in every frame of the live series at `ra, dec, fov` (started if needed, also at a cached position: the cached series has no cutouts on the server). Polled like `/api/series`.
 - `GET /api/frames/<id>/<name>` serves a frame (`NN.png`), stack (`s_<band>_<visit>.png`) or difference (`d_<band>_<visit>.png`) image, from disk or from a live series.
 - Any other `/api/` path is a 404. Everything else is served from `web/dist`, so the app and the API share one origin.
 
@@ -178,6 +180,8 @@ Pytest unit tests; none touches the network.
 | `pipeline/test_irsa.py` | The concurrency limit and retries |
 | `pipeline/test_targets.py` | Position parsing and proper motion |
 | `pipeline/test_stack.py` | Background subtraction, visits, stacks, differences |
+| `conftest.py` | Replaces the per-pixel wavelength plane in every test (synthetic cutouts have no WCS-WAVE table) |
+| `pipeline/test_spectrum.py` | Spectrum at a clicked position: off-centre source, wavelength at the clicked pixel, errors, memory budget |
 | `pipeline/test_flux_series.py` | Flux in the series document: live and cached paths, flagged apertures, the schema's flux rules |
 | `pipeline/test_photometry.py` | Flux recovery, background independence, error estimate, flagged and NaN pixels, off-image position |
 | `pipeline/test_build.py` | The cache build end to end on synthetic data |

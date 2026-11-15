@@ -30,11 +30,11 @@ from astropy.wcs import NoConvergence
 from PIL import Image
 
 from . import stretch as stretch_mod
-from .cutout import CutoutError, read_cutout
+from .cutout import CutoutError, read_cutout, sky_to_pixel, wavelength_at
 from .grid import PIXEL_SCALE_ARCSEC, grid_shape, make_grid_wcs, reproject_frame, to_png_array
 from .irsa import MAX_IN_FLIGHT, IrsaError
 from . import tapcache
-from .photometry import flux_for_series, method_block
+from .photometry import flux_for_series, method_block, spectrum_method_block
 from .select import spread_order
 from .stack import band_id, build_stacks, subtract_background, with_urls
 from .targets import sep_arcsec
@@ -83,6 +83,11 @@ class TapHealth:
 
     def worked(self):
         self._until = 0.0
+
+
+def _native_bytes(c) -> int:
+    """Bytes of the arrays of a kept native cutout (see `LiveSeries.spectrum`)."""
+    return 0 if c is None else sum(a.nbytes for a in (c["image"], c["flags"], c["variance"], c["wave_map"]) if a is not None)
 
 
 class LiveSeries:
@@ -152,6 +157,34 @@ class LiveSeries:
                 doc["stacks"] = with_urls(self._stacks, lambda name: f"/api/frames/{self.id}/{name}?v={self.gen}")
             return doc
 
+    def spectrum(self, at_ra, at_dec) -> dict:
+        """Contract `spectrum` document: the flux at (at_ra, at_dec) in every frame loaded so far, measured on the cutouts
+        as downloaded (the method of `frames[].flux`), with the wavelength at that pixel of each frame."""
+        with self._lock:
+            if self.status == "error":
+                return {"status": "error", "data_origin": "real", "progress": {"done": 0, "total": 0, "failed": 0}, "frames": [],
+                        "error": {"message": self.error}}
+            if self.pix_dropped:
+                return {"status": "error", "data_origin": "real", "progress": {"done": 0, "total": 0, "failed": 0}, "frames": [],
+                        "error": {"message": "The pixels of this series were released to save memory. Load the position again."}}
+            items = [(i, f["native"], f["obs_mjd"]) for i, f in sorted(self._frames.items()) if f.get("native") is not None]
+            status, total, failed, available = self.status, self.total, self.failed, self.available
+        frames = []
+        for i, c, obs_mjd in items:  # the cutouts are never modified, so measuring outside the lock is safe
+            x, y = sky_to_pixel(c["wcs"], at_ra, at_dec)
+            e = {"index": i, "obs_mjd": round(obs_mjd, 6), "wavelength_um": round(wavelength_at(c, x, y), 5), "flux": flux_for_series(c, at_ra, at_dec)}
+            if c.get("mjd_avg") is not None:
+                e["mjd_avg"] = round(c["mjd_avg"], 6)
+            frames.append(e)
+        progress = {"done": len(frames), "total": total, "failed": failed}
+        if available is not None:
+            progress["available"] = available
+        doc = {"status": status, "data_origin": "real", "series": {"ra": self.ra, "dec": self.dec, "fov_deg": self.fov},
+               "point": {"ra": at_ra, "dec": at_dec}, "progress": progress, "frames": frames}
+        if any(f["flux"]["ok"] for f in frames):
+            doc["photometry"] = spectrum_method_block()
+        return doc
+
     def png(self, name: str):
         """`name` is 'NN.png' for a frame or a stack file name."""
         with self._lock:
@@ -166,7 +199,7 @@ class LiveSeries:
 
     def pixel_bytes(self) -> int:
         with self._lock:
-            return sum(f["pix"].nbytes + f["flagged"].nbytes for f in self._frames.values() if "pix" in f)
+            return sum(f["pix"].nbytes + f["flagged"].nbytes + _native_bytes(f.get("native")) for f in self._frames.values() if "pix" in f)
 
     def png_bytes(self) -> int:
         with self._lock:
@@ -176,7 +209,7 @@ class LiveSeries:
         """Let the pixels go (the PNGs stay). The series can then be shown but not extended in place."""
         with self._lock:
             for f in self._frames.values():
-                f.pop("pix", None), f.pop("flagged", None)
+                f.pop("pix", None), f.pop("flagged", None), f.pop("native", None)
             self.pix_dropped = True
 
     def extend(self, cap) -> bool:
@@ -225,7 +258,7 @@ class LiveSeries:
                     self._pngs[i] = _png_bytes(pix, stretch["vmin"], stretch["vmax"])
             self.gen += 1
 
-    def _add(self, index, obs_mjd, band, c, pix, flagged, flux=None):
+    def _add(self, index, obs_mjd, band, c, pix, flagged, flux=None, keep_native=True):
         with self._lock:
             if self._unit is None:
                 self._unit = c["bunit"]
@@ -233,7 +266,8 @@ class LiveSeries:
                 raise ValueError(f"frames disagree on BUNIT: {self._unit!r} and {c['bunit']!r}")
             self._frames[index] = {"obs_mjd": obs_mjd, "wavelength_um": c["wavelength_um"],
                                    "flag_fraction": float(flagged.mean()), "pix": pix, "flagged": flagged, "band": band,
-                                   "flux": flux, "mjd_avg": c.get("mjd_avg")}
+                                   "flux": flux, "mjd_avg": c.get("mjd_avg"),
+                                   "native": c if keep_native and "wave_map" in c else None}  # the cutout as downloaded, for `spectrum`
             n = len(self._frames)
             restretch = n & (n - 1) == 0 or self.stretch is None  # 1, 2, 4, 8, ...
             stretch = self.stretch
@@ -305,7 +339,7 @@ class LiveSeries:
         def work(i):
             row = self._order[i]
             try:
-                c = read_cutout(client.fetch_cutout(row["uri"], self.ra, self.dec, size), self.ra, self.dec)
+                c = read_cutout(client.fetch_cutout(row["uri"], self.ra, self.dec, size), self.ra, self.dec, with_wave_map=True)
                 flux = flux_for_series(c, self.ra, self.dec)  # on the cutout as downloaded, before resampling
                 pix, flagged = reproject_frame(c["image"], c["wcs"], c["flags"], gwcs, self.shape)
                 if not np.isfinite(pix).any():
