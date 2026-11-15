@@ -15,6 +15,7 @@ Details of finished work (what, why, what is still missing) are in [`WORKLOG.md`
 
 | ID | Task | Owner | Touches |
 |---|---|---|---|
+| T15 | Overlay Gaia or WISE catalogue positions | branch `claude/t15-catalogue-overlay-2437ff` | `api/main.py`, `web/src/main.js`, `web/index.html` |
 | T41 | Cache three famous positions as demo targets (Orion M42, Eagle M16, Andromeda M31) so a demo never waits for the archive | parked on branch `t41-demo-targets` (entries added, series not built: the archive search service was down, HTTP 502). To finish: when the archive answers, on that branch run `python -m pipeline.build verify/targets.json --only m42 m16 m31`, then `--offline` for flux, then `make verify` | `verify/targets.json`, `static/series/`, `tests/pipeline/test_targets.py` |
 
 ## Todo
@@ -23,7 +24,6 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 
 | ID | P | Task | Challenge item | Touches | Notes |
 |---|---|---|---|---|---|
-| T15 | P2 | Overlay Gaia or WISE catalogue positions | "overlay astronomical data from other telescopes" | `api/main.py` (catalogue query), `web/src/main.js`, `web/index.html` | Would also answer where WISE 0855 and Epsilon Indi B should be. Aladin Lite was the planned route. |
 | T20 | P2 | Flag detail: per-pixel flag overlay or a breakdown by flag bit | "display metadata, like contamination flags" | `pipeline/grid.py`, `pipeline/writer.py`, `contracts/`, `web/src/main.js` | Only a flagged fraction per frame is shown today. |
 | T24 | P3 | Epsilon Indi B: confirm what the bright object at the field edge is and whether the target is visible | test target | none, or T15 | Presumed Epsilon Indi A, not checked. |
 | T26 | P3 | Remove the merged Day 1 worktrees and branches (`claude/build-backend-2cca9d`, `claude/build-web-cb39ff`) | none | git only | Fully merged, no uncommitted work. Needs Dat's go-ahead. |
