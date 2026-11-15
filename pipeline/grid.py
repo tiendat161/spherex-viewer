@@ -13,9 +13,10 @@ from reproject import reproject_interp
 
 PIXEL_SCALE_ARCSEC = 6.2
 FOVS_DEG = (0.1, 0.2, 0.5, 1.0)  # the field widths the contract allows; the static cache holds 0.2 only
-# FLAGS bits that do not mean "bad pixel". SPHEREx Explanatory Supplement v2.0, Table 16:
-# bit 21 SOURCE ("Pixel mapped to a known source") and bit 12 FULLSAMPLE ("purely informational").
-# Bit meanings were taken from the Supplement as relayed by the planning session; not re-read here.
+# FLAGS bits that do not mean "bad pixel". Checked 2026-11-15 against the SPHEREx Explanatory Supplement, Version 2.0
+# (2026-08-25), Sect. 3.2.5 "Bad Pixel Flagging", Table 16 "Image pixel flags used in spectral images at Level 2":
+# bit 21 SOURCE ("Pixel mapped to a known source.") and bit 12 FULLSAMPLE ("Not usable for science, purely informational").
+# Bit numbers and names read from the document text. Whether bit N means 2**N is the usual reading and is not stated in that table.
 IGNORED_FLAG_BITS = (1 << 21) | (1 << 12)
 # astropy/wcslib WCS objects are not thread-safe; the build fetches in threads but reprojects one at a time.
 _REPROJECT_LOCK = threading.Lock()
