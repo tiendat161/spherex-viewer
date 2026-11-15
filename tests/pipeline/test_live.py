@@ -202,3 +202,16 @@ def test_builder_refuses_when_the_queue_is_full_and_retries_old_errors():
     assert a.doc()["status"] == "error"
     time.sleep(0.01)
     assert b.get_or_start(1.0, 1.0, 0.2, 40) is not a  # error older than the TTL: built again
+
+
+def test_total_memory_budget_evicts_old_finished_series():
+    b = LiveBuilder(FakeClient(), max_total_bytes=1)  # a budget no series fits in
+    a = b.get_or_start(1.0, 1.0, 0.2, 3)
+    wait(a)
+    assert a.png_bytes() > 0 and b.total_bytes() > 0
+    assert b.find(a.id) is a  # the latest finished series is never evicted, even over budget
+    c = b.get_or_start(2.0, 2.0, 0.2, 3)  # a new build evicts the older finished series
+    assert b.find(a.id) is None
+    wait(c)
+    assert b.find(c.id) is c
+    assert c.doc()["status"] == "ready"

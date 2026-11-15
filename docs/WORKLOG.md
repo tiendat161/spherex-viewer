@@ -15,6 +15,12 @@ Commits: abc1234, def5678
 
 ---
 
+## 2026-11-15: Rate limit and memory cap for the public server (T45)
+Commit: see `git log` on branch `t45-limits` (message starts "T45").
+**What:** `GET /api/series` is limited per client address (120 a minute, `SPHEREX_RATE_LIMIT`; HTTP 429 with an error document). Live series now have a total memory budget (pixels plus PNGs, 600 MB): older finished series are evicted, the newest finished one is kept, and a new build is refused while running series alone fill the budget. The image starts uvicorn with `--proxy-headers` so the limit sees the real client behind Caddy. Tests in `tests/api/test_api.py` and `tests/pipeline/test_live.py`; `make verify` passed (no UI change, no screenshot).
+**Why:** T23 finding 2: one client could fill the build slots and memory was only bounded for pixels of finished series.
+**Gaps:** The 120 a minute and the 600 MB are chosen figures, not measured on the EC2 host (T45's own note said to measure first). `--forwarded-allow-ips='*'` is only safe while port 8000 is not public. One client can still fill the 8 build slots with different positions inside the rate limit (no per-client build quota). Rate-limit state is in memory and per process. Not run inside the container.
+
 ## 2026-11-15: Reviewer pass over the whole diff since Day 1 (T23)
 Commit: see `git log` (message starts "Docs: record the T23 review").
 

@@ -23,6 +23,7 @@ Then open http://localhost:8000. The volume is optional: it keeps remembered arc
 | `PORT` | `8000` | Port the service listens on. Many hosts set this themselves. |
 | `SPHEREX_CACHE_DIR` | `/data/cache` | Where remembered archive searches are written. |
 | `SPHEREX_LIVE` | on | `0` turns live builds off: only the five cached targets work and nothing contacts the archive. A safe mode for a demo when the archive is down. |
+| `SPHEREX_RATE_LIMIT` | `120` | `/api/series` requests per client address per minute; `0` is no limit. |
 | `SPHEREX_SERIES_DIR` | the folder baked into the image | A different folder of cached series. |
 
 Health check: `GET /api/targets` (the image has one built in).
@@ -39,7 +40,7 @@ Any container host that runs a Dockerfile and keeps one instance running fits. W
 ## Things to know before making it public
 
 - **The archive decides how fast a new position is.** A search took 40 to 67 s in three runs and about 4 minutes once, and at the time of writing the archive's search service returned HTTP 502. The five cached targets never wait for it.
-- **No rate limit per visitor.** The service limits itself (at most 8 archive downloads at once, 2 builds running and 6 waiting) but a single visitor can fill the queue. A host or proxy that limits requests per address helps.
+- **Limits per visitor and for memory (T45).** `GET /api/series` is limited to 120 requests a minute per client address (`SPHEREX_RATE_LIMIT`, `0` turns it off); over it the API answers HTTP 429 with an error document. One browser tab polls about 30 times a minute. The address is the real client only if the proxy sends `X-Forwarded-For`: the image starts uvicorn with `--proxy-headers --forwarded-allow-ips='*'`, which is safe only while port 8000 is not reachable from outside (as in the EC2 setup). Behind no proxy, drop those flags. Live series (pixels plus PNGs) are capped at 600 MB (`MAX_TOTAL_BYTES` in `pipeline/live.py`): older finished series are evicted first, and a new build is refused while running ones alone fill it. The 600 MB and the 120 a minute are chosen figures, not measured on the host. One visitor can still fill the 8 build slots by asking for many different positions within the limit.
 - **No accounts, no stored user data.** Positions typed by visitors go to the archive as part of the search; nothing else leaves the service.
 - **The cached targets are in the image.** Refreshing them is `make refresh` on a machine with archive access (`docs/data-updates.md`), then rebuild the image.
 
