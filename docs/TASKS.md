@@ -16,6 +16,8 @@ Details of finished work (what, why, what is still missing) are in [`WORKLOG.md`
 | ID | Task | Owner | Touches |
 |---|---|---|---|
 | T41 | Cache three famous positions as demo targets (Orion M42, Eagle M16, Andromeda M31) so a demo never waits for the archive | parked on branch `t41-demo-targets` (entries added, series not built: the archive search service was down, HTTP 502). To finish: when the archive answers, on that branch run `python -m pipeline.build verify/targets.json --only m42 m16 m31`, then `--offline` for flux, then `make verify` | `verify/targets.json`, `static/series/`, `tests/pipeline/test_targets.py` |
+| T16 | Deeper stacks for Barnard's Star, Epsilon Indi B, RW Aurigae, R Draconis | claude/t16-t18-stacks-bd134e | `verify/targets.json` (`stack_images`), `static/series/`, `.cache/` |
+| T18 | Retry the 8 failed frames (Barnard's Star 3, R Draconis 5) | claude/t16-t18-stacks-bd134e | `static/series/`, `.cache/` |
 
 ## Todo
 
@@ -25,9 +27,7 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 |---|---|---|---|---|---|
 | T14 | P2 | Spectrum on click: brightness of the clicked point across all bands | "Extra kudos if your tool can generate spectra on the fly" | `contracts/`, `pipeline/` (new per-frame flux data), `api/main.py`, `web/src/main.js` | Needs per-frame flux values, which the 8-bit PNGs do not carry. Clashes with T13 and T15 in `main.js`. |
 | T15 | P2 | Overlay Gaia or WISE catalogue positions | "overlay astronomical data from other telescopes" | `api/main.py` (catalogue query), `web/src/main.js`, `web/index.html` | Would also answer where WISE 0855 and Epsilon Indi B should be. Aladin Lite was the planned route. |
-| T16 | P2 | Deeper stacks for Barnard's Star, Epsilon Indi B, RW Aurigae, R Draconis | "add together ... to improve the signal-to-noise" | `verify/targets.json` (`stack_images`), `static/series/`, `.cache/` | They stack only their 35–40 cached images (1–3 per detector per visit). A full fetch was started and stopped (about 14 images a minute). Suggested: `stack_images: 120`. Barnard's Star already has 170 cutouts cached. Contacts IRSA. Data only: no code clash. |
 | T17 | P2 | WISE 0855: show where the object should be now | test target | `verify/targets.json`, `pipeline/targets.py`, or overlay via T15 | Nothing identified at the marker. Challenge coordinates match about epoch 2010; the object should be about 126″ away. Proper motion value is unverified. Ask the organisers which epoch they mean. |
-| T18 | P2 | Retry the 8 failed frames (Barnard's Star 3, R Draconis 5) | test targets | `static/series/`, `.cache/` | `make cache` resumes from `.cache/`. Contacts IRSA. Can be done together with T16. |
 | T20 | P2 | Flag detail: per-pixel flag overlay or a breakdown by flag bit | "display metadata, like contamination flags" | `pipeline/grid.py`, `pipeline/writer.py`, `contracts/`, `web/src/main.js` | Only a flagged fraction per frame is shown today. |
 | T22 | P3 | Keep live series across restarts | none | `pipeline/live.py`, `api/main.py` | Live results are in memory only (30 most recent). Matters once deployed (T10). |
 | T24 | P3 | Epsilon Indi B: confirm what the bright object at the field edge is and whether the target is visible | test target | none, or T15 | Presumed Epsilon Indi A, not checked. |

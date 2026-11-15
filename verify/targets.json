@@ -16,6 +16,7 @@
     },
     {
       "id": "barnard",
+      "stack_images": 120,
       "name": "Barnard's Star",
       "position": { "ra_hms": "17 57 48.498", "dec_dms": "+04 41 36.11", "epoch": 2000.0 },
       "pm_mas_per_yr": { "pm_ra_cosdec": -801.55, "pm_dec": 10362.39 },
@@ -25,6 +26,7 @@
     },
     {
       "id": "epsindb",
+      "stack_images": 120,
       "name": "Epsilon Indi B",
       "position": { "ra_hms": "22 04 10.595", "dec_dms": "-56 46 58.24", "epoch": 2000.0 },
       "pm_mas_per_yr": { "pm_ra_cosdec": 3981.98, "pm_dec": -2466.83 },
@@ -33,6 +35,7 @@
     },
     {
       "id": "rwaur",
+      "stack_images": 120,
       "name": "RW Aurigae",
       "position": { "ra_hms": "05 07 49.566", "dec_dms": "+30 24 05.18", "epoch": 2000.0 },
       "pm_mas_per_yr": { "pm_ra_cosdec": 7.23, "pm_dec": -20.33 },
@@ -41,6 +44,7 @@
     },
     {
       "id": "rdra",
+      "stack_images": 120,
       "name": "R Draconis",
       "position": { "ra_hms": "16 32 40.227", "dec_dms": "+66 45 17.93", "epoch": 2000.0 },
       "pm_mas_per_yr": { "pm_ra_cosdec": -20.64, "pm_dec": 6.15 },
