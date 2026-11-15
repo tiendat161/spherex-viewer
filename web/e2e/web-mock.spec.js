@@ -359,6 +359,7 @@ test('flux charts: spectrum and light curve next to the image, coloured by visit
   await expect(page.locator('#chart-title')).toHaveText('SIMULATED. Flux at the requested position: 36 of 40 frames measured');
   await expect(page.locator('.chart-dot')).toHaveCount(36);
   await expect(page.locator('#chart-legend span')).toHaveCount(3); // one colour per visit
+  await expect(page.locator('#chart-help')).toContainText('Each colour is one visit');
   await expect(page.locator('#chart-note')).toContainText('not aperture-corrected');
   await expect(page.locator('#chart-note')).toContainText('4 of 40 frames have no flux');
   await expect(page.locator('#chart-note')).toContainText('first choices, not checked');
@@ -379,6 +380,7 @@ test('flux charts: spectrum and light curve next to the image, coloured by visit
   await expect(page.locator('#chart-title')).toContainText('Flux at about 2.9');
   expect(await page.locator('.chart-dot').count()).toBeGreaterThanOrEqual(2);
   await expect(page.locator('#chart-note')).toContainText('mid-exposure time');
+  await expect(page.locator('#chart-help')).toContainText('larger than the error bars');
   await page.locator('#slider').fill('0');
   await expect(page.locator('#chart-message')).toContainText('Fewer than two measured frames near 0.75');
   await expect(page.locator('.chart-dot')).toHaveCount(0);

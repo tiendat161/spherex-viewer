@@ -10,7 +10,7 @@ const el = {
   prev: $('prev'), play: $('play'), next: $('next'), slider: $('slider'), visitBar: $('visit-bar'), vtrack: $('visit-track'), vmarks: $('visit-marks'), vhandle: $('visit-handle'), vlabels: $('visit-labels'), vaxis: $('vaxis'), segDate: $('seg-date'), segWl: $('seg-wl'), caption: $('caption'), targetsMenu: $('targets-menu'), targetsCurrent: $('targets-current'), vTrack: $('vaxis-track'), vTicks: $('vaxis-ticks'), vHandle: $('vaxis-handle'), vLabels: $('vaxis-labels'), fps: $('fps'), zoom: $('zoom'), pair: $('pair'), pairNote: $('pair-note'), playNote: $('play-note'), wdown: $('wdown'), wup: $('wup'), playWl: $('play-wl'),
   view: $('view'), band: $('band'), bandWrap: $('band-wrap'), diff: $('diff'), diffWrap: $('diff-wrap'),
   mark: $('mark'), marker: $('marker'),
-  stageRow: $('stage-row'), charts: $('charts'), tabSpectrum: $('tab-spectrum'), tabCurve: $('tab-curve'), chart: $('chart'), chartTitle: $('chart-title'), chartLegend: $('chart-legend'), chartMessage: $('chart-message'), chartNote: $('chart-note'),
+  stageRow: $('stage-row'), charts: $('charts'), tabSpectrum: $('tab-spectrum'), tabCurve: $('tab-curve'), chart: $('chart'), chartTitle: $('chart-title'), chartLegend: $('chart-legend'), chartHelp: $('chart-help'), chartMessage: $('chart-message'), chartNote: $('chart-note'),
   rFrame: $('r-frame'), rDate: $('r-date'), rWave: $('r-wave'), rFlag: $('r-flag'), legend: $('legend'),
 };
 
@@ -341,6 +341,10 @@ function renderCharts() {
   el.chart.replaceChildren();
   el.chartLegend.replaceChildren();
   el.chartMessage.hidden = !!lay;
+  // One plain sentence on how to read the chart.
+  el.chartHelp.textContent = curve
+    ? 'Frames within 5% of the wavelength on screen, by date. A change counts only if it is larger than the error bars. The measuring circle stays on the requested position, so a moving object can leave it.'
+    : 'Each colour is one visit, a group of observation dates. A visit covers only some wavelengths, so the points are not joined. Overlapping error bars mean the visits cannot be told apart.';
   el.chart.hidden = !lay; // no empty frame when there is nothing to draw
   const sim = r.data_origin === 'simulated' ? 'SIMULATED. ' : '';
   if (!lay) {

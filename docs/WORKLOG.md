@@ -41,6 +41,7 @@ Commits: `32492ed` (contract, own commit), `7c83325` (pipeline), `3e4dc80` (cach
 - Live series carry flux too, tested with simulated cutouts only: the archive was not answering searches when this was written, so it was not run against real live data.
 - The side-by-side layout needs a window about 820 px wide (it first needed 1040 px, and the panel then sat under the image and below the fold in a 930 px window, which looked like the charts were missing; found by the user, fixed in the commit after `8283816`); below 820 px the panel is under the image. The page is up to 1240 px wide. The visit slider's margins were widened so its end labels no longer overflow a 930 px window.
 - The demo targets (T41) were built before this change and will need an offline rebuild to carry flux.
+- A one-line "how to read this" sits under each chart (what a colour means, that a change must exceed the error bars, that the circle does not follow a moving object); added after the user asked how the charts should be read.
 
 ## 2026-11-15: Remembered archive searches and a slow-archive message (T42); demo targets started (T41)
 Commits: see the T42 row on the board.
