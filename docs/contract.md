@@ -38,6 +38,7 @@ JSON, validated by `contracts/series.schema.json`. No properties beyond these ar
 | `progress.total` | integer ≥ 0 | Frames planned: the `load` asked for (live) or the cached series' frame count; at most the images available; 0 until the archive query returns |
 | `progress.failed` | integer ≥ 0 | Frames given up on; they are not in `frames` |
 | `progress.available` | integer ≥ 0, optional | Added 2026-11-15 (T40). Distinct images the archive lists for this position; a live series can be extended up to this many (at most 102). Absent for a cached series, and until the archive query has returned |
+| `progress.search` | `"tap"` or `"sia2"`, optional | Added 2026-11-15 (T43). Which archive service gave the live list of images. `sia2` means TAP failed and the SIA2 fallback was used: on R Draconis SIA2 listed 539 of the 2493 images TAP lists, so the list may be incomplete. Absent for a cached series, and until the archive query has returned |
 | `grid` | object, or null unless `ready` | The shared grid, below |
 | `grid.center` | `{ra, dec}` | ICRS degrees; equals the request `ra`/`dec` |
 | `grid.pixel_scale_arcsec` | `6.2` (constant) | Arcseconds per pixel |

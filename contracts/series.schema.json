@@ -57,6 +57,14 @@
           "description": "Optional. Distinct images the archive lists for this position (releases de-duplicated). A live series loads `total` of them and can be asked for more with `load`, up to this many (and at most 102). Present once the archive query has returned; absent for a cached series.",
           "type": "integer",
           "minimum": 0
+        },
+        "search": {
+          "description": "Optional. Which archive service produced the list of images for a live series: `tap` (the usual, complete list) or `sia2` (the fallback used when TAP failed; the list may be incomplete, see docs/contract.md). Absent for a cached series and until the archive query has returned.",
+          "type": "string",
+          "enum": [
+            "tap",
+            "sia2"
+          ]
         }
       }
     },
