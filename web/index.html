@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
+  <div id="sky" class="sky" aria-hidden="true"></div>
   <header>
     <h1>SPHEREx blink viewer</h1>
     <div id="badge" class="badge badge-unknown" role="status" aria-label="Data origin">NO DATA YET</div>
@@ -23,6 +24,7 @@
     </form>
     <p class="coords-hint muted small">Paste RA and Dec together (separated by a space) into either box, or one at a time. Decimal degrees or sexagesimal (08h55m10.831s -7d14m42.53s), ICRS. Any position is built live from the SPHEREx archive; the cached targets open at once.</p>
   </div>
+  <p id="sky-label" class="sky-label muted small">Background sky: DSS2 colour survey (optical, photographic plates from about 1975 to 1999), shown with Aladin Lite. A different telescope and an older sky, not SPHEREx data, so it does not show where a moving object is now.</p>
   <main>
     <section id="viewer">
       <div id="progress" class="progress" aria-live="polite"><span id="progress-text">Choose a target.</span><progress id="bar" max="1" value="0"></progress></div>

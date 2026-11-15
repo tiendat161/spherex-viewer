@@ -1,3 +1,4 @@
+import { showSky } from './sky.js';
 import { fetchCatalogue, fetchTargets, pollSeries, pollSpectrum } from './api.js';
 import { PALETTE, fluxPoints, fluxSummary, lightCurveLayout, reasonText, reasonWords, spectrumLayout } from './chart.js';
 import { FOV_DEG, SPECTRUM_LOAD, clickToImage, imageToBox, pixelToSky, skyToPixel, medianMjd, parseAngle, INITIAL_LOAD, MB_PER_IMAGE, isCachedPosition, loadPlan, loadTimeText, captionText, splitCoordinates, WIDE_FOV_DEG, bandLabel, blinkPair, buildSlots, cycleVisit, pingPong, formatFlag, gridFovDeg, isWideField, locationQuery, mjdToUtc, nearestWavelength, nearestY, nextSlot, orderSlots, padPosition, padSpec, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, stackSlots, stepVisit, stepWavelength, visitsOf, zoomRect } from './model.js';
@@ -635,6 +636,7 @@ async function load(ra, dec, { fov = FOV_DEG, push = false } = {}) {
   const url = locationQuery(ra, dec, fov);
   if (push) history.pushState(null, '', url);
   markTargets();
+  showSky(ra, dec, fov);
   el.progressText.textContent = 'Requesting series…';
   el.message.hidden = true;
   state.startedAt = Date.now();
