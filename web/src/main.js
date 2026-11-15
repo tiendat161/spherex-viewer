@@ -1,6 +1,6 @@
-import { fetchTargets, pollSeries } from './api.js';
+import { fetchTargets, pollSeries, pollSpectrum } from './api.js';
 import { PALETTE, fluxPoints, fluxSummary, lightCurveLayout, reasonText, reasonWords, spectrumLayout } from './chart.js';
-import { FOV_DEG, parseAngle, INITIAL_LOAD, MB_PER_IMAGE, isCachedPosition, loadPlan, loadTimeText, captionText, splitCoordinates, WIDE_FOV_DEG, bandLabel, blinkPair, buildSlots, cycleVisit, pingPong, formatFlag, gridFovDeg, isWideField, locationQuery, mjdToUtc, nearestWavelength, nearestY, nextSlot, orderSlots, padPosition, padSpec, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, stackSlots, stepVisit, stepWavelength, visitsOf, zoomRect } from './model.js';
+import { FOV_DEG, SPECTRUM_LOAD, clickToImage, imageToBox, pixelToSky, parseAngle, INITIAL_LOAD, MB_PER_IMAGE, isCachedPosition, loadPlan, loadTimeText, captionText, splitCoordinates, WIDE_FOV_DEG, bandLabel, blinkPair, buildSlots, cycleVisit, pingPong, formatFlag, gridFovDeg, isWideField, locationQuery, mjdToUtc, nearestWavelength, nearestY, nextSlot, orderSlots, padPosition, padSpec, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, stackSlots, stepVisit, stepWavelength, visitsOf, zoomRect } from './model.js';
 
 const $ = (id) => document.getElementById(id);
 const el = {
@@ -10,11 +10,11 @@ const el = {
   prev: $('prev'), play: $('play'), next: $('next'), slider: $('slider'), visitBar: $('visit-bar'), vtrack: $('visit-track'), vmarks: $('visit-marks'), vhandle: $('visit-handle'), vlabels: $('visit-labels'), vaxis: $('vaxis'), segDate: $('seg-date'), segWl: $('seg-wl'), caption: $('caption'), targetsMenu: $('targets-menu'), targetsCurrent: $('targets-current'), vTrack: $('vaxis-track'), vTicks: $('vaxis-ticks'), vHandle: $('vaxis-handle'), vLabels: $('vaxis-labels'), fps: $('fps'), zoom: $('zoom'), pair: $('pair'), pairNote: $('pair-note'), playNote: $('play-note'), wdown: $('wdown'), wup: $('wup'), playWl: $('play-wl'),
   view: $('view'), band: $('band'), bandWrap: $('band-wrap'), diff: $('diff'), diffWrap: $('diff-wrap'),
   mark: $('mark'), marker: $('marker'),
-  stageRow: $('stage-row'), charts: $('charts'), tabSpectrum: $('tab-spectrum'), tabCurve: $('tab-curve'), chart: $('chart'), chartTitle: $('chart-title'), chartLegend: $('chart-legend'), chartHelp: $('chart-help'), chartMessage: $('chart-message'), chartNote: $('chart-note'),
+  stageRow: $('stage-row'), charts: $('charts'), tabSpectrum: $('tab-spectrum'), tabPoint: $('tab-point'), pointMarker: $('point-marker'), tabCurve: $('tab-curve'), chart: $('chart'), chartTitle: $('chart-title'), chartLegend: $('chart-legend'), chartHelp: $('chart-help'), chartMessage: $('chart-message'), chartNote: $('chart-note'),
   rFrame: $('r-frame'), rDate: $('r-date'), rWave: $('r-wave'), rFlag: $('r-flag'), legend: $('legend'),
 };
 
-const state = { chartTab: 'spectrum', load: null, startedAt: 0, holdWl: null, playMode: null, dir: 1, targets: [], resp: null, slots: [], current: 0, playing: false, timer: null, abort: null, pos: null, pair: null };
+const state = { chartTab: 'spectrum', load: null, startedAt: 0, holdWl: null, playMode: null, dir: 1, targets: [], resp: null, slots: [], current: 0, playing: false, timer: null, abort: null, pos: null, pair: null, point: null }; // point: the clicked position and its spectrum {ra, dec, fx, fy, cached, resp, abort}
 let padShown = null; // {slots, stacks, key, spec, visit} of the visit and wavelength controls as drawn
 const images = new Map(); // url -> HTMLImageElement, preloaded so blinking does not stutter
 const ctx = el.canvas.getContext('2d');
@@ -124,6 +124,7 @@ function render() {
   renderPlayNote();
   renderMore();
   renderCharts();
+  renderPointMarker();
   el.slider.max = String(Math.max(0, state.slots.length - 1));
   el.slider.value = String(state.current);
   renderPad();
@@ -317,24 +318,29 @@ let chartShown = null; // {resp, tab, index} of the chart as drawn
  */
 function renderCharts() {
   const r = state.resp;
-  const frames = r?.frames ?? [];
+  const pt = state.point;
+  const onPoint = state.chartTab === 'point';
+  const src = onPoint ? pt?.resp : r; // the clicked point's spectrum, or the series' own fluxes
+  const frames = src?.frames ?? [];
   const sum = fluxSummary(frames);
-  const show = sum.hasFlux;
+  const show = fluxSummary(r?.frames ?? []).hasFlux || !!pt;
   el.charts.hidden = !show;
   el.stageRow.classList.toggle('has-charts', show);
   if (!show) return;
   const cur = !stackView() ? currentSlot() : null;
-  const curIndex = cur && !cur.skipped ? cur.index : null;
-  if (chartShown && chartShown.resp === r && chartShown.tab === state.chartTab && chartShown.index === curIndex) return;
-  chartShown = { resp: r, tab: state.chartTab, index: curIndex };
-  for (const [tab, on] of [[el.tabSpectrum, state.chartTab === 'spectrum'], [el.tabCurve, state.chartTab === 'curve']]) tab.setAttribute('aria-selected', String(on));
+  // A click on a cached target is measured on a live series whose frames are not the ones on screen: no frame to highlight or open.
+  const sameFrames = !(onPoint && pt?.cached);
+  const curIndex = cur && !cur.skipped && sameFrames ? cur.index : null;
+  if (chartShown && chartShown.resp === r && chartShown.tab === state.chartTab && chartShown.index === curIndex && chartShown.src === src && chartShown.pt === pt) return;
+  chartShown = { resp: r, tab: state.chartTab, index: curIndex, src, pt };
+  for (const [tab, on] of [[el.tabSpectrum, state.chartTab === 'spectrum'], [el.tabPoint, onPoint], [el.tabCurve, state.chartTab === 'curve']]) tab.setAttribute('aria-selected', String(on));
 
   // Visit of each frame, for the colour: the same grouping as the visit slider.
   const slots = orderSlots(buildSlots(r), 'time');
   const pad = padSpec(slots, visitsOf(r, slots));
   const visitOf = new Map();
   pad?.visits.forEach((v, i) => v.points.forEach((p) => visitOf.set(slots[p.slot].index, i)));
-  const points = fluxPoints(frames, visitOf);
+  const points = fluxPoints(frames, sameFrames ? visitOf : new Map());
   const wl0 = cur && !cur.skipped ? cur.wavelength_um : points.length ? [...points].sort((a, b) => a.wl - b.wl)[Math.floor(points.length / 2)].wl : null;
   const curve = state.chartTab === 'curve';
   const lay = curve ? (wl0 ? lightCurveLayout(points, wl0) : null) : spectrumLayout(points);
@@ -345,17 +351,19 @@ function renderCharts() {
   // One plain sentence on how to read the chart.
   el.chartHelp.textContent = curve
     ? 'Frames within 5% of the wavelength on screen, by date. A change counts only if it is larger than the error bars. The measuring circle stays on the requested position, so a moving object can leave it.'
+    : onPoint ? 'The brightness at the point you clicked, in each frame. The wavelength of a point is read at its own pixel, because it changes across the detector. Overlapping error bars cannot be told apart. A nearby source adds to the flux.'
     : 'Each colour is one visit, a group of observation dates. A visit covers only some wavelengths, so the points are not joined. Overlapping error bars mean the visits cannot be told apart.';
   el.chart.hidden = !lay; // no empty frame when there is nothing to draw
-  const sim = r.data_origin === 'simulated' ? 'SIMULATED. ' : '';
+  const sim = !onPoint && r.data_origin === 'simulated' ? 'SIMULATED. ' : '';
   if (!lay) {
-    el.chartTitle.textContent = curve ? 'Light curve' : 'Spectrum';
-    el.chartMessage.textContent = !points.length
+    el.chartTitle.textContent = curve ? 'Light curve' : onPoint ? 'Clicked point' : 'Spectrum';
+    el.chartMessage.textContent = onPoint ? pointMessage(pt, points.length, sum) : !points.length
       ? `No flux could be measured in any of the ${sum.total} frames at this position. Reason: ${reasonWords(sum.reasons)}. This is not zero flux.`
       : `Fewer than two measured frames near ${wl0.toFixed(2)} µm on different dates. Move the wavelength slider to a wavelength that several visits observed.`;
   } else {
     el.chartTitle.textContent = sim + (curve
       ? `Flux at about ${wl0.toFixed(2)} µm: ${lay.dots.length} frames within 5%`
+      : onPoint ? `Flux at RA ${pt.ra.toFixed(4)}°, Dec ${pt.dec.toFixed(4)}°: ${sum.measured} of ${src.progress.total} frames measured`
       : `Flux at the requested position: ${sum.measured} of ${sum.total} frames measured`);
     const { plot } = lay;
     const axis = { stroke: '#2c313c', 'stroke-width': 1 };
@@ -373,7 +381,9 @@ function renderCharts() {
     el.chart.append(svg('text', { transform: `translate(12 ${(plot.y0 + plot.y1) / 2}) rotate(-90)`, 'text-anchor': 'middle', fill: '#9aa1ad', 'font-size': 11 }, 'Flux (µJy)'));
     for (const d of lay.dots) {
       const color = PALETTE[d.visit % PALETTE.length];
-      const g = svg('g', { class: 'chart-dot', 'data-index': d.index, tabindex: 0, role: 'button', 'aria-label': `Show the frame at ${d.wl.toFixed(3)} micrometres` });
+      const g = sameFrames
+        ? svg('g', { class: 'chart-dot', 'data-index': d.index, tabindex: 0, role: 'button', 'aria-label': `Show the frame at ${d.wl.toFixed(3)} micrometres` })
+        : svg('g', { class: 'chart-dot-static' });
       const when = mjdToUtc(d.mjd).slice(0, 10);
       g.append(svg('title', {}, `${d.wl.toFixed(3)} µm · ${when} · ${d.flux.toFixed(1)} ± ${d.err.toFixed(1)} µJy · visit ${d.visit + 1}`));
       g.append(svg('line', { x1: d.cx, x2: d.cx, y1: d.y0, y2: d.y1, stroke: color, 'stroke-width': 1.2, opacity: 0.8 }));
@@ -389,11 +399,85 @@ function renderCharts() {
       el.chartLegend.append(item);
     }
   }
-  const ph = r.photometry;
-  el.chartNote.textContent = (ph ? `Aperture photometry at the requested position: ${ph.aperture_radius_pix} pixel radius (about ${Math.round(ph.aperture_radius_pix * 6.2)}″), background from a ring ${ph.annulus_inner_pix} to ${ph.annulus_outer_pix} pixels out, not aperture-corrected. These sizes are first choices, not checked against a source of known brightness. ` : '')
+  const ph = src?.photometry;
+  el.chartNote.textContent = onPoint ? pointNote(pt, ph, sum, !!lay) : (ph ? `Aperture photometry at the requested position: ${ph.aperture_radius_pix} pixel radius (about ${Math.round(ph.aperture_radius_pix * 6.2)}″), background from a ring ${ph.annulus_inner_pix} to ${ph.annulus_outer_pix} pixels out, not aperture-corrected. These sizes are first choices, not checked against a source of known brightness. ` : '')
     + (sum.measured < sum.total && lay ? `${sum.total - sum.measured} of ${sum.total} frames have no flux: ${reasonText(sum.reasons)}. ` : '')
     + (curve ? 'Time is the mid-exposure time of each image.' : '');
-  el.chart.setAttribute('aria-label', `${curve ? 'Light curve' : 'Spectrum'}: ${lay ? lay.dots.length : 0} measured frames`);
+  el.chart.setAttribute('aria-label', `${curve ? 'Light curve' : onPoint ? 'Clicked point spectrum' : 'Spectrum'}: ${lay ? lay.dots.length : 0} measured frames`);
+}
+
+/** What the chart area says when the clicked point has nothing to draw: nothing clicked yet, an error, waiting, or no measurable frame. */
+function pointMessage(pt, measured, sum) {
+  if (!pt) return 'Click a point on the image to measure its brightness in every frame.';
+  const resp = pt.resp;
+  if (resp?.status === 'error') return resp.error?.message ?? 'The spectrum could not be measured.';
+  if (!resp || (resp.status === 'loading' && !measured)) {
+    const p = resp?.progress;
+    return pt.cached
+      ? `Building a live series at this position to measure the point${p?.total ? `: ${p.done} of ${p.total} frames in` : ''}. The first click on a cached target takes minutes, because the cached frames are not kept on the server and the archive is asked again.`
+      : `Measuring the clicked point${p?.total ? `: ${p.done} of ${p.total} frames in` : ''}…`;
+  }
+  return `No flux could be measured at this point in any of the ${sum.total} frames. Reason: ${reasonWords(sum.reasons)}. This is not zero flux.`;
+}
+
+/** The small print under the clicked-point chart: method, progress, why some frames have no flux, and which frames these are. */
+function pointNote(pt, ph, sum, drawn) {
+  const parts = [];
+  if (ph) parts.push(`Real SPHEREx data. Aperture photometry at the clicked position, ${ph.aperture_radius_pix} pixel radius, background from a ring ${ph.annulus_inner_pix} to ${ph.annulus_outer_pix} pixels out, not aperture-corrected; the same method as the flux at the requested position (checked against 2MASS stars there, not at other positions).`);
+  if (pt?.resp?.status === 'loading' && drawn) parts.push(`Still loading: ${pt.resp.progress.done} of ${pt.resp.progress.total} frames so far.`);
+  if (drawn && sum.measured < sum.total) parts.push(`${sum.total - sum.measured} of ${sum.total} frames have no flux: ${reasonText(sum.reasons)}.`);
+  if (pt?.cached) parts.push('These frames are not the cached frames shown in the image: the server builds a live series at this position and chooses its frames by its own rule (spread over dates and bands), so the points cannot be opened as frames here.');
+  return parts.join(' ');
+}
+
+function clearPoint() {
+  state.point?.abort?.abort();
+  state.point = null;
+  if (state.chartTab === 'point') state.chartTab = 'spectrum';
+}
+
+/** The marker on the image at the clicked point; follows the zoom. */
+function renderPointMarker() {
+  const pt = state.point;
+  el.pointMarker.hidden = !pt;
+  if (!pt) return;
+  const { u, v } = imageToBox(pt.fx, pt.fy, Number(el.zoom.value));
+  el.pointMarker.hidden = u < 0 || u > 1 || v < 0 || v > 1;
+  el.pointMarker.style.left = `${u * 100}%`;
+  el.pointMarker.style.top = `${v * 100}%`;
+}
+
+/** Measure the point on the live series at the current position. A cached target has no cutouts on the server, so the API starts a live series there. */
+async function measurePoint() {
+  const pt = state.point;
+  if (!pt || !state.pos) return;
+  pt.abort?.abort();
+  pt.abort = new AbortController();
+  const { ra, dec, fov } = state.pos;
+  try {
+    await pollSpectrum(ra, dec, fov, pt, {
+      load: pt.cached ? SPECTRUM_LOAD : state.load ?? SPECTRUM_LOAD, // a live series on screen is measured as loaded, not extended
+      signal: pt.abort.signal,
+      onUpdate: (resp) => { if (state.point === pt) { pt.resp = resp; pt.doneAt = resp.progress.done; render(); } },
+    });
+  } catch (e) {
+    if (e.name !== 'AbortError') throw e;
+  }
+}
+
+/** A click on the image: where on the sky, then its spectrum. */
+function onImageClick(e) {
+  const g = state.resp?.grid;
+  if (!g || !state.pos || el.frameBox.hidden) return;
+  const box = el.canvas.getBoundingClientRect();
+  const { fx, fy } = clickToImage((e.clientX - box.left) / box.width, (e.clientY - box.top) / box.height, Number(el.zoom.value));
+  if (fx < 0 || fx > 1 || fy < 0 || fy > 1) return;
+  const { ra, dec } = pixelToSky(g, fx, fy);
+  state.point?.abort?.abort();
+  state.point = { ra, dec, fx, fy, cached: isCachedPosition(state.targets, state.pos.ra, state.pos.dec, state.pos.fov), resp: null, abort: null, doneAt: -1 };
+  state.chartTab = 'point';
+  measurePoint();
+  render();
 }
 
 function selectFrame(frameIndex) {
@@ -460,6 +544,9 @@ function go(i) {
 
 function onUpdate(resp) {
   state.resp = resp;
+  // More frames of a live series arrived after the clicked point was measured: measure those too.
+  const pt = state.point;
+  if (pt && !pt.cached && pt.resp && pt.resp.status !== 'loading' && resp.progress.done > pt.doneAt) measurePoint();
   if (resp.stacks && !state.stacksSeen) {
     // Stacks arrive with the finished series: fill the band list and show the stacked view first.
     state.stacksSeen = true;
@@ -492,6 +579,7 @@ async function load(ra, dec, { fov = FOV_DEG, push = false } = {}) {
   state.slots = [];
   state.current = 0;
   state.pair = null;
+  clearPoint();
   el.ra.value = String(ra);
   el.dec.value = String(dec);
   el.fov.value = String(fov);
@@ -592,6 +680,8 @@ for (const t of ['pointerup', 'pointercancel']) el.vtrack.addEventListener(t, ()
 el.segDate.addEventListener('click', () => { if (state.resp?.stacks && !stackView()) { setView('stack'); reslot(); } });
 el.segWl.addEventListener('click', () => { if (stackView()) { setView('frames'); reslot(); } });
 el.tabSpectrum.addEventListener('click', () => { state.chartTab = 'spectrum'; render(); });
+el.tabPoint.addEventListener('click', () => { state.chartTab = 'point'; render(); });
+el.canvas.addEventListener('click', onImageClick);
 el.tabCurve.addEventListener('click', () => { state.chartTab = 'curve'; render(); });
 el.chart.addEventListener('click', (e) => { const g = e.target.closest('.chart-dot'); if (g) selectFrame(Number(g.dataset.index)); });
 el.chart.addEventListener('keydown', (e) => { const g = e.target.closest?.('.chart-dot'); if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); selectFrame(Number(g.dataset.index)); } });

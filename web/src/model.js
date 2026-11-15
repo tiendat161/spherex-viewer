@@ -24,6 +24,44 @@ export function seriesUrl(ra, dec, fov = FOV_DEG, load = null) {
   return `/api/series?${q}`;
 }
 
+export const SPECTRUM_LOAD = 40; // frames asked for when a click on a cached target starts a live series (the cached frames are not on the server)
+
+/** The request for the flux at a clicked position in every frame of the live series at (ra, dec, fov). Identical on every poll. */
+export function spectrumUrl(ra, dec, fov, point, load = SPECTRUM_LOAD) {
+  const q = new URLSearchParams({ ra: String(ra), dec: String(dec), fov: String(fov), at_ra: String(point.ra), at_dec: String(point.dec), load: String(load) });
+  return `/api/spectrum?${q}`;
+}
+
+/**
+ * The sky position under a point of the image. `fx`, `fy` are fractions of the image width and height from the left and from the top
+ * (north is up, east left, as in the PNGs). `grid` is the series' grid: a TAN projection centred on `grid.center`, pixels of
+ * `pixel_scale_arcsec` (docs/contract.md). Returns {ra, dec} in degrees, the exact inverse of the projection.
+ */
+export function pixelToSky(grid, fx, fy) {
+  const [ny, nx] = grid.shape;
+  const s = (grid.pixel_scale_arcsec / 3600) * (Math.PI / 180);
+  const xi = -(fx - 0.5) * nx * s; // east is left
+  const eta = (0.5 - fy) * ny * s; // north is up
+  const r = Math.PI / 180;
+  const ra0 = grid.center.ra * r, dec0 = grid.center.dec * r;
+  const rho = Math.hypot(xi, eta);
+  if (rho === 0) return { ra: grid.center.ra, dec: grid.center.dec };
+  const c = Math.atan(rho);
+  const dec = Math.asin(Math.cos(c) * Math.sin(dec0) + (eta * Math.sin(c) * Math.cos(dec0)) / rho);
+  const ra = ra0 + Math.atan2(xi * Math.sin(c), rho * Math.cos(dec0) * Math.cos(c) - eta * Math.sin(dec0) * Math.sin(c));
+  return { ra: (((ra / r) % 360) + 360) % 360, dec: dec / r };
+}
+
+/** Fractions (from the left, from the top) of the image under a click at (u, v) in 0..1 of the canvas box, undoing the centred zoom. */
+export function clickToImage(u, v, zoom) {
+  return { fx: (u - 0.5) / zoom + 0.5, fy: (v - 0.5) / zoom + 0.5 };
+}
+
+/** Where, in 0..1 of the canvas box, the image fractions (fx, fy) are drawn at this zoom. Inverse of `clickToImage`. */
+export function imageToBox(fx, fy, zoom) {
+  return { u: (fx - 0.5) * zoom + 0.5, v: (fy - 0.5) * zoom + 0.5 };
+}
+
 /** Angular separation in arcseconds between two {ra, dec} positions in degrees. */
 export function sepArcsec(a, b) {
   const r = Math.PI / 180;

@@ -38,6 +38,8 @@ button:hover:not(:disabled) { border-color:var(--accent); } button:disabled { op
 .frame-box { position:relative; flex:0 1 clamp(280px, calc(100vh - 440px), 580px); min-width:0; aspect-ratio:1; }
 canvas { width:100%; height:100%; image-rendering:pixelated; image-rendering:crisp-edges; display:block; background:#000; }
 .marker { position:absolute; left:50%; top:50%; width:28px; height:28px; margin:-14px 0 0 -14px; border:2px solid #ffe14d; border-radius:50%; pointer-events:none; box-shadow:0 0 0 1px #000; }
+.point-marker { position:absolute; width:20px; height:20px; margin:-10px 0 0 -10px; border:2px solid #4dd2ff; border-radius:50%; pointer-events:none; box-shadow:0 0 0 1px #000; }
+.frame-box canvas { cursor:crosshair; }
 .compass { position:absolute; left:8px; top:8px; color:#fff; font-size:13px; text-shadow:0 0 3px #000, 0 0 3px #000; }
 .scalebar { width:var(--w); position:absolute; right:10px; bottom:10px; color:#fff; font-size:12px; text-align:center; text-shadow:0 0 3px #000; white-space:nowrap; }
 .scalebar::before { content:""; display:block; height:0; border-top:2px solid #fff; margin-bottom:2px; box-shadow:0 0 2px #000; }
@@ -75,6 +77,7 @@ select.visually-hidden { position:absolute; width:1px; height:1px; opacity:0; ov
 @media (min-width:1100px) { .stage-row.has-charts { grid-template-columns:minmax(0, 1fr) 400px; } }
 .charts { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px 12px; }
 .charts svg { width:100%; height:auto; display:block; margin-top:4px; }
+.charts svg[hidden] { display:none; }
 .chart-title { margin:8px 0 0; font-weight:600; font-size:13.5px; }
 .chart-legend { display:flex; flex-wrap:wrap; gap:4px 12px; font-size:12px; color:var(--muted); margin-top:2px; }
 .chart-legend i { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; vertical-align:-1px; }

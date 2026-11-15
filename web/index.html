@@ -43,6 +43,7 @@
           <div id="frame-box" class="frame-box" hidden>
             <canvas id="canvas"></canvas>
             <div id="marker" class="marker" title="Requested position (grid centre)" hidden></div>
+            <div id="point-marker" class="point-marker" title="Clicked position" hidden></div>
             <div id="compass" class="compass">N&nbsp;↑ &nbsp;E&nbsp;←</div>
             <div id="scalebar" class="scalebar" hidden><span id="scalebar-label"></span></div>
             <div id="skipped" class="skipped" hidden></div>
@@ -51,6 +52,7 @@
         <aside id="charts" class="charts" aria-label="Flux measurements" hidden>
           <div class="seg" role="tablist" aria-label="Chart">
             <button id="tab-spectrum" type="button" role="tab" aria-selected="true" title="Flux against wavelength, every frame that could be measured">Spectrum</button>
+            <button id="tab-point" type="button" role="tab" aria-selected="false" title="Click a point on the image: its flux in every frame, measured on request">Clicked point</button>
             <button id="tab-curve" type="button" role="tab" aria-selected="false" title="Flux against date, for the frames near the wavelength on screen">Light curve</button>
           </div>
           <p id="chart-title" class="chart-title"></p>

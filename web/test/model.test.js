@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseAngle, isCachedPosition, loadPlan, loadTimeText, sepArcsec, captionText, splitCoordinates, blinkPair, buildSlots, cycleVisit, pingPong, labelIndexes, nearestWavelength, nearestY, padPosition, padSpec, stepVisit, stepWavelength, visitsOf, gridFovDeg, isWideField, locationQuery, mjdToUtc, nextSlot, parseFov, parseLocation, progressText, PARTIAL_LIST_NOTE, scaleBarArcsec, scaleBarLabel, seriesUrl, zoomRect } from '../src/model.js';
+import { pixelToSky, clickToImage, imageToBox, spectrumUrl, parseAngle, isCachedPosition, loadPlan, loadTimeText, sepArcsec, captionText, splitCoordinates, blinkPair, buildSlots, cycleVisit, pingPong, labelIndexes, nearestWavelength, nearestY, padPosition, padSpec, stepVisit, stepWavelength, visitsOf, gridFovDeg, isWideField, locationQuery, mjdToUtc, nextSlot, parseFov, parseLocation, progressText, PARTIAL_LIST_NOTE, scaleBarArcsec, scaleBarLabel, seriesUrl, zoomRect } from '../src/model.js';
 import { errorResponse, fixture, gapResponse, loadingResponse, validateSeries, validateTargets } from './helpers.js';
 
 describe('hand-built responses are schema-valid', () => {
@@ -360,5 +360,43 @@ describe('parseAngle: decimal or sexagesimal', () => {
     expect(splitCoordinates('08 55 10.831 -07 14 42.53')).toEqual(['08 55 10.831', '-07 14 42.53']);
     expect(splitCoordinates('08h 55m 10.831s -7d 14m 42.53s')).toEqual(['08h 55m 10.831s', '-7d 14m 42.53s']);
     expect(splitCoordinates('133.795129 -7d14m42.53s')).toEqual(['133.795129', '-7d14m42.53s']); // mixed is fine
+  });
+});
+
+describe('clicked position (T14)', () => {
+  // Reference values: the grid WCS of pipeline/grid.py (astropy TAN) at the same pixels.
+  const grid = (ra, dec) => ({ center: { ra, dec }, pixel_scale_arcsec: 6.2, shape: [116, 116] });
+  it.each([
+    [133.795129, -7.245147, 0.25, 0.75, 133.84548099566945, -7.295088645127735],
+    [133.795129, -7.245147, 0.9, 0.1, 133.714589047665, -7.165228935183362],
+    [10.0, 80.0, 0.8, 0.3, 9.653491489557501, 80.03977705022034],
+  ])('pixelToSky matches the grid projection (%s, %s, %s, %s)', (ra, dec, fx, fy, wantRa, wantDec) => {
+    const p = pixelToSky(grid(ra, dec), fx, fy);
+    expect(p.ra).toBeCloseTo(wantRa, 7);
+    expect(p.dec).toBeCloseTo(wantDec, 7);
+  });
+  it('the image centre is the grid centre; east is left and north is up', () => {
+    const g = grid(200, 30);
+    expect(pixelToSky(g, 0.5, 0.5)).toEqual({ ra: 200, dec: 30 });
+    expect(pixelToSky(g, 0.2, 0.5).ra).toBeGreaterThan(200);
+    expect(pixelToSky(g, 0.5, 0.2).dec).toBeGreaterThan(30);
+  });
+  it('keeps the right ascension in 0 to 360 across the wrap', () => {
+    const p = pixelToSky(grid(0.001, 0), 0.0, 0.5);
+    expect(p.ra).toBeGreaterThan(0);
+    expect(p.ra).toBeLessThan(0.2);
+    expect(pixelToSky(grid(0.001, 0), 1.0, 0.5).ra).toBeGreaterThan(359.9);
+  });
+  it('clickToImage undoes the centred zoom and imageToBox is its inverse', () => {
+    expect(clickToImage(0.5, 0.5, 4)).toEqual({ fx: 0.5, fy: 0.5 });
+    expect(clickToImage(0.75, 0.25, 2)).toEqual({ fx: 0.625, fy: 0.375 });
+    const { fx, fy } = clickToImage(0.9, 0.2, 2.5);
+    const b = imageToBox(fx, fy, 2.5);
+    expect(b.u).toBeCloseTo(0.9, 12);
+    expect(b.v).toBeCloseTo(0.2, 12);
+  });
+  it('spectrumUrl names the series position and the clicked one', () => {
+    expect(spectrumUrl(1, 2, 0.2, { ra: 1.01, dec: 2.02 })).toBe('/api/spectrum?ra=1&dec=2&fov=0.2&at_ra=1.01&at_dec=2.02&load=40');
+    expect(spectrumUrl(1, 2, 0.5, { ra: 1.01, dec: 2.02 }, 8)).toContain('load=8');
   });
 });
