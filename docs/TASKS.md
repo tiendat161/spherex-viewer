@@ -16,6 +16,7 @@ Details of finished work (what, why, what is still missing) are in [`WORKLOG.md`
 | ID | Task | Owner | Touches |
 |---|---|---|---|
 | T41 | Cache three famous positions as demo targets (Orion M42, Eagle M16, Andromeda M31) so a demo never waits for the archive | parked on branch `t41-demo-targets` (entries added, series not built: the archive search service was down, HTTP 502). To finish: when the archive answers, on that branch run `python -m pipeline.build verify/targets.json --only m42 m16 m31`, then `--offline` for flux, then `make verify` | `verify/targets.json`, `static/series/`, `tests/pipeline/test_targets.py` |
+| T54 | Requested by Dat: simpler text. Explanatory text moves into an "i" icon (hover shows, click pins, click again or Escape closes); short labels, status, errors and the REAL / SIMULATED labelling stay visible | branch `claude/info-icons` | `web/index.html`, `web/src/main.js`, `web/src/model.js`, `web/src/style.css`, `web/src/info.js`, `web/e2e/` |
 
 ## Todo
 

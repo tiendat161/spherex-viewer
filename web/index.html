@@ -22,14 +22,14 @@
       <label>Dec <input id="dec" name="dec" inputmode="decimal" autocomplete="off" placeholder="degrees or -7d14m42s" aria-label="Declination, decimal degrees or degrees minutes seconds" /></label>
       <button type="submit">Load</button>
     </form>
-    <p class="coords-hint muted small">Paste RA and Dec together (separated by a space) into either box, or one at a time. Decimal degrees or sexagesimal (08h55m10.831s -7d14m42.53s), ICRS. Any position is built live from the SPHEREx archive; the cached targets open at once.</p>
+    <p class="coords-hint muted small">Paste RA and Dec together (separated by a space) into either box, or type them one at a time. <span class="info"><button type="button" class="info-btn" aria-label="More about entering a position">i</button><span class="info-pop">Decimal degrees or sexagesimal (08h55m10.831s -7d14m42.53s), ICRS. Any position is built live from the SPHEREx archive; the cached targets open at once.</span></span></p>
   </div>
-  <p id="sky-label" class="sky-label muted small">Background sky: DSS2 colour survey (optical, plates from about 1975 to 1999), shown with Aladin Lite<span class="sky-idle"> (an arbitrary wide view of the sky until you load a position, not a target)</span>. A different telescope and an older sky, not SPHEREx data, so it does not show where a moving object is now. Credit: Digitized Sky Survey - STScI/NASA, Colored &amp; Healpixed by CDS. Drawing it sends the sky position to the survey tile servers and to the Aladin Lite script host (jsdelivr).</p>
+  <div id="sky-label" class="sky-label muted small">Background: DSS2 sky survey (STScI/NASA, CDS), not SPHEREx data<span class="sky-idle"> (an arbitrary view until you load a position)</span>. <span class="info"><button type="button" class="info-btn" aria-label="More about the background sky">i</button><span class="info-pop"><p>DSS2 colour survey (optical, plates from about 1975 to 1999), shown with Aladin Lite<span class="sky-idle"> as an arbitrary wide view of the sky until you load a position, not a target</span>. A different telescope and an older sky, not SPHEREx data, so it does not show where a moving object is now.</p><p>Credit: Digitized Sky Survey - STScI/NASA, Colored &amp; Healpixed by CDS.</p><p>Privacy: drawing it sends the sky position to the survey tile servers and to the Aladin Lite script host (jsdelivr).</p></span></span></div>
   <main>
     <section id="viewer">
       <div id="progress" class="progress" aria-live="polite"><span id="progress-text">Choose a target.</span><progress id="bar" max="1" value="0"></progress></div>
       <div id="more" class="more" hidden>
-        <span id="more-text" class="muted small"></span>
+        <span id="more-text" class="muted small">The other images are not downloaded yet. <span class="info"><button type="button" class="info-btn" aria-label="More about the images shown">i</button><span class="info-pop">The ones shown are spread over the observation dates and the detector bands.</span></span></span>
         <button id="more-btn" type="button"></button>
         <button id="more-all" type="button"></button>
       </div>
@@ -54,15 +54,14 @@
           </div>
         </div>
         <aside id="charts" class="charts" aria-label="Flux measurements" hidden>
-          <div class="seg" role="tablist" aria-label="Chart">
+          <div class="chart-top"><div class="seg" role="tablist" aria-label="Chart">
             <button id="tab-spectrum" type="button" role="tab" aria-selected="true" title="Flux against wavelength, every frame that could be measured">Spectrum</button>
             <button id="tab-point" type="button" role="tab" aria-selected="false" title="Click a point on the image: its flux in every frame, measured on request">Clicked point</button>
             <button id="tab-curve" type="button" role="tab" aria-selected="false" title="Flux against date, for the frames near the wavelength on screen">Light curve</button>
-          </div>
+          </div><span class="info"><button type="button" class="info-btn" aria-label="How to read this chart and how it was measured">i</button><span class="info-pop"><p id="chart-help"></p><p id="chart-method"></p></span></span></div>
           <p id="chart-title" class="chart-title"></p>
           <svg id="chart" viewBox="0 0 380 280" role="img" aria-label="Flux chart"></svg>
           <div id="chart-legend" class="chart-legend"></div>
-          <p id="chart-help" class="chart-help small"></p>
           <p id="chart-message" class="muted small" hidden></p>
           <p id="chart-note" class="muted small"></p>
         </aside>
@@ -90,9 +89,9 @@
           </div>
         </div>
       </div>
-      <p id="pair-note" class="muted small" hidden></p>
-      <p id="play-note" class="muted small" hidden></p>
-      <p id="fov-note" class="note-wide small" hidden>Wide field: the wavelength shown is exact only at the centre of the image. SPHEREx observes each position on the detector at its own wavelength, so towards the edges of a field this wide the light is from a different wavelength than the one shown. How large the difference is has not been measured for this tool.</p>
+      <p id="pair-note" class="muted small" hidden><span id="pair-text"></span> <span class="info"><button type="button" class="info-btn" aria-label="More about the widest pair">i</button><span class="info-pop">Chosen as the closest wavelengths among frames at least 80% of the series' time span apart.</span></span></p>
+      <p id="play-note" class="muted small" hidden><span id="play-text"></span><span id="play-info"> <span class="info"><button type="button" class="info-btn" aria-label="More about playing across epochs">i</button><span class="info-pop">Each epoch shows its frame closest to that wavelength, and the readout gives the exact one.</span></span></span></p>
+      <p id="fov-note" class="note-wide small" hidden>Wide field: the wavelength shown is exact only at the centre of the image. <span class="info"><button type="button" class="info-btn" aria-label="More about the wide field">i</button><span class="info-pop">SPHEREx observes each position on the detector at its own wavelength, so towards the edges of a field this wide the light is from a different wavelength than the one shown. How large the difference is has not been measured for this tool.</span></span></p>
 
       <details id="advanced" class="advanced">
         <summary>Advanced</summary>
@@ -103,25 +102,25 @@
           <label class="speed">Zoom
             <select id="zoom"><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select>
           </label>
-          <label class="speed" title="Blink two frames far apart in time and close in wavelength"><input id="pair" type="checkbox" /> Blink widest pair</label>
-          <label class="speed" title="Draw a circle on the requested position (the centre of the image)"><input id="mark" type="checkbox" /> Mark centre</label>
-          <label class="speed" title="Draw the positions of AllWISE catalogue sources (WISE, infrared) on the image"><input id="catalogue" type="checkbox" /> Show WISE catalogue sources</label>
-          <label class="speed" id="band-wrap" hidden title="Which detector array the stacked images come from">Detector band <select id="band"></select></label>
-          <label class="speed" id="diff-wrap" hidden title="Show each later epoch minus the earliest epoch. Things that did not change cancel to grey; a moving object leaves a dark and a bright spot."><input id="diff" type="checkbox" /> Difference from first epoch</label>
-          <label class="speed" title="Width of the patch of sky. Wider fields are built live and take longer.">Field of view
-            <select id="fov" name="fov"><option value="0.1">0.1°</option><option value="0.2" selected>0.2° (cached targets)</option><option value="0.5">0.5°</option><option value="1">1°</option></select>
+          <label class="speed"><input id="pair" type="checkbox" /> Blink widest pair <span class="info"><button type="button" class="info-btn" aria-label="More about Blink widest pair">i</button><span class="info-pop">Blink two frames far apart in time and close in wavelength.</span></span></label>
+          <label class="speed"><input id="mark" type="checkbox" /> Mark centre <span class="info"><button type="button" class="info-btn" aria-label="More about Mark centre">i</button><span class="info-pop">Draw a circle on the requested position (the centre of the image).</span></span></label>
+          <label class="speed"><input id="catalogue" type="checkbox" /> Show WISE catalogue sources <span class="info"><button type="button" class="info-btn" aria-label="More about the WISE catalogue sources">i</button><span class="info-pop">Draw the positions of AllWISE catalogue sources (WISE, infrared) on the image.</span></span></label>
+          <label class="speed" id="band-wrap" hidden>Detector band <select id="band"></select> <span class="info"><button type="button" class="info-btn" aria-label="More about the detector band">i</button><span class="info-pop">Which detector array the stacked images come from.</span></span></label>
+          <label class="speed" id="diff-wrap" hidden><input id="diff" type="checkbox" /> Difference from first epoch <span class="info"><button type="button" class="info-btn" aria-label="More about the difference image">i</button><span class="info-pop">Show each later epoch minus the earliest epoch. Things that did not change cancel to grey; a moving object leaves a dark and a bright spot.</span></span></label>
+          <label class="speed">Field of view
+            <select id="fov" name="fov"><option value="0.1">0.1°</option><option value="0.2" selected>0.2° (cached targets)</option><option value="0.5">0.5°</option><option value="1">1°</option></select> <span class="info"><button type="button" class="info-btn" aria-label="More about the field of view">i</button><span class="info-pop">Width of the patch of sky. Wider fields are built live and take longer.</span></span>
           </label>
         </div>
-        <p id="cat-note" class="muted small" hidden></p>
+        <p id="cat-note" class="muted small" hidden><span id="cat-status"></span> <span class="info"><button type="button" class="info-btn" aria-label="More about the catalogue sources">i</button><span class="info-pop"><span id="cat-detail"></span></span></span></p>
         <dl id="readout" class="readout">
           <div><dt>Frame</dt><dd id="r-frame">—</dd></div>
           <div><dt>Observed</dt><dd id="r-date">—</dd></div>
           <div><dt>Wavelength</dt><dd id="r-wave">—</dd></div>
           <div><dt>Flagged</dt><dd id="r-flag">—</dd></div>
         </dl>
-        <p id="legend" class="muted small"></p>
-        <p class="muted small">Any position that is not cached is built live from the SPHEREx archive (IRSA). The archive search usually takes from under a minute to a few minutes, depending on the archive; then the first 8 images appear, chosen to spread over the observation dates and the detector bands, and you can load more (up to 102) when you want them. Each image is about 4.4 MB to download (the sizes and waits shown are rough figures from a few runs, not guarantees). Frames appear as they arrive and the brightness scale is refined as more come in. The cached targets are stored at 0.2° only: any other field of view is built live, also for a cached target, and wider fields take longer. At 0.5° and 1° part of an image can be empty where the field runs off the edge of the detector.</p>
-        <p class="muted small">The requested position is the centre of the image; tick "Mark centre" to circle it. North is up, east is left; frames are not rotated or flipped. A moving target can be off-centre and shifts between frames: look for something that hops across the field while the stars stay put. Images are shown pixel-for-pixel with nearest-neighbour scaling; zoom magnifies the centre of the same pixels and does not resample or restretch them.</p>
+        <p id="legend-row" class="muted small" hidden>How the brightness is scaled <span class="info"><button type="button" class="info-btn" aria-label="More about the brightness scale">i</button><span class="info-pop"><span id="legend"></span></span></span></p>
+        <div class="muted small">Positions other than the cached targets are built live; the archive search can take minutes. <span class="info"><button type="button" class="info-btn" aria-label="More about live positions">i</button><span class="info-pop"><p>Any position that is not cached is built live from the SPHEREx archive (IRSA). The archive search usually takes from under a minute to a few minutes, depending on the archive; then the first 8 images appear, chosen to spread over the observation dates and the detector bands, and you can load more (up to 102) when you want them.</p><p>Each image is about 4.4 MB to download (the sizes and waits shown are rough figures from a few runs, not guarantees). Frames appear as they arrive and the brightness scale is refined as more come in.</p><p>The cached targets are stored at 0.2° only: any other field of view is built live, also for a cached target, and wider fields take longer. At 0.5° and 1° part of an image can be empty where the field runs off the edge of the detector.</p></span></span></div>
+        <div class="muted small">North is up, east is left; the requested position is the centre. <span class="info"><button type="button" class="info-btn" aria-label="More about reading the image">i</button><span class="info-pop"><p>The requested position is the centre of the image; tick "Mark centre" to circle it. North is up, east is left; frames are not rotated or flipped.</p><p>A moving target can be off-centre and shifts between frames: look for something that hops across the field while the stars stay put.</p><p>Images are shown pixel-for-pixel with nearest-neighbour scaling; zoom magnifies the centre of the same pixels and does not resample or restretch them.</p></span></span></div>
       </details>
     </section>
   </main>

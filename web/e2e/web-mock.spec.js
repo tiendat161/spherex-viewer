@@ -381,9 +381,9 @@ test('flux charts: spectrum and light curve next to the image, coloured by visit
   await expect(page.locator('.chart-dot')).toHaveCount(36);
   await expect(page.locator('#chart-legend span')).toHaveCount(3); // one colour per visit
   await expect(page.locator('#chart-help')).toContainText('Each colour is one epoch');
-  await expect(page.locator('#chart-note')).toContainText('not aperture-corrected');
+  await expect(page.locator('#chart-method')).toContainText('not aperture-corrected');
   await expect(page.locator('#chart-note')).toContainText('4 of 40 frames have no flux');
-  await expect(page.locator('#chart-note')).toContainText('first choices, not checked');
+  await expect(page.locator('#chart-method')).toContainText('first choices, not checked');
 
   // A click on a point shows that frame, and the point is marked.
   await page.locator('.chart-dot[data-index="10"]').click();
@@ -400,7 +400,7 @@ test('flux charts: spectrum and light curve next to the image, coloured by visit
   await expect(page.locator('#tab-curve')).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('#chart-title')).toContainText('Flux at about 2.9');
   expect(await page.locator('.chart-dot').count()).toBeGreaterThanOrEqual(2);
-  await expect(page.locator('#chart-note')).toContainText('mid-exposure time');
+  await expect(page.locator('#chart-method')).toContainText('mid-exposure time');
   await expect(page.locator('#chart-help')).toContainText('larger than the error bars');
   await page.locator('#slider').fill('0');
   await expect(page.locator('#chart-message')).toContainText('Fewer than two measured frames near 0.75');
@@ -418,7 +418,7 @@ test('mock: catalogue overlay is off by default, draws circles with a hover labe
   await openAdvanced(page);
   await page.locator('#catalogue').check();
   await expect(page.locator('#cat-note')).toContainText('REAL catalogue data: 8 AllWISE');
-  await expect(page.locator('#cat-note')).toContainText('not corrected for proper motion');
+  await expect(page.locator('#cat-detail')).toContainText('not corrected for proper motion');
   await expect(page.locator('#cat-canvas')).toBeVisible();
   // Hover the first circle: its designation and catalogue epoch appear.
   // The mock's source 0 is 0.03 deg east of the centre: 0.03 * cos(dec) * 3600 / 6.2 pixels left of the middle of the 116-pixel image.
@@ -494,7 +494,17 @@ test('mock: with the backdrop on the SPHEREx canvas gets the clicks and Clicked 
   await expect(page.locator('body')).toHaveClass(/sky-on/);
   await expect(page.locator('#sky-label')).toBeVisible();
   await expect(page.locator('#sky-label')).toContainText('not SPHEREx data');
-  await expect(page.locator('#sky-label')).toContainText('Digitized Sky Survey');
+  await expect(page.locator('#sky-label')).toContainText('STScI/NASA, CDS');
+  const skyInfo = page.locator('#sky-label .info-btn');
+  const skyPop = page.locator('#' + (await skyInfo.getAttribute('aria-describedby')));
+  await skyInfo.click();
+  await expect(skyPop).toBeVisible();
+  await expect(skyPop).toContainText('Digitized Sky Survey - STScI/NASA, Colored & Healpixed by CDS');
+  await expect(skyPop).toContainText('sends the sky position to the survey tile servers');
+  const sr = await skyPop.boundingBox(); // above the backdrop and the page
+  expect(await page.evaluate(([x, y]) => !!document.elementFromPoint(x, y)?.closest('.info-pop'), [sr.x + sr.width / 2, sr.y + sr.height / 2])).toBe(true);
+  await page.screenshot({ path: outDir + 'web-mock-backdrop-info.png' });
+  await skyInfo.click();
   expect(await page.evaluate(() => window.__flights)).toBeGreaterThanOrEqual(1);
   const box = await page.locator('#canvas').boundingBox();
   const x = box.x + box.width * 0.4, y = box.y + box.height * 0.6;
@@ -549,4 +559,103 @@ test('mock: the image panel has the orange panel border', async ({ page }) => {
     return [st.borderTopColor, st.borderTopWidth, getComputedStyle(document.documentElement).getPropertyValue('--accent-panel').trim()];
   });
   expect(c).toEqual(['rgb(224, 123, 0)', '2px', '#e07b00']);
+});
+
+// The "i" icon (T51): hover shows, leaving hides, a click pins, a second click closes, Escape and a click elsewhere close.
+test('mock: the i icon: hover shows and leaving hides, click pins, second click closes, Escape and an outside click close', async ({ page }) => {
+  await page.goto('/');
+  const btn = page.locator('.coords-hint .info-btn');
+  const pop = page.locator('#' + (await btn.getAttribute('aria-describedby')));
+  await expect(btn).toHaveAttribute('aria-expanded', 'false');
+  await expect(pop).toBeHidden();
+  await expect(pop).toHaveAttribute('role', 'tooltip');
+  await btn.hover();
+  await expect(pop).toBeVisible();
+  await expect(btn).toHaveAttribute('aria-expanded', 'true');
+  await expect(pop).toContainText('Decimal degrees or sexagesimal');
+  await page.mouse.move(600, 600);
+  await expect(pop).toBeHidden();
+  // click pins: it stays when the pointer leaves
+  await btn.click();
+  await page.mouse.move(600, 600);
+  await page.waitForTimeout(300);
+  await expect(pop).toBeVisible();
+  // a second click closes it, also while the pointer is still on the button
+  await btn.click();
+  await expect(pop).toBeHidden();
+  await expect(btn).toHaveAttribute('aria-expanded', 'false');
+  // Escape closes a pinned one
+  await btn.click();
+  await page.mouse.move(600, 600);
+  await expect(pop).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(pop).toBeHidden();
+  // a click elsewhere closes a pinned one
+  await btn.click();
+  await page.mouse.click(600, 600);
+  await expect(pop).toBeHidden();
+});
+
+test('mock: the i icon opens with the keyboard and only one is pinned at a time', async ({ page, browserName }) => {
+  test.skip(browserName === 'webkit', 'Safari does not Tab to buttons unless the user changes a setting');
+  await page.goto('/');
+  const a = page.locator('.coords-hint .info-btn');
+  const popA = page.locator('#' + (await a.getAttribute('aria-describedby')));
+  await page.keyboard.press('Tab'); // walks to the first focusable control; keep going until the icon has focus
+  for (let i = 0; i < 12 && !(await a.evaluate((e) => e === document.activeElement)); i++) await page.keyboard.press('Tab');
+  await expect(a).toBeFocused();
+  await expect(popA).toBeVisible(); // keyboard focus shows it
+  await page.keyboard.press('Enter');
+  await expect(popA).toBeVisible();
+  await page.keyboard.press('Enter');
+  await expect(popA).toBeHidden();
+  await a.click();
+  await expect(popA).toBeVisible();
+  await page.goto(wise);
+  await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
+  const c = page.locator('#charts .info-btn');
+  const popC = page.locator('#' + (await c.getAttribute('aria-describedby')));
+  await c.click();
+  await expect(popC).toBeVisible();
+  await a.click();
+  await expect(popC).toBeHidden();
+});
+
+test('mock: the i popover stays inside the screen, on a wide and a phone-sized one, and above the page', async ({ page }) => {
+  for (const size of [{ width: 1280, height: 900 }, { width: 375, height: 700 }]) {
+    await page.setViewportSize(size);
+    await page.goto(wise);
+    await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
+    await openAdvanced(page);
+    const btns = page.locator('.info-btn:visible');
+    const n = await btns.count();
+    expect(n).toBeGreaterThan(3);
+    for (let i = 0; i < n; i++) {
+      const b = btns.nth(i);
+      await b.scrollIntoViewIfNeeded();
+      await b.click();
+      const pop = page.locator('#' + (await b.getAttribute('aria-describedby')));
+      await expect(pop).toBeVisible();
+      const r = await pop.boundingBox();
+      expect(r.x, `${size.width}px, icon ${i}`).toBeGreaterThanOrEqual(0);
+      expect(r.y).toBeGreaterThanOrEqual(0);
+      expect(r.x + r.width).toBeLessThanOrEqual(size.width);
+      expect(r.y + r.height).toBeLessThanOrEqual(size.height);
+      expect(r.width).toBeLessThanOrEqual(321);
+      // nothing covers the middle of it
+      expect(await page.evaluate(([x, y]) => !!document.elementFromPoint(x, y)?.closest('.info-pop'), [r.x + r.width / 2, r.y + r.height / 2])).toBe(true);
+      await b.click();
+    }
+  }
+});
+
+test('mock: the i texts are in place: sky label short, wide-field note short, catalogue and chart detail in popovers', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 800 });
+  await page.goto(wise + '&fov=0.5');
+  await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
+  await expect(page.locator('#fov-note')).toContainText('exact only at the centre');
+  const pop = page.locator('#fov-note .info-btn');
+  await pop.click(); // a tap
+  await expect(page.locator('#' + (await pop.getAttribute('aria-describedby')))).toContainText('has not been measured');
+  await page.screenshot({ path: outDir + 'web-mock-info-phone.png' });
 });

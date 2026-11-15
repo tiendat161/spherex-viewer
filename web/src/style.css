@@ -72,7 +72,7 @@ canvas { width:100%; height:100%; image-rendering:pixelated; image-rendering:cri
 select.visually-hidden { position:absolute; width:1px; height:1px; opacity:0; overflow:hidden; pointer-events:none; }
 @media (max-width:640px) { .visit-labels .sub { display:none; } .visit-labels { height:20px; } .coords input { width:110px; } header { padding:10px 14px; } .topbar, main { padding-left:14px; padding-right:14px; } .visit-bar { margin:0 40px; } }
 
-.more { display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; margin:0 0 8px; } .more span { flex:1 1 240px; }
+.more { display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; margin:0 0 8px; } .more #more-text { flex:1 1 240px; }
 
 .stage-row { display:grid; grid-template-columns:minmax(0, 1fr); gap:12px; align-items:start; }
 @media (min-width:820px) { .stage-row.has-charts { grid-template-columns:minmax(0, 1fr) 340px; } }
@@ -101,3 +101,14 @@ select.visually-hidden { position:absolute; width:1px; height:1px; opacity:0; ov
   body.sky-on .stage { background:#0005; }
   body.sky-on .sky-label { display:block; position:relative; z-index:1; max-width:1240px; margin:6px auto 0; padding:0 20px; }
 }
+
+/* The "i" icon (info.js): a small round button; its popover is moved to <body> and positioned by script. */
+.info { display:inline-flex; vertical-align:middle; margin-left:4px; }
+.info-btn { width:18px; height:18px; padding:0; border-radius:50%; background:transparent; color:var(--muted); border:1px solid var(--muted); font:italic 700 12px/1 Georgia, 'Times New Roman', serif; display:inline-flex; align-items:center; justify-content:center; touch-action:manipulation; }
+.info-btn:hover, .info-btn[aria-expanded="true"] { color:var(--accent); border-color:var(--accent); background:#6aa7ff22; }
+.info-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+@media (pointer:coarse) { .info-btn { width:26px; height:26px; font-size:15px; } }
+.info-pop { position:fixed; left:0; top:0; z-index:1000; width:max-content; max-width:min(320px, calc(100vw - 16px)); overflow:auto; padding:9px 11px; background:#1d222c; color:var(--text); border:1px solid var(--accent); border-radius:8px; box-shadow:0 8px 24px #000c; font-size:13px; font-weight:400; line-height:1.45; text-transform:none; letter-spacing:0; text-align:left; }
+.info-pop p { margin:0; } .info-pop p + p { margin-top:7px; }
+.chart-top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.chart-top .info { margin-left:auto; }

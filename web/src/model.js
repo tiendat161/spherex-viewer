@@ -241,7 +241,7 @@ export function formatFlag(fraction) {
   return `${(fraction * 100).toFixed(1)} %`;
 }
 
-export const PARTIAL_LIST_NOTE = ' · The main archive search is not answering, so a backup search was used: this list of images may be incomplete.';
+export const PARTIAL_LIST_NOTE = ' · Backup search used (the main archive search is not answering): the image list may be incomplete.';
 
 /** Short status line for the progress area. `elapsedS`: seconds since the request, to say how long the archive search has taken. */
 export function progressText(resp, elapsedS = null) {
@@ -257,8 +257,8 @@ function progressLine(resp, elapsedS) {
     if (elapsedS == null) return 'Waiting for the archive query (0 / 0)';
     const s = Math.round(elapsedS);
     return elapsedS < SLOW_SEARCH_S
-      ? `Asking the archive which images cover this position… ${s} s (usually under a few minutes, depending on the archive)`
-      : `The archive is slower than usual today. Still waiting for the list of images that cover this position… ${s} s. Nothing is wrong on this page; this step is the archive's own queue.`;
+      ? `Asking the archive which images cover this position… ${s} s (usually under a few minutes)`
+      : `The archive is slower than usual today. Still waiting for the list of images for this position… ${s} s. The wait is in the archive's own queue, not this page.`;
   }
   if (resp.status === 'loading') return `Loading: ${done} / ${total} frames${fail}${typeof available === 'number' ? ` · ${available} images found` : ''}`;
   if (typeof available === 'number') return `${done} of ${available} images loaded${fail}`;

@@ -1,4 +1,5 @@
 import { idleSky, showSky } from './sky.js';
+import { initInfo } from './info.js';
 import { fetchCatalogue, fetchTargets, pollSeries, pollSpectrum } from './api.js';
 import { PALETTE, fluxPoints, fluxSummary, lightCurveLayout, reasonText, reasonWords, spectrumLayout } from './chart.js';
 import { FOV_DEG, SPECTRUM_LOAD, clickToImage, imageToBox, pixelToSky, skyToPixel, medianMjd, parseAngle, INITIAL_LOAD, MB_PER_IMAGE, isCachedPosition, loadPlan, loadTimeText, captionText, splitCoordinates, WIDE_FOV_DEG, bandLabel, blinkPair, buildSlots, cycleVisit, pingPong, formatFlag, gridFovDeg, isWideField, locationQuery, mjdToUtc, nearestWavelength, nearestY, nextSlot, orderSlots, padPosition, padSpec, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, stackSlots, stepVisit, stepWavelength, visitsOf, zoomRect } from './model.js';
@@ -12,9 +13,11 @@ const el = {
   view: $('view'), band: $('band'), bandWrap: $('band-wrap'), diff: $('diff'), diffWrap: $('diff-wrap'),
   mark: $('mark'), marker: $('marker'), catToggle: $('catalogue'), catCanvas: $('cat-canvas'), catNote: $('cat-note'), catTip: $('cat-tip'),
   stageRow: $('stage-row'), charts: $('charts'), tabSpectrum: $('tab-spectrum'), tabPoint: $('tab-point'), pointMarker: $('point-marker'), tabCurve: $('tab-curve'), chart: $('chart'), chartTitle: $('chart-title'), chartLegend: $('chart-legend'), chartHelp: $('chart-help'), chartMessage: $('chart-message'), chartNote: $('chart-note'),
+  catStatus: $('cat-status'), catDetail: $('cat-detail'), chartMethod: $('chart-method'), legendRow: $('legend-row'), pairText: $('pair-text'), playText: $('play-text'), playInfo: $('play-info'),
   rFrame: $('r-frame'), rDate: $('r-date'), rWave: $('r-wave'), rFlag: $('r-flag'), legend: $('legend'),
 };
 
+initInfo(); // the "i" icons written in index.html
 const state = { chartTab: 'spectrum', load: null, startedAt: 0, holdWl: null, playMode: null, dir: 1, targets: [], resp: null, slots: [], current: 0, playing: false, timer: null, abort: null, pos: null, pair: null, point: null }; // point: the clicked position and its spectrum {ra, dec, fx, fy, cached, resp, abort}
 let padShown = null; // {slots, stacks, key, spec, visit} of the visit and wavelength controls as drawn
 const images = new Map(); // url -> HTMLImageElement, preloaded so blinking does not stutter
@@ -157,6 +160,7 @@ function render() {
         : '';
     }
   }
+  el.legendRow.hidden = !el.legend.textContent;
   // The wavelength in the readout is the one at the grid centre; on a wide field say so.
   el.fovNote.hidden = !(r?.grid ? isWideField(r.grid) : state.pos?.fov >= WIDE_FOV_DEG);
   renderReadout();
@@ -283,9 +287,10 @@ function renderPlayNote() {
   const at = padActive() && padPosition(padActive(), state.current);
   el.playNote.hidden = !(state.playing && (state.playMode === 'visits' ? state.holdWl : state.playMode === 'wl' && at));
   if (el.playNote.hidden) return;
-  el.playNote.textContent = state.playMode === 'visits'
-    ? `Playing across epochs at about ${state.holdWl.toFixed(2)} µm: each epoch shows its frame closest to that wavelength, and the readout gives the exact one.`
+  el.playText.textContent = state.playMode === 'visits'
+    ? `Playing across epochs at about ${state.holdWl.toFixed(2)} µm.` // the rest is in the "i": each epoch shows its frame closest to that wavelength
     : `Playing through the wavelengths of epoch ${at.visit + 1}, shortest to longest and back.`;
+  el.playInfo.hidden = state.playMode !== 'visits';
 }
 
 /** "Load more" and "Load all" for a finished live series that has more images in the archive than it has loaded. */
@@ -294,7 +299,6 @@ function renderMore() {
   el.more.hidden = !plan;
   if (!plan) return;
   const n1 = plan.more - plan.have;
-  el.moreText.textContent = `The other images are not downloaded yet. The ones shown are spread over the observation dates and the detector bands.`;
   el.moreBtn.textContent = `Load ${n1} more (${loadTimeText(n1)})`;
   el.moreBtn.dataset.total = String(plan.more);
   el.moreAll.hidden = !plan.all;
@@ -402,9 +406,11 @@ function renderCharts() {
     }
   }
   const ph = src?.photometry;
-  el.chartNote.textContent = onPoint ? pointNote(pt, ph, sum, !!lay) : (ph ? `Aperture photometry at the requested position: ${ph.aperture_radius_pix} pixel radius (about ${Math.round(ph.aperture_radius_pix * 6.2)}″), background from a ring ${ph.annulus_inner_pix} to ${ph.annulus_outer_pix} pixels out, not aperture-corrected. These sizes are first choices, not checked against a source of known brightness. ` : '')
-    + (sum.measured < sum.total && lay ? `${sum.total - sum.measured} of ${sum.total} frames have no flux: ${reasonText(sum.reasons)}. ` : '')
-    + (curve ? 'Time is the mid-exposure time of each image.' : '');
+  // Visible: what the reader needs now (data origin, progress, frames without flux). In the "i": how it was measured.
+  const gaps = sum.measured < sum.total && lay ? `${sum.total - sum.measured} of ${sum.total} frames have no flux: ${reasonText(sum.reasons)}.` : '';
+  const method = ph ? `Aperture photometry at the requested position: ${ph.aperture_radius_pix} pixel radius (about ${Math.round(ph.aperture_radius_pix * 6.2)}″), background from a ring ${ph.annulus_inner_pix} to ${ph.annulus_outer_pix} pixels out, not aperture-corrected. These sizes are first choices, not checked against a source of known brightness.` : '';
+  if (onPoint) { const n = pointNote(pt, ph, sum, !!lay); el.chartNote.textContent = n.note; el.chartMethod.textContent = n.method; }
+  else { el.chartNote.textContent = gaps; el.chartMethod.textContent = [method, curve ? 'Time is the mid-exposure time of each image.' : ''].filter(Boolean).join(' '); }
   el.chart.setAttribute('aria-label', `${curve ? 'Light curve' : onPoint ? 'Clicked point spectrum' : 'Spectrum'}: ${lay ? lay.dots.length : 0} measured frames`);
 }
 
@@ -416,20 +422,23 @@ function pointMessage(pt, measured, sum) {
   if (!resp || (resp.status === 'loading' && !measured)) {
     const p = resp?.progress;
     return pt.cached
-      ? `Building a live series at this position to measure the point${p?.total ? `: ${p.done} of ${p.total} frames in` : ''}. The first click on a cached target takes minutes, because the cached frames are not kept on the server and the archive is asked again.`
+      ? `Building a live series at this position to measure the point${p?.total ? `: ${p.done} of ${p.total} frames in` : ''}. The first click on a cached target takes minutes.`
       : `Measuring the clicked point${p?.total ? `: ${p.done} of ${p.total} frames in` : ''}…`;
   }
   return `No flux could be measured at this point in any of the ${sum.total} frames. Reason: ${reasonWords(sum.reasons)}. This is not zero flux.`;
 }
 
-/** The small print under the clicked-point chart: method, progress, why some frames have no flux, and which frames these are. */
+/** The small print under the clicked-point chart: {note: shown, method: for the "i"}. */
 function pointNote(pt, ph, sum, drawn) {
-  const parts = [];
-  if (ph) parts.push(`Real SPHEREx data. Aperture photometry at the clicked position, ${ph.aperture_radius_pix} pixel radius, background from a ring ${ph.annulus_inner_pix} to ${ph.annulus_outer_pix} pixels out, not aperture-corrected; the same method as the flux at the requested position (checked against 2MASS stars there, not at other positions).`);
-  if (pt?.resp?.status === 'loading' && drawn) parts.push(`Still loading: ${pt.resp.progress.done} of ${pt.resp.progress.total} frames so far.`);
-  if (drawn && sum.measured < sum.total) parts.push(`${sum.total - sum.measured} of ${sum.total} frames have no flux: ${reasonText(sum.reasons)}.`);
-  if (pt?.cached) parts.push('These frames are not the cached frames shown in the image: the server builds a live series at this position and chooses its frames by its own rule (spread over dates and bands), so the points cannot be opened as frames here.');
-  return parts.join(' ');
+  const note = [], method = [];
+  if (ph) { note.push('Real SPHEREx data.'); method.push(`Aperture photometry at the clicked position, ${ph.aperture_radius_pix} pixel radius, background from a ring ${ph.annulus_inner_pix} to ${ph.annulus_outer_pix} pixels out, not aperture-corrected; the same method as the flux at the requested position (checked against 2MASS stars there, not at other positions).`); }
+  if (pt?.resp?.status === 'loading' && drawn) note.push(`Still loading: ${pt.resp.progress.done} of ${pt.resp.progress.total} frames so far.`);
+  if (drawn && sum.measured < sum.total) note.push(`${sum.total - sum.measured} of ${sum.total} frames have no flux: ${reasonText(sum.reasons)}.`);
+  if (pt?.cached) {
+    note.push('These frames are not the cached frames shown in the image.');
+    method.push('The server builds a live series at this position and chooses its frames by its own rule (spread over dates and bands), so the points cannot be opened as frames here. The first click on a cached target takes minutes, because the cached frames are not kept on the server and the archive is asked again.');
+  }
+  return { note: note.join(' '), method: method.join(' ') };
 }
 
 function clearPoint() {
@@ -450,7 +459,7 @@ function renderCatalogue() {
   el.catTip.hidden = true;
   el.catNote.hidden = !el.catToggle.checked;
   if (!el.catToggle.checked) return;
-  if (!on) { el.catNote.textContent = 'WISE catalogue sources: shown once the image is loaded.'; return; }
+  if (!on) { setCat('WISE catalogue sources: shown once the image is loaded.'); return; }
   const key = `${state.pos.ra},${state.pos.dec},${state.pos.fov}`;
   if (state.cat?.key !== key) {
     state.cat?.abort.abort();
@@ -464,8 +473,8 @@ function renderCatalogue() {
   c.width = Math.max(1, Math.round(box.width * dpr)); c.height = Math.max(1, Math.round(box.height * dpr));
   const cx = c.getContext('2d');
   cx.clearRect(0, 0, c.width, c.height);
-  if (!doc) { el.catNote.textContent = 'WISE catalogue sources: asking the catalogue service (IRSA)…'; return; }
-  if (doc.status === 'error') { el.catNote.textContent = `WISE catalogue sources unavailable. ${doc.error.message}`; return; }
+  if (!doc) { setCat('WISE catalogue sources: asking the catalogue service (IRSA)…'); return; }
+  if (doc.status === 'error') { setCat(`WISE catalogue sources unavailable. ${doc.error.message}`); return; }
   const zoom = Number(el.zoom.value);
   let shown = 0;
   const drawn = state.catDrawn = [];
@@ -480,10 +489,16 @@ function renderCatalogue() {
     shown++;
   }
   const mjd = medianMjd(doc.sources);
-  el.catNote.textContent = `REAL catalogue data: ${shown} AllWISE (WISE) source${shown === 1 ? '' : 's'} in view, orange circles; hover a circle for its designation, W1 magnitude and catalogue epoch` +
-    `${doc.truncated ? ` (the field holds more; the ${doc.sources.length} brightest in W1 were fetched)` : ''}. ` +
+  setCat(`REAL catalogue data: ${shown} AllWISE (WISE) source${shown === 1 ? '' : 's'} in view (orange circles).`,
+    `Hover a circle for its designation, W1 magnitude and catalogue epoch${doc.truncated ? ` (the field holds more; the ${doc.sources.length} brightest in W1 were fetched)` : ''}. ` +
     `Positions are the catalogue's, at the catalogue epoch${mjd ? ` (median of the catalogue's mean W1 dates for these sources: ${mjdToUtc(mjd).slice(0, 10)} UTC; column meaning not verified here)` : ''}, ` +
-    'not corrected for proper motion: a moving object is where WISE saw it, not where SPHEREx saw it. Not all of them are visible in the SPHEREx images.';
+    'not corrected for proper motion: a moving object is where WISE saw it, not where SPHEREx saw it. Not all of them are visible in the SPHEREx images.');
+}
+
+/** The catalogue line: `status` stays visible, `detail` is in the "i". */
+function setCat(status, detail = '') {
+  el.catStatus.textContent = status;
+  el.catDetail.textContent = detail;
 }
 
 /** The marker on the image at the clicked point; follows the zoom. */
@@ -540,7 +555,7 @@ function renderPairNote() {
   el.pairNote.hidden = !state.pair;
   if (!state.pair) return;
   const [a, b] = state.pair.map((i) => state.slots[i]);
-  el.pairNote.textContent = `Blinking frames ${a.index + 1} and ${b.index + 1}: ${(b.obs_mjd - a.obs_mjd).toFixed(0)} days apart, ${a.wavelength_um.toFixed(3)} and ${b.wavelength_um.toFixed(3)} µm. Chosen as the closest wavelengths among frames at least 80% of the series' time span apart.`;
+  el.pairText.textContent = `Blinking frames ${a.index + 1} and ${b.index + 1}: ${(b.obs_mjd - a.obs_mjd).toFixed(0)} days apart, ${a.wavelength_um.toFixed(3)} and ${b.wavelength_um.toFixed(3)} µm.`;
 }
 
 /** Next slot for stepping or playback. In pair mode there are only the two chosen frames. */
