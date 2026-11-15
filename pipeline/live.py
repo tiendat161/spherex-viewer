@@ -46,6 +46,9 @@ MATCH_ARCSEC = 1.0
 MAX_RUNNING = 2           # live series built at the same time
 MAX_WAITING = 6           # further series allowed to queue before requests are refused
 MAX_KEPT = 30             # finished series kept in memory
+TAP_LIVE_ATTEMPTS = 2     # live archive search: TAP tries before falling back to SIA2 (T43)
+TAP_LIVE_TIMEOUT_S = 90   # seconds one TAP try may take; the usual search takes 10 to 67 s, once about 4 minutes
+SIA_LIVE_TIMEOUT_S = 60
 ERROR_TTL_S = 60.0        # a failed series is retried if asked for again after this long
 
 
@@ -72,6 +75,7 @@ class LiveSeries:
         self._lock = threading.Lock()
         self.status = "loading"
         self.total = 0
+        self.search = None      # "tap" or "sia2": which archive service gave the list of images, once known
         self.available = None   # distinct images the archive lists, once it has answered
         self.failed = 0
         self.error = None
@@ -110,6 +114,8 @@ class LiveSeries:
             progress = {"done": len(frames), "total": self.total, "failed": self.failed}
             if self.available is not None:
                 progress["available"] = self.available
+            if self.search is not None:
+                progress["search"] = self.search
             doc = {
                 "status": self.status,
                 "data_origin": "real",
@@ -206,12 +212,20 @@ class LiveSeries:
             rows = self._rows
             if rows is None and self._tap_dir is not None:
                 rows = tapcache.load(self._tap_dir, self.ra, self.dec)  # searched before: skip the slow step
+                if rows is not None:
+                    self.search = "tap"  # only complete TAP answers are remembered
             if rows is None:
                 try:
-                    rows = client.tap_rows(self.ra, self.dec)
-                except IrsaError as e:
-                    return self._fail(f"The archive query failed: {e}")
-                if self._tap_dir is not None:
+                    rows = client.tap_rows(self.ra, self.dec, TAP_LIVE_ATTEMPTS, TAP_LIVE_TIMEOUT_S)
+                    self.search = "tap"
+                except IrsaError as tap_err:
+                    # TAP is down or too slow: SIA2 answers in seconds but may list fewer images (T43). Say so, and do not remember it.
+                    try:
+                        rows = client.sia_rows(self.ra, self.dec, SIA_LIVE_TIMEOUT_S)
+                        self.search = "sia2"
+                    except IrsaError as sia_err:
+                        return self._fail(f"The archive query failed: {tap_err}; the SIA2 fallback also failed: {sia_err}")
+                if self._tap_dir is not None and self.search == "tap":
                     try:
                         tapcache.save(self._tap_dir, self.ra, self.dec, rows)
                     except OSError:

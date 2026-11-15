@@ -116,7 +116,7 @@ def test_uncached_position_is_built_live_when_a_builder_is_given(tmp_path):
                 break
             time.sleep(0.05)
     assert body["status"] == "ready" and body["data_origin"] == "real"
-    assert body["progress"] == {"done": 40, "total": 40, "failed": 0, "available": 50}
+    assert body["progress"] == {"done": 40, "total": 40, "failed": 0, "available": 50, "search": "tap"}
     r = c.get(body["frames"][-1]["url"])
     assert r.status_code == 200 and r.headers["content-type"] == "image/png" and r.content.startswith(b"\x89PNG")
     assert c.get(body["frames"][-1]["url"].replace("39.png", "77.png")).status_code == 404
@@ -171,7 +171,7 @@ def test_load_parameter_sets_the_frames_of_a_live_series_and_extends_it(tmp_path
                 time.sleep(0.05)
 
         a = get(load=8)
-        assert a["status"] == "ready" and a["progress"] == {"done": 8, "total": 8, "failed": 0, "available": 50}
+        assert a["status"] == "ready" and a["progress"] == {"done": 8, "total": 8, "failed": 0, "available": 50, "search": "tap"}
         b = get(load=20)  # the same position again with a larger load: the same series, extended
         assert b["progress"]["done"] == 20 and {f["url"].split("?")[0] for f in a["frames"]} <= {f["url"].split("?")[0] for f in b["frames"]}
         assert get(load=8)["progress"]["done"] == 20  # a smaller load keeps what it has

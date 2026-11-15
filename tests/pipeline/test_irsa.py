@@ -117,3 +117,14 @@ def test_sia_unreadable_answer_is_an_irsa_error():
     c = IrsaClient(lambda m, u, d: Response(200, {}, b"<html>not a votable"))
     with pytest.raises(IrsaError):
         c.sia_rows(1.0, 2.0)
+
+
+def test_shorter_timeout_and_attempts_reach_the_transport():
+    seen = []
+    def transport(m, u, d, timeout=None):
+        seen.append(timeout)
+        return Response(502, {}, b"")
+    c = IrsaClient(transport, sleep=lambda s: None)
+    with pytest.raises(IrsaError):
+        c.tap_rows(1.0, 2.0, attempts=2, timeout=90)
+    assert seen == [90, 90]

@@ -184,8 +184,15 @@ export function formatFlag(fraction) {
   return `${(fraction * 100).toFixed(1)} %`;
 }
 
+export const PARTIAL_LIST_NOTE = ' · The main archive search is not answering, so a backup search was used: this list of images may be incomplete.';
+
 /** Short status line for the progress area. `elapsedS`: seconds since the request, to say how long the archive search has taken. */
 export function progressText(resp, elapsedS = null) {
+  const text = progressLine(resp, elapsedS);
+  return resp.progress && resp.progress.search === 'sia2' && resp.status !== 'error' && resp.progress.total > 0 ? text + PARTIAL_LIST_NOTE : text;
+}
+
+function progressLine(resp, elapsedS) {
   const { done, total, failed, available } = resp.progress;
   if (resp.status === 'error') return 'Error';
   const fail = failed > 0 ? `, ${failed} failed` : '';

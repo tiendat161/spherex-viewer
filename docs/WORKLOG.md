@@ -15,6 +15,15 @@ Commits: abc1234, def5678
 
 ---
 
+## 2026-11-15: SIA2 as the backup archive search for live series (T43)
+Commits: see `git log` (the contract commit "Contract: optional progress.search", then "T43: SIA2 backup ...").
+
+**What:** a live series asks TAP first (2 tries, 90 s each; before, 3 tries of up to 300 s). If TAP fails, it asks SIA2 (`IrsaClient.sia_rows`, 60 s per collection). The document then says `progress.search: "sia2"` (new optional contract field) and the progress line adds "a backup search was used: this list of images may be incomplete". A SIA2 list is not written to the remembered searches (`tapcache`), so the next request tries TAP again. If both fail, the error names both. The cache build (`make cache`, `make refresh`) still uses TAP only, so a cached target is never built from a partial list.
+
+**Why:** from EC2 on 2026-11-15 SIA2 answered in 1 to 5 s (about half the calls got a 502 first, which the retry covers) while TAP never answered in 10 tries; but SIA2 lists 539 of R Draconis's 2493 images, so it is a backup, not the first choice.
+
+**Gaps:** (1) SIA2 is not made primary: no speed comparison is possible until TAP works again; re-run the EC2 timing then (`docs/spike.md`, section 5), and check a deep field as well. (2) The 90 s TAP limit is a guess: the usual search takes 10 to 67 s and one took about 4 minutes, so a slow but working TAP may now be abandoned. (3) The fallback was tested with fakes only, not against the live archive from the server. (4) The new progress note was checked in a unit test, not in a screenshot: it only appears on the fallback path, which could not be triggered in the browser. (5) The partial-list cause for R Draconis is still unknown.
+
 ## 2026-11-15: SIA2 tried as the archive search; TAP stays (T43)
 Commit: see `git log` (branch `t31-tap-or-sia2`, message starts "T43").
 

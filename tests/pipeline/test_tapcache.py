@@ -58,9 +58,9 @@ class Counting(FakeClient):
         super().__init__(*a, **k)
         self.searches = 0
 
-    def tap_rows(self, ra, dec):
+    def tap_rows(self, ra, dec, *a, **k):
         self.searches += 1
-        return super().tap_rows(ra, dec)
+        return super().tap_rows(ra, dec, *a, **k)
 
 
 def test_a_position_searched_before_skips_the_archive_search_even_after_a_restart(tmp_path):

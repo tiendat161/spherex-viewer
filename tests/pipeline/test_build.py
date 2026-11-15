@@ -20,7 +20,10 @@ class FakeClient:
     def __init__(self, n=50, fail=()):
         self.n, self.fail, self.fetched = n, set(fail), []
 
-    def tap_rows(self, ra, dec):
+    def sia_rows(self, ra, dec, *a, **k):
+        raise IrsaError("SIA2 not available in this fake")
+
+    def tap_rows(self, ra, dec, *a, **k):
         return [{"planeid": str(i), "time_bounds_lower": str(60000 + i), "time_bounds_upper": "0", "energy_bandpassname": "X",
                  "uri": f"ibe/data/spherex/dr1/level2/w/v/3/level2_OBS{i:04d}_spx_v.fits", "contentlength": "1"} for i in range(self.n)]
 

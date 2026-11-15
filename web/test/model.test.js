@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseAngle, isCachedPosition, loadPlan, loadTimeText, sepArcsec, captionText, splitCoordinates, blinkPair, buildSlots, cycleVisit, pingPong, labelIndexes, nearestWavelength, nearestY, padPosition, padSpec, stepVisit, stepWavelength, visitsOf, gridFovDeg, isWideField, locationQuery, mjdToUtc, nextSlot, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, seriesUrl, zoomRect } from '../src/model.js';
+import { parseAngle, isCachedPosition, loadPlan, loadTimeText, sepArcsec, captionText, splitCoordinates, blinkPair, buildSlots, cycleVisit, pingPong, labelIndexes, nearestWavelength, nearestY, padPosition, padSpec, stepVisit, stepWavelength, visitsOf, gridFovDeg, isWideField, locationQuery, mjdToUtc, nextSlot, parseFov, parseLocation, progressText, PARTIAL_LIST_NOTE, scaleBarArcsec, scaleBarLabel, seriesUrl, zoomRect } from '../src/model.js';
 import { errorResponse, fixture, gapResponse, loadingResponse, validateSeries, validateTargets } from './helpers.js';
 
 describe('hand-built responses are schema-valid', () => {
@@ -24,6 +24,12 @@ describe('hand-built responses are schema-valid', () => {
 describe('loading', () => {
   const r = loadingResponse(12);
   it('shows done / total', () => expect(progressText(r)).toBe('Loading: 12 / 40 frames'));
+  it('says when a backup search gave the list', () => {
+    const b = loadingResponse(12, 40); b.progress.search = 'sia2';
+    expect(progressText(b)).toBe('Loading: 12 / 40 frames' + PARTIAL_LIST_NOTE);
+    b.progress.search = 'tap';
+    expect(progressText(b)).toBe('Loading: 12 / 40 frames');
+  });
   it('shows the wait before the archive query returns', () => expect(progressText(loadingResponse(0, 0))).toContain('Waiting'));
   it('exposes the partial frames as slots', () => {
     const slots = buildSlots(r);

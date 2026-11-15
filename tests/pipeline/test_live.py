@@ -65,7 +65,7 @@ def test_partial_docs_while_loading_are_valid_and_urls_follow_the_stretch_genera
 def test_fewer_images_than_cap_uses_them_all():
     job = LiveSeries(RA, DEC, 0.2, 40)
     job.run(FakeClient(n=3))
-    assert job.doc()["progress"] == {"done": 3, "total": 3, "failed": 0, "available": 3}
+    assert job.doc()["progress"] == {"done": 3, "total": 3, "failed": 0, "available": 3, "search": "tap"}
 
 
 @pytest.mark.parametrize("client, text", [
@@ -80,10 +80,12 @@ def test_errors_are_schema_valid(client, text):
     assert doc["status"] == "error" and text in doc["error"]["message"]
 
 
-def test_tap_failure_is_an_error():
+def test_tap_and_sia2_failure_is_an_error():
     class Down(FakeClient):
-        def tap_rows(self, ra, dec):
+        def tap_rows(self, ra, dec, *a, **k):
             raise IrsaError("TAP query failed after retries: HTTP 503")
+        def sia_rows(self, ra, dec, *a, **k):
+            raise IrsaError("SIA2 query failed after retries: HTTP 503")
     job = LiveSeries(RA, DEC, 0.2, 40)
     job.run(Down())
     assert job.doc()["status"] == "error" and "503" in job.doc()["error"]["message"]
@@ -117,9 +119,9 @@ class Counting(FakeClient):
         super().__init__(*a, **k)
         self.searches = 0
 
-    def tap_rows(self, ra, dec):
+    def tap_rows(self, ra, dec, *a, **k):
         self.searches += 1
-        return super().tap_rows(ra, dec)
+        return super().tap_rows(ra, dec, *a, **k)
 
 
 def test_first_batch_then_more_keeps_the_frames_and_fetches_only_the_new_ones():
@@ -129,7 +131,7 @@ def test_first_batch_then_more_keeps_the_frames_and_fetches_only_the_new_ones():
     wait(j)
     d1 = j.doc()
     valid(d1)
-    assert d1["status"] == "ready" and d1["progress"] == {"done": 8, "total": 8, "failed": 0, "available": 50}
+    assert d1["status"] == "ready" and d1["progress"] == {"done": 8, "total": 8, "failed": 0, "available": 50, "search": "tap"}
     first_urls = {f["index"]: f["url"].split("?")[0] for f in d1["frames"]}
     assert len(client.fetched) == 8 and "stacks" in d1
 
@@ -140,7 +142,7 @@ def test_first_batch_then_more_keeps_the_frames_and_fetches_only_the_new_ones():
     wait(j)
     d3 = j.doc()
     valid(d3)
-    assert d3["status"] == "ready" and d3["progress"] == {"done": 20, "total": 20, "failed": 0, "available": 50}
+    assert d3["status"] == "ready" and d3["progress"] == {"done": 20, "total": 20, "failed": 0, "available": 50, "search": "tap"}
     assert len(client.fetched) == 20 and len(set(client.fetched)) == 20 and client.searches == 1  # nothing fetched twice, one search
     assert {f["index"]: f["url"].split("?")[0] for f in d3["frames"] if f["index"] in first_urls} == first_urls  # same indices and ids
     assert all(j.png(f"{i:02d}.png").startswith(PNG_MAGIC) for i in range(20))
@@ -163,7 +165,7 @@ def test_asking_for_more_while_still_loading_is_picked_up_by_the_running_worker(
     assert b.get_or_start(RA, DEC, 0.2, 14) is j and j.doc()["status"] == "loading"
     gate.set()
     wait(j)
-    assert j.doc()["progress"] == {"done": 14, "total": 14, "failed": 0, "available": 50} and len(set(client.fetched)) == 14
+    assert j.doc()["progress"] == {"done": 14, "total": 14, "failed": 0, "available": 50, "search": "tap"} and len(set(client.fetched)) == 14
 
 
 def test_a_series_that_let_go_of_its_pixels_is_rebuilt_without_searching_again():
@@ -188,7 +190,7 @@ def test_builder_refuses_when_the_queue_is_full_and_retries_old_errors():
     gate = threading.Event()
 
     class Slow(FakeClient):
-        def tap_rows(self, ra, dec):
+        def tap_rows(self, ra, dec, *a, **k):
             gate.wait(10)
             return []
 
@@ -202,3 +204,35 @@ def test_builder_refuses_when_the_queue_is_full_and_retries_old_errors():
     assert a.doc()["status"] == "error"
     time.sleep(0.01)
     assert b.get_or_start(1.0, 1.0, 0.2, 40) is not a  # error older than the TTL: built again
+
+
+def test_sia2_fallback_when_tap_fails_is_marked_and_not_remembered(tmp_path):
+    class TapDown(FakeClient):
+        def tap_rows(self, ra, dec, *a, **k):
+            raise IrsaError("TAP query failed after retries: HTTP 502")
+        def sia_rows(self, ra, dec, *a, **k):
+            return FakeClient.tap_rows(self, ra, dec)
+    job = LiveSeries(RA, DEC, 0.2, 8, tap_dir=tmp_path)
+    job.run(TapDown())
+    doc = job.doc()
+    valid(doc)
+    assert doc["status"] == "ready" and doc["progress"]["search"] == "sia2"
+    assert list(tmp_path.iterdir()) == []  # a possibly partial list is not kept for a week
+
+
+def test_both_searches_failing_names_both():
+    class AllDown(FakeClient):
+        def tap_rows(self, ra, dec, *a, **k):
+            raise IrsaError("TAP query failed after retries: HTTP 502")
+        def sia_rows(self, ra, dec, *a, **k):
+            raise IrsaError("SIA2 query spherex_dr1 failed after retries: HTTP 502")
+    job = LiveSeries(RA, DEC, 0.2, 8)
+    job.run(AllDown())
+    msg = job.doc()["error"]["message"]
+    assert job.doc()["status"] == "error" and "TAP" in msg and "SIA2" in msg
+
+
+def test_tap_that_works_is_used_and_remembered(tmp_path):
+    job = LiveSeries(RA, DEC, 0.2, 8, tap_dir=tmp_path)
+    job.run(FakeClient())
+    assert job.doc()["progress"]["search"] == "tap" and len(list(tmp_path.iterdir())) == 1
