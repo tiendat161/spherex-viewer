@@ -61,3 +61,4 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 | T11 | Push `main` to `origin` | none | pushed up to `ac6e722` |
 | T13 | Field-of-view selector: 0.1°, 0.2° (default), 0.5°, 1°; `&fov=` in the URL; wide-field wavelength note | "Let users choose the field of view" | `07fc9f5` (contract), `1703a89`, `cb845e5` |
 | T27 | Structure guide brought up to date, `CLAUDE.md` points to it, `make verify-docs` fails when a source file is missing from it | none | `3ab1d85`, `18f595a`, `c8f4e76` |
+| T33 | Frame slider as a draggable axis: a tick per frame at its real wavelength (log scale) or date, drag to move through the frames | none (usability) | `5dde92a` |

@@ -15,6 +15,21 @@ Commits: abc1234, def5678
 
 ---
 
+## 2026-11-15: Draggable wavelength or time axis (T33)
+Commits: `5dde92a`
+
+**What:**
+- The frame slider is now an axis on its own line under the buttons. Every frame is a tick at its real position: wavelength on a log scale when the order is Wavelength, otherwise date. A stacked visit sits at the middle of its dates. Drag anywhere on the axis (or click) to jump to the nearest frame; the handle follows the current frame. The scale is labelled, with end labels and wavelength labels at 1, 1.5, 2, 3, 4, 5 µm inside the range.
+- The native range slider is still there, visually hidden, so the keyboard, screen readers and the existing tests work as before. The axis goes through it. With fewer than two distinct positions the plain slider is shown instead.
+- Pure logic in `web/src/model.js` (`axisSpec`, `nearestPoint`) with unit tests; a Playwright test against the mock drags the handle and checks both orders.
+
+**Why:** the slider position was only the frame number, so it hid how unevenly the frames sit in wavelength and time (the cached WISE 0855 series has visible gaps). Log scale for wavelength is a display choice, not a claim about the instrument. No contract change, no new dependency.
+
+**Gaps:**
+- Frames taken within minutes of each other overlap on a time axis (the first five frames of the mock series lie within one pixel), so a drag cannot pick between them. Step and the arrow keys do. The axis tooltip says so.
+- Not tried on a touch screen. Not tried outside Chromium (T25).
+- A band picked as a draggable range for the stacks (option B in the discussion) was not done.
+
 ## 2026-11-14: Structure guide and a check that keeps it current (T27)
 Commits: `3ab1d85`, `18f595a`, `c8f4e76`
 
