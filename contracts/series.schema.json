@@ -110,6 +110,45 @@
         "median_subtracted"
       ]
     },
+    "photometry": {
+      "description": "Optional (T29). How `frames[].flux` was measured. Present when any frame has a flux.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "aperture_radius_pix",
+        "annulus_inner_pix",
+        "annulus_outer_pix",
+        "aperture_corrected",
+        "at"
+      ],
+      "properties": {
+        "method": {
+          "description": "Circular aperture photometry on the archive cutout (about 6 arcsec pixels), background from the median of a ring around the aperture.",
+          "const": "aperture"
+        },
+        "aperture_radius_pix": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "annulus_inner_pix": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "annulus_outer_pix": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "aperture_corrected": {
+          "description": "False: the flux is the part of the source that falls inside the aperture, so it is a lower limit for a point source.",
+          "const": false
+        },
+        "at": {
+          "description": "Where the aperture is placed in every frame: the requested position, fixed in the sky. A moving target is not followed and is off-centre in frames from other epochs.",
+          "const": "request_position"
+        }
+      }
+    },
     "stacks": {
       "description": "Optional. Images combined per visit (a group of observation dates) and per band. Present when status is ready; while a live series is being extended with more frames (status loading) it still carries the stacks of the frames loaded before, until the new ones are built. See docs/contract.md, Stacks.",
       "$ref": "#/$defs/stacks"
@@ -276,6 +315,84 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1
+        },
+        "mjd_avg": {
+          "description": "Optional (T29). MJD of the middle of the exposure, the MJD-AVG keyword of the archive image, when the file has it. obs_mjd stays the archive query's time_bounds_lower. Which of the two is the better time for a light curve is an open decision (docs/contract.md, Flux).",
+          "type": "number"
+        },
+        "flux": {
+          "description": "Optional (T29). Aperture flux at the grid centre (the requested position), measured on the archive cutout before resampling. See the top-level `photometry` for the method. Present on every frame of a series built after T29; absent in older files. When ok is false there is no flux and `reason` says why.",
+          "$ref": "#/$defs/flux"
+        }
+      }
+    },
+    "flux": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ok"
+      ],
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "flux_ujy": {
+          "description": "Flux in microjansky: the background-subtracted sum over the aperture. Not aperture-corrected. May be negative or zero for a faint or absent source.",
+          "type": "number"
+        },
+        "flux_err_ujy": {
+          "description": "1 sigma uncertainty in microjansky: the VARIANCE extension summed over the aperture plus the uncertainty of the background level.",
+          "type": "number",
+          "minimum": 0
+        },
+        "reason": {
+          "description": "Why there is no flux. aperture_flagged: a pixel of the aperture is not finite or carries a flag other than SOURCE and FULLSAMPLE (bright stars give this: saturation and blooming flags). aperture_off_image: the aperture is not fully on the cutout. background_too_few_pixels: fewer clean pixels in the background ring than needed. unexpected_unit: the image is not in MJy/sr.",
+          "enum": [
+            "aperture_flagged",
+            "aperture_off_image",
+            "background_too_few_pixels",
+            "unexpected_unit"
+          ]
+        }
+      },
+      "if": {
+        "properties": {
+          "ok": {
+            "const": true
+          }
+        },
+        "required": [
+          "ok"
+        ]
+      },
+      "then": {
+        "required": [
+          "flux_ujy",
+          "flux_err_ujy"
+        ],
+        "not": {
+          "required": [
+            "reason"
+          ]
+        }
+      },
+      "else": {
+        "required": [
+          "reason"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "flux_ujy"
+              ]
+            },
+            {
+              "required": [
+                "flux_err_ujy"
+              ]
+            }
+          ]
         }
       }
     },

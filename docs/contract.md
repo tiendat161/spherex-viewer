@@ -73,6 +73,28 @@ The source images are ICRS with a `TAN-SIP` WCS tied to each image's own observa
 
 The client repeats the identical GET until `status` is `ready` or `error`. While `loading`, `frames` holds what is finished so far and grows between polls; `grid` and `stretch` may be null. For a live series the stretch cannot be final until every frame is in: while `loading`, `stretch` is the mapping applied to the PNGs at that moment (limits computed over the frames done so far, recomputed at 1, 2, 4, 8, … frames and at the end), and each recompute changes the `?v=` suffix of every `frames[].url` so clients refetch. When `ready`, the stretch is the all-frames one. When `ready`, `progress.done + progress.failed == progress.total` and `frames` has `progress.done` entries (not expressible in JSON Schema; the API must guarantee it).
 
+## Flux
+
+Added 2026-11-15 (T29). Optional, so older files and clients are unaffected. Each entry of `frames` can carry `flux`, and the series can carry a `photometry` block that says how it was measured.
+
+| Field | Meaning |
+|---|---|
+| `frames[].flux.ok` | `true` if a flux was measured |
+| `frames[].flux.flux_ujy`, `flux_err_ujy` | Present when `ok`: flux and 1 sigma uncertainty, microjansky |
+| `frames[].flux.reason` | Present when not `ok`: `aperture_flagged`, `aperture_off_image`, `background_too_few_pixels` or `unexpected_unit` |
+| `frames[].mjd_avg` | Optional. MJD at the middle of the exposure (header `MJD-AVG`), when the file has it |
+| `photometry` | `method` (`aperture`), `aperture_radius_pix`, `annulus_inner_pix`, `annulus_outer_pix`, `aperture_corrected` (always `false`), `at` (always `request_position`) |
+
+The measurement is made by `pipeline/photometry.py` on the original cutout (not the resampled grid), at the request position, with the aperture and ring sizes in `photometry`. The numbers are first choices, not tuned or validated against a source of known brightness (T32).
+
+Open decisions and limits:
+
+1. **Which time.** `frames[].obs_mjd` is the archive query's `time_bounds_lower`; `mjd_avg` is the header's mid-exposure time. Both are stored. A light curve should use `mjd_avg` when present, else `obs_mjd`. They were not compared for how much they differ.
+2. **Moving targets.** The aperture is fixed on the request position. Cached targets with proper motion are propagated to epoch 2025.85 for the position, so frames from other epochs have the target off-centre.
+3. **Bright sources.** A pixel with a flag other than SOURCE or FULLSAMPLE in the aperture means no flux. Barnard's Star and R Draconis give no flux in any frame (saturation and blooming flags). A client must say so, not draw an empty chart as if the flux were zero.
+4. **No aperture correction, no colour correction, no PSF fit.** `flux_ujy` is the flux inside the aperture.
+5. **Stacks have no flux.** Only individual frames do.
+
 ## Stacks
 
 Added 2026-11-14. Optional `stacks` object, present on a `ready` series (2026-11-15, T40: and, while a live series is extended with more frames by a larger `load`, on the `loading` series too, describing the frames loaded before, until the new stacks are built), plus the optional top-level `background` field (`"none"` or `"median_subtracted"`). Consecutive images of one position are in different wavelengths, so `frames` in time order mostly shows wavelength changing. `stacks` combines images so that only time changes between frames.
