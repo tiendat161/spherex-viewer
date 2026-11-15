@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ALADIN_URL, SURVEY_ROOTS, backdropEnabled, backdropFov } from '../src/sky.js';
+import { ALADIN_URL, SURVEY_ROOTS, backdropEnabled, backdropFov, viewCentre } from '../src/sky.js';
 
 const fakeWindow = ({ search = '', webdriver = false, wide = true, gl = true } = {}) => ({
   location: { search },
@@ -25,5 +25,19 @@ describe('sky backdrop', () => {
   it('loads one pinned Aladin Lite release', () => {
     expect(ALADIN_URL).toMatch(/aladin-lite@\d+\.\d+\.\d+\//);
     expect(SURVEY_ROOTS.length).toBeGreaterThan(1);
+  });
+});
+
+describe('viewCentre', () => {
+  it('keeps the centre when no screen height is given', () => {
+    expect(viewCentre(10, 20, 1, null, 1280, 900)).toEqual({ ra: 10, dec: 20 });
+  });
+  it('a target above the screen centre needs a view centre further south', () => {
+    const c = viewCentre(10, 20, 1.28, 36, 1280, 900); // 414 px above the centre, 0.001 degree per pixel
+    expect(c.ra).toBe(10);
+    expect(c.dec).toBeCloseTo(20 - 414 * 0.001, 6);
+  });
+  it('stays away from the poles', () => {
+    expect(viewCentre(10, -89.9, 1.28, 36, 1280, 900).dec).toBeGreaterThanOrEqual(-89);
   });
 });

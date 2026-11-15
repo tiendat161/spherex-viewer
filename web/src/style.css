@@ -90,6 +90,8 @@ select.visually-hidden { position:absolute; width:1px; height:1px; opacity:0; ov
    starts) but stays invisible until Aladin Lite is running (body.sky-on). It takes no clicks. */
 .sky, .sky-label { display:none; }
 .sky-flown .sky-idle { display:none; }
+.sky-mark { display:none; }
+.sky-flown .sky-mark { display:inline; }
 @media (min-width:900px) {
   .sky { display:block; position:fixed !important; inset:0; width:100%; height:100%; z-index:0; pointer-events:none; opacity:.01; }
   body.sky-on .sky { opacity:.6; filter:brightness(.9); transition:opacity 1.5s; }
@@ -97,7 +99,7 @@ select.visually-hidden { position:absolute; width:1px; height:1px; opacity:0; ov
   .sky canvas { background:transparent; image-rendering:auto; } /* the page-wide canvas rule (black, pixelated) must not reach Aladin's canvases */
   body.sky-on header, body.sky-on .topbar, body.sky-on main { position:relative; z-index:1; }
   body.sky-on .topbar { z-index:3; } /* above main: the target menu overflows the top bar onto main */
-  body.sky-on header { background:#0f1115b0; }
+  body.sky-on header { background:#0f111570; }
   body.sky-on .stage { background:#0005; }
   body.sky-on .sky-label { display:block; position:relative; z-index:1; max-width:1240px; margin:6px auto 0; padding:0 20px; }
 }

@@ -19,7 +19,8 @@ export const SURVEY_ROOTS = [
 export const MIN_WIDTH_PX = 900;
 const LOAD_TIMEOUT_MS = 10000;
 const TILE_PATH = 'Norder3/Dir0/Npix0.jpg'; // one real survey tile must load before the backdrop is shown
-const WIDE_FOV_DEG = 150;
+const GLOBE_FOV_DEG = 360; // idle view: the whole sky as a round globe (SIN projection), like the Aladin Lite web app's start view
+export const MARK_COLOUR = '#ff66ff';
 const FLY_S = 2.5;
 
 /** Width of the backdrop when the SPHEREx field is `fov` degrees wide: 1 degree for the small fields, 1.5x the field for 0.5 and 1 degree. */
@@ -81,16 +82,49 @@ async function start(ra, dec) {
   const [A, root] = await Promise.all([loadAladin(), findSurvey()]);
   await A.init;
   const box = document.getElementById('sky');
-  // Start wide and off to the side so the first Load visibly flies in.
-  return A.aladin(box, {
-    survey: root, fov: WIDE_FOV_DEG, target: `${(ra + 50) % 360} ${Math.max(-85, Math.min(85, dec))}`,
-    cooFrame: 'ICRSd', projection: 'TAN', reticleSize: 0,
+  // Start on the whole sky as a globe (SIN projection, 180 degrees) so the first Load visibly flies in.
+  const a = A.aladin(box, {
+    survey: root, fov: GLOBE_FOV_DEG, target: `${ra} ${dec}`,
+    cooFrame: 'ICRSd', projection: 'SIN', reticleSize: 0,
     showReticle: false, showZoomControl: false, showFullscreenControl: false, showLayersControl: false,
     showGotoControl: false, showSimbadPointerControl: false, showCooGridControl: false, showFrame: false,
     showProjectionControl: false, showContextMenu: false, showShareControl: false, showSettingsControl: false,
     showStatusBar: false, showCatalogue: false, showCooLocation: false, showFov: false,
     showFullscreen: false, showCooGrid: false,
   });
+  a.__A = A; // kept to build the mark later
+  return a;
+}
+
+/** The magenta crosshair (thin lines, gap in the middle) as a canvas; Aladin Lite takes a canvas as a catalogue shape. Decoration only. */
+function crosshair() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 56;
+  const x = c.getContext('2d');
+  x.strokeStyle = MARK_COLOUR; x.lineWidth = 4; x.lineCap = 'round';
+  x.shadowColor = '#000'; x.shadowBlur = 4; // dark edge so it reads on both dark sky and bright stars
+  x.beginPath();
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { x.moveTo(28 + dx * 8, 28 + dy * 8); x.lineTo(28 + dx * 22, 28 + dy * 22); }
+  x.stroke();
+  return c;
+}
+
+let markLayer = null;
+/** Put the mark at the position (one mark, moved on each Load). It stays on the star while Aladin pans and zooms. */
+function setMark(A, a, ra, dec) {
+  if (!markLayer) {
+    markLayer = A.catalog({ name: 'viewed position', shape: crosshair(), sourceSize: 56 });
+    a.addCatalog(markLayer);
+  }
+  markLayer.clear();
+  markLayer.addSources([A.source(ra, dec, {})]);
+}
+
+/** Centre of the backdrop view so the position lands at screen height `ty` (north is up, so a target above the centre needs a centre
+ *  further south) in a view `w` degrees wide in a `vw` x `vh` window. Null `ty` keeps the position at the centre. */
+export function viewCentre(ra, dec, w, ty, vw, vh) {
+  if (ty == null) return { ra, dec };
+  return { ra, dec: Math.max(-89, Math.min(89, dec - (vh / 2 - ty) * (w / vw))) };
 }
 
 function giveUp() {
@@ -131,8 +165,13 @@ export function showSky(ra, dec, fov) {
       try {
         document.body.classList.add('sky-flown');
         const w = backdropFov(fov);
-        if (matchMedia('(prefers-reduced-motion: reduce)').matches) { a.gotoRaDec(ra, dec); a.setFoV(w); return; }
-        a.animateToRaDec(ra, dec, FLY_S);
+        try { setMark(a.__A, a, ra, dec); } catch { /* no mark: the backdrop still works */ }
+        // The image panel and controls cover the middle of the page, so the position is put in the header strip, which is
+        // translucent and always free at the top of the page (checked at 1280 to 1440 px wide).
+        const hb = document.querySelector('header')?.getBoundingClientRect().bottom;
+        const c = viewCentre(ra, dec, w, hb > 20 ? hb / 2 : null, innerWidth, innerHeight);
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) { a.gotoRaDec(c.ra, c.dec); a.setFoV(w); return; }
+        a.animateToRaDec(c.ra, c.dec, FLY_S);
         a.zoomToFoV(w, FLY_S);
       } catch { giveUp(); }
     });
