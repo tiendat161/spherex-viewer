@@ -338,3 +338,15 @@ def test_a_spectrum_on_a_series_restored_after_a_restart_rebuilds_it_and_measure
                 break
             time.sleep(0.05)
     assert body["status"] == "ready" and len(body["frames"]) == 8
+
+def test_catalogue_endpoint(tmp_path, monkeypatch):
+    from api import main as api_main
+    series_dir, _ = make_cache(tmp_path)
+    monkeypatch.setattr(api_main.catalogue_mod, "catalogue_document",
+                        lambda ra, dec, fov: {"status": "ok", "catalogue": {"name": "n", "table": "t", "service": "s"}, "sources": []})
+    c = TestClient(create_app(series_dir=series_dir, live=object()))
+    assert c.get("/api/catalogue", params={"ra": RA, "dec": DEC}).json()["status"] == "ok"
+    assert c.get("/api/catalogue", params={"ra": 400, "dec": 0}).json()["status"] == "error"
+    assert c.get("/api/catalogue", params={"ra": RA, "dec": DEC, "fov": 0.3}).json()["status"] == "error"
+    off = TestClient(create_app(series_dir=series_dir))  # live=None: no archive contact
+    assert off.get("/api/catalogue", params={"ra": RA, "dec": DEC}).json()["status"] == "error"

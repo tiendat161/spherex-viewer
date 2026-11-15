@@ -146,6 +146,12 @@ class IrsaClient:
         )
         return list(csv.DictReader(io.StringIO(body.decode("utf-8"))))
 
+    def tap_query(self, adql: str, attempts: int = 2, timeout: Optional[float] = None) -> List[Dict[str, str]]:
+        """Any ADQL query to IRSA TAP, rows as dicts (used for catalogue tables, pipeline/catalogue.py)."""
+        body = self._with_retries("TAP catalogue query", attempts, "POST", TAP_URL,
+                                  {"QUERY": adql, "LANG": "ADQL", "FORMAT": "csv"}, timeout)
+        return list(csv.DictReader(io.StringIO(body.decode("utf-8"))))
+
     def sia_rows(self, ra: float, dec: float, timeout: Optional[float] = None) -> List[Dict[str, str]]:
         """Images covering a position, through SIA2 (one query per release collection). Used only by the live path, when TAP
         fails: on R Draconis it returns 539 of the 2493 images TAP lists (docs/WORKLOG.md, T43), so the list may be incomplete."""

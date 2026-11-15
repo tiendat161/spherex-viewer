@@ -6,6 +6,7 @@ set SPHEREX_LIVE=0 to serve the cache only, in which case nothing here contacts 
                                                                 `load`: frames of a live series to have loaded, a larger value extends it)
     GET /api/spectrum?ra=&dec=&fov=0.2&at_ra=&at_dec=&load=40    (flux at a clicked position in every frame of the live series
                                                                 at ra, dec, fov; always live, also at a cached position)
+    GET /api/catalogue?ra=&dec=&fov=0.2                         (AllWISE sources in the field, for the overlay; real catalogue data)
     GET /api/targets
     GET /api/frames/<id>/NN.png            (also s_<band>_<visit>.png and d_<band>_<visit>.png for stacks)
     web/dist (when it exists) is served at /
@@ -24,6 +25,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
+from pipeline import catalogue as catalogue_mod
 from pipeline import targets as targets_mod
 from pipeline.grid import FOVS_DEG, allowed_fov
 from pipeline.live import LIVE_FRAMES, MAX_LIVE_FRAMES, LiveBuilder, LiveBusy, error_document
@@ -196,6 +198,22 @@ def create_app(series_dir: Optional[Path] = None, web_dist: Optional[Path] = Non
         except LiveBusy as e:
             return JSONResponse(error_document(str(e)))
         return JSONResponse(doc)
+
+    @app.get("/api/catalogue")  # T15 overlay: one self-contained block
+    def catalogue(request: Request):
+        try:
+            ra, dec, fov = _num(request, "ra"), _num(request, "dec"), allowed_fov(_num(request, "fov", CACHED_FOV))
+            if not (0 <= ra < 360) or not (-90 <= dec <= 90) or fov is None:
+                raise ValueError("ra must satisfy 0 <= ra < 360, dec -90 to 90 (ICRS degrees), fov one of "
+                                 + ", ".join(f"{f:g}" for f in FOVS_DEG))
+        except ValueError as e:
+            return JSONResponse({"status": "error", "catalogue": {"name": catalogue_mod.NAME, "table": catalogue_mod.TABLE,
+                                 "service": catalogue_mod.SERVICE}, "sources": [], "error": {"message": str(e)}})
+        if live is None:  # SPHEREX_LIVE=0 means the server contacts no archive at all
+            return JSONResponse({"status": "error", "catalogue": {"name": catalogue_mod.NAME, "table": catalogue_mod.TABLE,
+                                 "service": catalogue_mod.SERVICE}, "sources": [],
+                                 "error": {"message": "This server does not contact archives, so the catalogue overlay is unavailable."}})
+        return JSONResponse(catalogue_mod.catalogue_document(ra, dec, fov))
 
     @app.get("/api/targets")
     def targets():
