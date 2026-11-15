@@ -188,7 +188,8 @@ export function blinkPair(slots, { minBaseline = 0.8 } = {}) {
   return best ? best.pair : null;
 }
 
-const WAVELENGTH_TICKS_UM = [1, 1.5, 2, 3, 4, 5]; // labelled on the wavelength axis when inside its range
+const MAX_LABELS = 7; // at most this many wavelengths are written beside the vertical slider
+const GAP_FACTOR = 3; // a step in wavelength this many times the typical step is drawn as a break
 export const VISIT_GAP_DAYS = 30; // same rule as pipeline/stack.py: a longer gap between consecutive frames starts a new visit
 
 /**
@@ -208,35 +209,50 @@ export function visitsOf(resp, slots) {
   return out;
 }
 
+/** Indices 0..n-1 to label on a slider of n marks: all of them for a few, otherwise about MAX_LABELS evenly spread, ends included. */
+export function labelIndexes(n) {
+  if (n <= MAX_LABELS) return [...Array(n).keys()];
+  return [...new Set(Array.from({ length: MAX_LABELS }, (_, k) => Math.round((k * (n - 1)) / (MAX_LABELS - 1))))];
+}
+
+/** Where the wavelength jumps much more than usual between neighbouring frames: [{after: index, y}]. Needs at least 4 frames. */
+function gapsOf(points) {
+  if (points.length < 4) return [];
+  const d = points.slice(1).map((p, k) => Math.log(p.wl / points[k].wl));
+  const typical = [...d].sort((a, b) => a - b)[Math.floor(d.length / 2)];
+  const out = [];
+  d.forEach((step, k) => { if (step > GAP_FACTOR * typical && step > 0.1) out.push({ after: k, y: (points[k].y + points[k + 1].y) / 2 }); });
+  return out;
+}
+
 /**
- * The visit and wavelength controls for individual frames. Each frame is a point: its visit, and its
- * wavelength on one log scale shared by all visits (y: 0 is the shortest wavelength, 1 the longest), so the
- * scale does not change when the visit does. Failed frames have no position and are left out.
- * Returns null when there are fewer than two distinct wavelengths; the plain slider is used then.
- * `visits[i].points` are sorted by wavelength.
+ * The visit and wavelength controls for individual frames. Each frame is a point: its visit and its place
+ * among that visit's frames by wavelength. The marks of the vertical slider are evenly spaced (one step per
+ * frame, y from 0 at the shortest wavelength to 1 at the longest), not placed by wavelength value, so every
+ * frame can be reached; the real spacing shows in the wavelengths written beside it and in `gaps`.
+ * Failed frames have no position and are left out. Returns null when there are fewer than two distinct
+ * wavelengths; the plain slider is used then. `visits[i].points` are sorted by wavelength.
  */
 export function padSpec(slots, visits) {
   const live = [];
   slots.forEach((s, slot) => {
     if (!s.skipped && Number.isFinite(s.wavelength_um) && s.wavelength_um > 0) live.push({ slot, wl: s.wavelength_um, mjd: s.obs_mjd });
   });
-  if (live.length < 2) return null;
-  const lo = Math.min(...live.map((p) => p.wl));
-  const hi = Math.max(...live.map((p) => p.wl));
-  if (!(hi > lo)) return null;
-  const y = (v) => (Math.log(v) - Math.log(lo)) / (Math.log(hi) - Math.log(lo));
+  if (live.length < 2 || !(Math.max(...live.map((p) => p.wl)) > Math.min(...live.map((p) => p.wl)))) return null;
   const vs = (visits.length ? visits : [{ index: 0, start_mjd: -Infinity, end_mjd: Infinity }]).map((v) => ({ ...v, points: [] }));
   for (const p of live) {
     // inside its dates, else the nearest visit (a date can sit a little outside a visit's recorded range)
     const dist = (v) => (p.mjd < v.start_mjd ? v.start_mjd - p.mjd : p.mjd > v.end_mjd ? p.mjd - v.end_mjd : 0);
-    vs.reduce((best, v) => (dist(v) < dist(best) ? v : best)).points.push({ slot: p.slot, wl: p.wl, y: y(p.wl) });
+    vs.reduce((best, v) => (dist(v) < dist(best) ? v : best)).points.push({ slot: p.slot, wl: p.wl });
   }
-  for (const v of vs) v.points.sort((a, b) => a.wl - b.wl || a.slot - b.slot);
-  return {
-    visits: vs.filter((v) => v.points.length),
-    ends: [`${lo.toFixed(2)} µm`, `${hi.toFixed(2)} µm`],
-    ticks: WAVELENGTH_TICKS_UM.filter((t) => t > lo && t < hi && y(t) > 0.04 && y(t) < 0.96).map((t) => ({ y: y(t), label: `${t} µm` })),
-  };
+  const used = vs.filter((v) => v.points.length);
+  for (const v of used) {
+    v.points.sort((a, b) => a.wl - b.wl || a.slot - b.slot);
+    v.points.forEach((p, k) => { p.y = v.points.length === 1 ? 0.5 : k / (v.points.length - 1); });
+    v.labels = labelIndexes(v.points.length);
+    v.gaps = gapsOf(v.points);
+  }
+  return { visits: used };
 }
 
 /** Position of a slot in the pad: {visit (index into spec.visits), point (index into its points)} or null. */

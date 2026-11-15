@@ -6,7 +6,7 @@ const el = {
   badge: $('badge'), targets: $('targets'), ra: $('ra'), dec: $('dec'), fov: $('fov'), fovNote: $('fov-note'), coords: $('coords'),
   progressText: $('progress-text'), bar: $('bar'), message: $('message'),
   frameBox: $('frame-box'), canvas: $('canvas'), scalebar: $('scalebar'), scalebarLabel: $('scalebar-label'), skipped: $('skipped'),
-  prev: $('prev'), play: $('play'), next: $('next'), slider: $('slider'), visitBar: $('visit-bar'), vaxis: $('vaxis'), vTrack: $('vaxis-track'), vTicks: $('vaxis-ticks'), vHandle: $('vaxis-handle'), vLabels: $('vaxis-labels'), fps: $('fps'), zoom: $('zoom'), pair: $('pair'), pairNote: $('pair-note'),
+  prev: $('prev'), play: $('play'), next: $('next'), slider: $('slider'), visitBar: $('visit-bar'), vtrack: $('visit-track'), vmarks: $('visit-marks'), vhandle: $('visit-handle'), vlabels: $('visit-labels'), vaxis: $('vaxis'), vTrack: $('vaxis-track'), vTicks: $('vaxis-ticks'), vHandle: $('vaxis-handle'), vLabels: $('vaxis-labels'), fps: $('fps'), zoom: $('zoom'), pair: $('pair'), pairNote: $('pair-note'),
   view: $('view'), band: $('band'), bandWrap: $('band-wrap'), diff: $('diff'), diffWrap: $('diff-wrap'), order: $('order'), orderWrap: $('order-wrap'),
   mark: $('mark'), marker: $('marker'),
   rFrame: $('r-frame'), rDate: $('r-date'), rWave: $('r-wave'), rFlag: $('r-flag'), legend: $('legend'),
@@ -156,26 +156,28 @@ function render() {
 const padActive = () => padShown?.spec ?? null;
 
 /**
- * Visit buttons (horizontal) and the vertical wavelength slider. A frame is a (visit, wavelength) point:
- * the buttons pick the visit, the vertical axis the wavelength among that visit's frames.
+ * The visit slider (horizontal, one evenly spaced mark per visit) and the wavelength slider (vertical, one evenly
+ * spaced mark per frame of the current visit). A frame is a (visit, wavelength) point: the visit slider picks the
+ * visit, the vertical one the frame within it. Changing visit keeps the wavelength as nearly as it can.
  */
 function renderPad() {
-  if (!padShown || padShown.slots !== state.slots || padShown.stacks !== state.resp?.stacks || padShown.key !== String(stackView())) {
+  const key = String(stackView());
+  if (!padShown || padShown.slots !== state.slots || padShown.stacks !== state.resp?.stacks || padShown.key !== key) {
     const spec = stackView() ? null : padSpec(state.slots, visitsOf(state.resp, state.slots));
-    padShown = { slots: state.slots, stacks: state.resp?.stacks, key: String(stackView()), spec, visit: -1 };
-    el.visitBar.replaceChildren(...(spec?.visits.length > 1 ? spec.visits.map((v, i) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.dataset.visit = String(i);
+    padShown = { slots: state.slots, stacks: state.resp?.stacks, key, spec, visit: -1 };
+    const n = spec?.visits.length ?? 0;
+    const vx = (i) => (n === 1 ? 0.5 : i / (n - 1)) * 100;
+    el.vmarks.replaceChildren(...(n > 1 ? spec.visits.map((_, i) => { const m = document.createElement('div'); m.className = 'visit-mark'; m.style.left = `${vx(i)}%`; return m; }) : []));
+    el.vlabels.replaceChildren(...(n > 1 ? spec.visits.map((v, i) => {
+      const d = document.createElement('div');
+      d.dataset.visit = String(i);
+      d.style.left = `${vx(i)}%`;
+      const b = document.createElement('b');
+      b.textContent = `Visit ${i + 1}`;
       const span = `${mjdToUtc(v.start_mjd).slice(0, 10)}${v.end_mjd - v.start_mjd >= 1 ? ` to ${mjdToUtc(v.end_mjd).slice(0, 10)}` : ''}`;
-      b.append(`Visit ${i + 1}`);
-      const small = document.createElement('small');
-      small.textContent = `${span} · ${v.points.length} frame${v.points.length === 1 ? '' : 's'}`;
-      b.append(small);
-      return b;
+      d.append(b, document.createElement('br'), `${span} · ${v.points.length}`);
+      return d;
     }) : []));
-    const lab = (cls, top, text) => { const e = document.createElement('span'); e.className = cls; e.style.top = `${top * 100}%`; e.textContent = text; return e; };
-    el.vLabels.replaceChildren(...(spec ? [lab('hi', 0, spec.ends[1]), ...spec.ticks.map((t) => lab('', 1 - t.y, t.label)), lab('lo', 1, spec.ends[0])] : []));
   }
   const spec = padShown.spec;
   el.vaxis.hidden = !spec;
@@ -183,18 +185,37 @@ function renderPad() {
   el.slider.classList.toggle('visually-hidden', !!spec); // the native slider stays for the keyboard and screen readers
   if (!spec) return;
   const at = padPosition(spec, state.current);
-  if (at && at.visit !== padShown.visit) { // ticks of the visit now shown
+  const cur = at ? spec.visits[at.visit].points[at.point] : null;
+  if (at && at.visit !== padShown.visit) { // marks, gaps and wavelengths of the visit now shown
     padShown.visit = at.visit;
-    el.vTicks.replaceChildren(...spec.visits[at.visit].points.map((p) => {
-      const t = document.createElement('div');
-      t.className = 'vaxis-tick';
-      t.style.top = `${(1 - p.y) * 100}%`;
-      return t;
+    const v = spec.visits[at.visit];
+    const mk = (cls, y) => { const t = document.createElement('div'); t.className = cls; t.style.top = `${(1 - y) * 100}%`; return t; };
+    el.vTicks.replaceChildren(...v.points.map((p) => mk('vaxis-tick', p.y)), ...v.gaps.map((g) => mk('vaxis-gap', g.y)));
+    el.vLabels.replaceChildren(...v.labels.map((k) => {
+      const e = document.createElement('span');
+      e.dataset.y = String(v.points[k].y);
+      e.style.top = `${(1 - v.points[k].y) * 100}%`;
+      e.textContent = `${v.points[k].wl.toFixed(2)} µm`;
+      return e;
     }));
   }
   el.vHandle.hidden = !at;
-  if (at) el.vHandle.style.top = `${(1 - spec.visits[at.visit].points[at.point].y) * 100}%`;
-  for (const b of el.visitBar.querySelectorAll('button')) b.setAttribute('aria-pressed', String(!!at && Number(b.dataset.visit) === at.visit));
+  // The wavelength of the current frame is written at the handle; written wavelengths close to it step aside.
+  el.vLabels.querySelector('.cur')?.remove();
+  for (const e of el.vLabels.children) e.hidden = !!cur && Math.abs(Number(e.dataset.y) - cur.y) < 0.07;
+  if (cur) {
+    el.vHandle.style.top = `${(1 - cur.y) * 100}%`;
+    const e = document.createElement('span');
+    e.className = 'cur';
+    e.style.top = `${(1 - cur.y) * 100}%`;
+    e.textContent = `${cur.wl.toFixed(2)} µm`;
+    el.vLabels.append(e);
+  }
+  if (at && !el.visitBar.hidden) {
+    const n = spec.visits.length;
+    el.vhandle.style.left = `${(at.visit / (n - 1)) * 100}%`;
+    for (const d of el.vlabels.children) d.classList.toggle('cur', Number(d.dataset.visit) === at.visit);
+  }
 }
 
 function renderPairNote() {
@@ -321,12 +342,19 @@ function pickOnVAxis(e) {
 el.vTrack.addEventListener('pointerdown', (e) => { dragging = true; el.vTrack.setPointerCapture(e.pointerId); el.slider.focus({ preventScroll: true }); pickOnVAxis(e); });
 el.vTrack.addEventListener('pointermove', (e) => { if (dragging) pickOnVAxis(e); });
 for (const t of ['pointerup', 'pointercancel']) el.vTrack.addEventListener(t, () => { dragging = false; });
-el.visitBar.addEventListener('click', (e) => {
-  const b = e.target.closest('button[data-visit]'), spec = padActive(), at = spec && padPosition(spec, state.current);
-  if (!b || !spec) return;
+function pickOnVisits(e) {
+  const spec = padActive(), at = spec && padPosition(spec, state.current);
+  if (!spec || spec.visits.length < 2) return;
+  const r = el.vtrack.getBoundingClientRect();
+  const to = Math.round(Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) * (spec.visits.length - 1));
+  if (at && to === at.visit) return;
   const wl = at ? spec.visits[at.visit].points[at.point].wl : spec.visits[0].points[0].wl;
-  pickSlot(nearestWavelength(spec.visits[Number(b.dataset.visit)], wl)); // the closest wavelength in that visit
-});
+  pickSlot(nearestWavelength(spec.visits[to], wl)); // the closest wavelength in that visit
+}
+let draggingVisit = false;
+el.vtrack.addEventListener('pointerdown', (e) => { draggingVisit = true; el.vtrack.setPointerCapture(e.pointerId); el.slider.focus({ preventScroll: true }); pickOnVisits(e); });
+el.vtrack.addEventListener('pointermove', (e) => { if (draggingVisit) pickOnVisits(e); });
+for (const t of ['pointerup', 'pointercancel']) el.vtrack.addEventListener(t, () => { draggingVisit = false; });
 el.zoom.addEventListener('change', render);
 el.mark.addEventListener('change', render);
 el.view.addEventListener('change', () => { setView(el.view.value); reslot(); });

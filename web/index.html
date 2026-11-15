@@ -32,7 +32,7 @@
       <div class="stage">
         <div id="vaxis" class="vaxis" hidden>
           <div id="vaxis-labels" class="vaxis-labels"></div>
-          <div id="vaxis-track" class="vaxis-track" title="Drag to change the wavelength within this visit; each tick is one frame. Frames of nearly the same wavelength overlap: use the up and down arrow keys to move between them">
+          <div id="vaxis-track" class="vaxis-track" title="Drag to change the wavelength within this visit; each mark is one frame, evenly spaced (the wavelengths are written beside it). Up and down arrow keys step by one frame">
             <div id="vaxis-ticks"></div><div id="vaxis-handle" class="vaxis-handle"></div>
           </div>
         </div>
@@ -50,7 +50,12 @@
         <button id="next" type="button" aria-label="Step forward">Step ▶︎</button>
         <div class="axis-wrap">
           <input id="slider" type="range" min="0" max="0" value="0" aria-label="Frame" />
-          <div id="visit-bar" class="visit-bar" role="group" aria-label="Visit" hidden></div>
+          <div id="visit-bar" class="visit-bar" hidden>
+            <div id="visit-track" class="visit-track" title="Drag to change visit; each mark is one visit. The wavelength is kept as nearly as possible">
+              <div id="visit-marks"></div><div id="visit-handle" class="hhandle"></div>
+            </div>
+            <div id="visit-labels" class="visit-labels"></div>
+          </div>
         </div>
         <label class="speed">Speed
           <select id="fps"><option value="1">1 fps</option><option value="2">2 fps</option><option value="5" selected>5 fps</option><option value="10">10 fps</option></select>

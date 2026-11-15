@@ -148,46 +148,55 @@ test('field of view: selector, URL parameter, grid size, wide-field note', async
   await expect.poll(() => page.evaluate(() => document.getElementById('canvas').width)).toBe(116);
 });
 
-test('visit buttons and the vertical wavelength axis', async ({ page }) => {
+test('visit slider and the vertical wavelength slider', async ({ page }) => {
   await page.goto(wise);
   await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
   await expect(page.locator('#play')).toHaveText('Pause');
   await page.locator('#play').click(); // stop the auto-blink
   await expect(page.locator('#play')).toHaveText('Play');
   await expect(page.locator('#vaxis')).toBeVisible();
-  await expect(page.locator('#visit-bar button')).toHaveCount(3); // the mock series spans three groups of dates
-  await expect(page.locator('#visit-bar button').first()).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.visit-mark')).toHaveCount(3); // the mock series spans three groups of dates
+  await expect(page.locator('.visit-labels .cur')).toHaveAttribute('data-visit', '0');
 
   const wave = async () => Number.parseFloat(await page.locator('#r-wave').textContent());
   const box = await page.locator('#vaxis-track').boundingBox();
   const x = box.x + box.width / 2;
-  // Click the bottom, then the top: shortest then longest wavelength of the visit, ticks are only this visit's frames.
-  const ticks = await page.locator('.vaxis-tick').count();
+  // Marks are evenly spaced, one per frame of this visit; the shortest wavelength is at the bottom.
+  const marks = await page.locator('.vaxis-tick').count();
+  expect(marks).toBeGreaterThan(2);
   await page.mouse.click(x, box.y + box.height - 1);
   const low = await wave();
   await page.mouse.click(x, box.y + 1);
   const high = await wave();
   expect(high).toBeGreaterThan(low);
+  await expect(page.locator('.vaxis-labels .cur')).toHaveText(`${high.toFixed(2)} µm`);
   // Dragging follows the pointer.
   await page.mouse.move(x, box.y + box.height / 2);
   await page.mouse.down();
   await page.mouse.move(x, box.y - 8, { steps: 8 });
   await page.mouse.up();
   expect(await wave()).toBe(high);
-
-  // Arrow keys: down steps to a shorter wavelength in the same visit; right changes visit, keeping the wavelength close.
-  const date = () => page.locator('#r-date').textContent();
-  const d0 = await date();
+  // One arrow step is one frame: down goes to a shorter wavelength.
   await page.keyboard.press('ArrowDown');
   expect(await wave()).toBeLessThan(high);
   await page.mouse.click(x, box.y + 1);
   const top = await wave();
-  await page.locator('#visit-bar button').nth(1).click();
-  await expect(page.locator('#visit-bar button').nth(1)).toHaveAttribute('aria-pressed', 'true');
+
+  // Visit slider: click the middle mark, drag to the last, keep the wavelength as nearly as possible.
+  const vbox = await page.locator('#visit-track').boundingBox();
+  const vy = vbox.y + vbox.height / 2;
+  const date = () => page.locator('#r-date').textContent();
+  const d0 = await date();
+  await page.mouse.click(vbox.x + vbox.width / 2, vy);
+  await expect(page.locator('.visit-labels .cur')).toHaveAttribute('data-visit', '1');
   expect(await date()).not.toBe(d0);
   expect(Math.abs(Math.log((await wave()) / top))).toBeLessThan(0.5); // nearest wavelength, not the same frame
+  await page.mouse.move(vbox.x + vbox.width / 2, vy);
+  await page.mouse.down();
+  await page.mouse.move(vbox.x + vbox.width + 8, vy, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.locator('.visit-labels .cur')).toHaveAttribute('data-visit', '2');
   await page.keyboard.press('ArrowLeft');
-  await expect(page.locator('#visit-bar button').first()).toHaveAttribute('aria-pressed', 'true');
-  expect(ticks).toBeGreaterThan(1);
+  await expect(page.locator('.visit-labels .cur')).toHaveAttribute('data-visit', '1');
   await page.screenshot({ path: outDir + 'web-mock-pad.png', fullPage: true });
 });

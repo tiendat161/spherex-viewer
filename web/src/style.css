@@ -33,15 +33,21 @@ canvas { width:100%; height:100%; image-rendering:pixelated; image-rendering:cri
 .controls { display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap; }
 .axis-wrap { flex:1 1 100%; order:1; position:relative; } #slider { width:100%; } /* its own full-width line below the buttons */
 #slider.visually-hidden { position:absolute; left:0; top:0; width:100%; height:1px; opacity:0; pointer-events:none; }
-.visit-bar { display:flex; gap:6px; flex-wrap:wrap; } .visit-bar button { flex:1 1 150px; text-align:left; padding:6px 10px; } .visit-bar button small { display:block; color:var(--muted); font-size:12px; }
-.visit-bar button[aria-pressed="true"] { border-color:var(--accent); box-shadow:inset 3px 0 0 var(--accent); }
-#slider:focus-visible + .visit-bar { outline:2px solid var(--accent); outline-offset:3px; }
-.vaxis { display:flex; align-self:stretch; width:78px; padding:10px 0; user-select:none; }
+.visit-bar { margin:0 56px; user-select:none; }
+.visit-track { position:relative; height:26px; cursor:ew-resize; touch-action:none; }
+.visit-track::before { content:""; position:absolute; left:0; right:0; top:50%; border-top:2px solid var(--line); }
+.visit-mark { position:absolute; top:50%; width:10px; height:10px; margin:-5px 0 0 -5px; border-radius:50%; background:var(--panel); border:2px solid var(--muted); pointer-events:none; }
+.hhandle { position:absolute; top:50%; width:18px; height:18px; margin:-9px 0 0 -9px; border-radius:50%; background:var(--accent); border:2px solid var(--bg); box-shadow:0 0 0 1px var(--accent); pointer-events:none; }
+.visit-labels { position:relative; height:34px; font-size:12px; color:var(--muted); line-height:1.25; }
+.visit-labels div { position:absolute; top:0; transform:translateX(-50%); text-align:center; white-space:nowrap; } .visit-labels b { color:var(--text); font-weight:600; } .visit-labels .cur b { color:var(--accent); }
+#slider:focus-visible ~ .visit-bar .visit-track { outline:2px solid var(--accent); outline-offset:3px; }
+.vaxis { display:flex; align-self:stretch; width:82px; padding:10px 0; user-select:none; }
 .vaxis-labels { position:relative; flex:1; font-size:12px; color:var(--muted); }
-.vaxis-labels span { position:absolute; right:6px; white-space:nowrap; transform:translateY(-50%); } .vaxis-labels .lo { transform:translateY(-100%); } .vaxis-labels .hi { transform:none; }
+.vaxis-labels span { position:absolute; right:6px; white-space:nowrap; transform:translateY(-50%); } .vaxis-labels .cur { color:var(--accent); font-weight:700; }
 .vaxis-track { position:relative; width:26px; cursor:ns-resize; touch-action:none; }
 .vaxis-track::before { content:""; position:absolute; top:0; bottom:0; left:50%; border-left:2px solid var(--line); }
 .vaxis-tick { position:absolute; left:5px; right:5px; height:1px; margin-top:-0.5px; background:var(--muted); pointer-events:none; }
+.vaxis-gap { position:absolute; left:4px; right:4px; height:8px; margin-top:-4px; border-top:1px solid var(--muted); border-bottom:1px solid var(--muted); background:#000; pointer-events:none; }
 .vaxis-handle { position:absolute; left:50%; width:16px; height:16px; margin:-8px 0 0 -8px; border-radius:50%; background:var(--accent); border:2px solid var(--bg); box-shadow:0 0 0 1px var(--accent); pointer-events:none; }
 .readout { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; margin:12px 0 0; }
 .readout div { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:6px 10px; } dt { color:var(--muted); font-size:12px; } dd { margin:0; font-variant-numeric:tabular-nums; font-weight:600; }

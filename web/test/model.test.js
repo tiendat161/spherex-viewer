@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { blinkPair, buildSlots, nearestWavelength, nearestY, padPosition, padSpec, stepVisit, stepWavelength, visitsOf, gridFovDeg, isWideField, locationQuery, mjdToUtc, nextSlot, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, seriesUrl, zoomRect } from '../src/model.js';
+import { blinkPair, buildSlots, labelIndexes, nearestWavelength, nearestY, padPosition, padSpec, stepVisit, stepWavelength, visitsOf, gridFovDeg, isWideField, locationQuery, mjdToUtc, nextSlot, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, seriesUrl, zoomRect } from '../src/model.js';
 import { errorResponse, fixture, gapResponse, loadingResponse, validateSeries, validateTargets } from './helpers.js';
 
 describe('hand-built responses are schema-valid', () => {
@@ -179,12 +179,27 @@ describe('visits and the wavelength pad', () => {
     const given = [{ index: 0, start_mjd: 0, end_mjd: 1 }];
     expect(visitsOf({ stacks: { visits: given } }, slots)).toBe(given);
   });
-  it('lists each visit\'s frames by wavelength on one log scale shared by all visits, leaving out failed frames', () => {
+  it('lists each visit\'s frames by wavelength, evenly spaced, leaving out failed frames', () => {
     expect(spec.visits.map((v) => v.points.map((p) => p.slot))).toEqual([[0, 2, 1], [5, 4]]);
-    expect(spec.visits[0].points.map((p) => p.y)).toEqual([0, 0.5, 1]); // 1, 2, 4 um are evenly spaced on a log axis
-    expect(spec.visits[1].points[0].y).toBeCloseTo(Math.log(1.1) / Math.log(4));
-    expect(spec.ends).toEqual(['1.00 µm', '4.00 µm']);
-    expect(spec.ticks.map((t) => t.label)).toEqual(['1.5 µm', '2 µm', '3 µm']);
+    expect(spec.visits[0].points.map((p) => p.y)).toEqual([0, 0.5, 1]);
+    expect(spec.visits[1].points.map((p) => p.y)).toEqual([0, 1]);
+    expect(spec.visits[0].labels).toEqual([0, 1, 2]); // few frames: all are labelled
+  });
+  it('spaces marks by rank, not by wavelength: 1, 1.1 and 4 um are equally spaced', () => {
+    const s = padSpec([f(0, 1, 1), f(1, 2, 1.1), f(2, 3, 4)], []);
+    expect(s.visits[0].points.map((p) => p.y)).toEqual([0, 0.5, 1]);
+  });
+  it('labels about seven frames of a long list, always the first and last', () => {
+    expect(labelIndexes(3)).toEqual([0, 1, 2]);
+    expect(labelIndexes(56)).toEqual([0, 9, 18, 28, 37, 46, 55]);
+    expect(labelIndexes(8)).toEqual([0, 1, 2, 4, 5, 6, 7]);
+  });
+  it('marks a break where the wavelength jumps far more than usual', () => {
+    const wl = [1, 1.1, 1.2, 1.3, 3, 3.1, 3.2];
+    const s = padSpec(wl.map((w, i) => f(i, 100, w)), []);
+    expect(s.visits[0].gaps).toEqual([{ after: 3, y: (3 / 6 + 4 / 6) / 2 }]);
+    expect(padSpec([f(0, 1, 1), f(1, 1, 2), f(2, 1, 9)], []).visits[0].gaps).toEqual([]); // fewer than 4 frames
+    expect(padSpec([1, 1.1, 1.2, 1.3, 1.4].map((w, i) => f(i, 1, w)), []).visits[0].gaps).toEqual([]);
   });
   it('puts a frame that is a little outside every visit into the nearest one', () => {
     const s = padSpec([f(0, 100, 1), f(1, 100, 2), f(2, 140, 3)], [{ index: 0, start_mjd: 100, end_mjd: 101 }, { index: 1, start_mjd: 200, end_mjd: 201 }]);
