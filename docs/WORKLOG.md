@@ -17,7 +17,7 @@ Commits: abc1234, def5678
 
 
 ## 2026-11-15: Spectrum on click (T14)
-Commits: `846b646` (contract, own commit), `6588074`, `17dde52`
+Commits: `a226402` (contract, own commit), `cae72f4`, `b9085dc`, `1fe2a65`, `c051d9f`
 
 **What:**
 - Click the image: the Clicked point tab shows that sky position's flux in every frame, with error bars. New `GET /api/spectrum?ra=&dec=&fov=&at_ra=&at_dec=&load=` and `contracts/spectrum.schema.json`; `series.schema.json` is unchanged.
