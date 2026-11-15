@@ -22,6 +22,15 @@ Commit: `d26ff13`.
 
 **Gaps:** not run against the real archive. Only unit tests, `verify-contract` and `verify-docs` ran here (no `make verify`: this worktree has no web build). Not automated: nothing checks for new releases on a schedule, and `make refresh` rebuilds every target. How IRSA names future releases, and whether a newer one supersedes `dr1`, was not checked.
 
+## 2026-11-15: Sexagesimal input (T19)
+Commit: `b76cb00`.
+
+**What:** the RA and Dec boxes accept decimal degrees as before, and sexagesimal: `08h55m10.831s`, `8h 55m 10.8s`, `08:55:10.831` or `08 55 10.831` for RA (hours), `-7d14m42.53s`, `-07°14′42.53″`, `-07:14:42.53` or `-07 14 42.53` for Dec. Pasting a pair into either box (`08h55m10.831s -7d14m42.53s`, or six numbers) fills both. A unit letter (h or d) decides the unit. Load converts to degrees, which the boxes and the URL then show. Out-of-range values (RA 24h or more, Dec beyond 90, minutes or seconds 60 or more) get a message that says what is accepted.
+
+**Why:** the challenge gives WISE 0855 as `08h55m10.831s -7d14m42.53s`; a unit test checks that this is the cached 133.795129, -7.245147. No new dependency.
+
+**Gaps:** names ("Orion Nebula") are not resolved; that needs a lookup service. A bare decimal RA is degrees, never hours (a decimal with `h`, like `8.9196h`, is hours). Not tried on a phone keyboard.
+
 ## 2026-11-15: Flux stored and charted: Spectrum and Light curve (T29, T30)
 Commits: `32492ed` (contract, own commit), `7c83325` (pipeline), `3e4dc80` (cache), `8283816` (web).
 
