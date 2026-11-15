@@ -22,6 +22,26 @@ Commit: `d26ff13`.
 
 **Gaps:** not run against the real archive. Only unit tests, `verify-contract` and `verify-docs` ran here (no `make verify`: this worktree has no web build). Not automated: nothing checks for new releases on a schedule, and `make refresh` rebuilds every target. How IRSA names future releases, and whether a newer one supersedes `dr1`, was not checked.
 
+## 2026-11-15: Flux stored and charted: Spectrum and Light curve (T29, T30)
+Commits: `32492ed` (contract, own commit), `7c83325` (pipeline), `3e4dc80` (cache), `8283816` (web).
+
+**What:**
+- Contract (optional, so nothing older breaks): each frame can carry `flux` (`ok` with `flux_ujy` and `flux_err_ujy`, or `ok: false` with a `reason`) and `mjd_avg` (the header's mid-exposure time, next to the archive's `obs_mjd`); the series can carry a `photometry` block with the method (aperture 2 px, ring 4 to 7 px, not aperture-corrected, at the request position). The schema refuses a zero standing in for "no flux".
+- Pipeline: `pipeline/build.py` (cached targets) and `pipeline/live.py` (live series) measure the flux on the original cutout, before resampling, with `pipeline/photometry.py` from T28 (merged here). `pipeline/writer.py` writes it.
+- The five cached series were rebuilt offline from the cached cutouts: flux for 87 of 102 frames of WISE 0855, 31 of 40 of Epsilon Indi B, 3 of 40 of RW Aurigae, none for Barnard's Star (38 frames) and R Draconis (35): every aperture there carries saturation or blooming flags. Barnard's Star now has 38 frames, not 37, because more of its cutouts were in the local cache than at the first build; its images changed too.
+- Web: a panel next to the image (below it on a narrow window) with two tabs. **Spectrum**: flux against wavelength for every measured frame. **Light curve**: flux against date for the frames within 5% of the wavelength on screen, so the vertical wavelength slider drives it. Points are coloured by visit (the same grouping as the visit slider), have error bars, and a click on a point shows that frame (switching to the individual frames if needed). The current frame is marked. A series with no measurable frame gets a plain message ("This is not zero flux") instead of an empty chart. The method, the "not aperture-corrected" caveat and the count of frames without flux are written under the chart. The mock fixture carries SIMULATED flux so the charts work without the backend; the charts say SIMULATED then.
+- New `web/src/chart.js` (pure logic, unit tested) and no new dependency: the charts are hand-drawn SVG.
+
+**Why:** the challenge asks for a spectrum and a light curve with real timestamps; until now the page was an image viewer. The light curve uses frames at nearly one wavelength because flux at different wavelengths is not one curve.
+
+**Gaps:**
+- **The flux values are not validated.** The aperture, ring and flag rule are first choices (T32). Epsilon Indi B reads about 20,000 to 50,000 µJy with a scatter of a factor of 2 to 4 between frames, and its field has a very bright star at the edge: nobody has checked whether that is the target, scattered light from the star, or a problem with the method. WISE 0855 at its requested position is at the noise level, and its position may be wrong for the observation epoch (T17).
+- The light curve exists only where several visits have a frame within 5% of the wavelength; elsewhere it says so. The 5% window is a guess. Whether `mjd_avg` and `obs_mjd` differ by more than minutes was not compared.
+- Stacks have no flux. A moving target is not followed (the aperture is fixed on the request position).
+- Live series carry flux too, tested with simulated cutouts only: the archive was not answering searches when this was written, so it was not run against real live data.
+- The side-by-side layout needs a window about 1040 px wide; the page is now up to 1240 px wide.
+- The demo targets (T41) were built before this change and will need an offline rebuild to carry flux.
+
 ## 2026-11-15: Remembered archive searches and a slow-archive message (T42); demo targets started (T41)
 Commits: see the T42 row on the board.
 
