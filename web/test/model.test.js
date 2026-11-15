@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { blinkPair, buildSlots, cycleVisit, labelIndexes, nearestWavelength, nearestY, padPosition, padSpec, stepVisit, stepWavelength, visitsOf, gridFovDeg, isWideField, locationQuery, mjdToUtc, nextSlot, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, seriesUrl, zoomRect } from '../src/model.js';
+import { blinkPair, buildSlots, cycleVisit, pingPong, labelIndexes, nearestWavelength, nearestY, padPosition, padSpec, stepVisit, stepWavelength, visitsOf, gridFovDeg, isWideField, locationQuery, mjdToUtc, nextSlot, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, seriesUrl, zoomRect } from '../src/model.js';
 import { errorResponse, fixture, gapResponse, loadingResponse, validateSeries, validateTargets } from './helpers.js';
 
 describe('hand-built responses are schema-valid', () => {
@@ -228,6 +228,13 @@ describe('visits and the wavelength pad', () => {
     expect(cycleVisit(spec, 4, 2)).toBe(2); // visit B -> wraps to visit A: the 2 um frame
     expect(cycleVisit(spec, 4, 1.05)).toBe(0); // the held wavelength, not the current frame, decides
     expect(cycleVisit(spec, 3, 2)).toBe(3); // a failed frame has no visit: stays put
+  });
+  it('walks up a visit\'s wavelengths and back down, turning round at the ends', () => {
+    // visit A is slots 0, 2, 1 from the shortest to the longest wavelength
+    let at = { slot: 0, dir: 1 }; const seen = [];
+    for (let i = 0; i < 6; i++) { at = pingPong(spec, at.slot, at.dir); seen.push(at.slot); }
+    expect(seen).toEqual([2, 1, 2, 0, 2, 1]);
+    expect(pingPong(padSpec([f(0, 1, 1), f(1, 1, 2)], []), 0, -1)).toEqual({ slot: 1, dir: 1 }); // turns round at the start
   });
   it('nearestWavelength and nearestY pick within one visit', () => {
     expect(nearestWavelength(spec.visits[1], 1.5)).toBe(5);

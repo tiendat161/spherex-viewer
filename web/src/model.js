@@ -296,3 +296,14 @@ export function cycleVisit(spec, slot, wl) {
   if (!at) return slot;
   return nearestWavelength(spec.visits[(at.visit + 1) % spec.visits.length], wl);
 }
+
+/**
+ * One step of walking through a visit's wavelengths and back: the next frame in direction `dir` (+1 longer, -1 shorter),
+ * turning round at either end. Returns {slot, dir}.
+ */
+export function pingPong(spec, slot, dir) {
+  const next = stepWavelength(spec, slot, dir);
+  if (next !== slot) return { slot: next, dir };
+  const back = stepWavelength(spec, slot, -dir);
+  return { slot: back, dir: back === slot ? dir : -dir };
+}

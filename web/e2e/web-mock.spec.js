@@ -21,15 +21,17 @@ test('mock: simulated badge, 40 frames, play/step/slider, screenshot', async ({ 
   const first = await page.locator('#r-frame').textContent();
   await expect.poll(() => page.locator('#r-frame').textContent()).not.toBe(first);
   await page.locator('#play').click();
-  await expect(page.locator('#play')).toHaveText('Play');
+  await expect(page.locator('#play')).toHaveText(/^Play/);
 
+  // The step buttons follow the two sliders: visit forward and back, wavelength up and down.
+  await page.locator('#slider').fill('0');
+  await expect(page.locator('#r-frame')).toHaveText('1 of 40');
+  await page.locator('#next').click();
+  await expect(page.locator('.visit-labels .cur')).toHaveAttribute('data-visit', '1');
+  await page.locator('#prev').click();
+  await expect(page.locator('.visit-labels .cur')).toHaveAttribute('data-visit', '0');
   await page.locator('#slider').fill('9');
   await expect(page.locator('#r-frame')).toHaveText('10 of 40');
-  await page.locator('#next').click();
-  await expect(page.locator('#r-frame')).toHaveText('11 of 40');
-  await page.locator('#prev').click();
-  await page.locator('#prev').click();
-  await expect(page.locator('#r-frame')).toHaveText('9 of 40');
   await expect(page.locator('#r-date')).toHaveText(/^\d{4}-\d\d-\d\d \d\d:\d\d UTC$/);
   await expect(page.locator('#r-wave')).toHaveText(/µm$/);
   await expect(page.locator('#r-flag')).toHaveText(/ %$/);
@@ -153,7 +155,7 @@ test('visit slider and the vertical wavelength slider', async ({ page }) => {
   await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
   await expect(page.locator('#play')).toHaveText('Pause');
   await page.locator('#play').click(); // stop the auto-blink
-  await expect(page.locator('#play')).toHaveText('Play');
+  await expect(page.locator('#play')).toHaveText(/^Play/);
   await expect(page.locator('#vaxis')).toBeVisible();
   await expect(page.locator('.visit-mark')).toHaveCount(3); // the mock series spans three groups of dates
   await expect(page.locator('.visit-labels .cur')).toHaveAttribute('data-visit', '0');
@@ -201,23 +203,24 @@ test('visit slider and the vertical wavelength slider', async ({ page }) => {
   await page.screenshot({ path: outDir + 'web-mock-pad.png', fullPage: true });
 });
 
-test('play across visits holds the wavelength; the other mode walks through the frames', async ({ page }) => {
+test('two play buttons follow the two sliders: across visits holds the wavelength, through wavelengths holds the visit', async ({ page }) => {
   await page.goto(wise);
   await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
   await expect(page.locator('#play')).toHaveText('Pause');
   await page.locator('#play').click();
-  await expect(page.locator('#play')).toHaveText('Play');
-  await expect(page.locator('#playmode')).toBeVisible();
-  await expect(page.locator('#playmode')).toHaveValue('visits');
+  await expect(page.locator('#play')).toHaveText('Play across visits');
+  await expect(page.locator('#play-wl')).toHaveText('Play through wavelengths');
+  await expect(page.locator('#order')).toHaveCount(0); // no Order selector: the two sliders are the two orders
 
-  // Start from a frame in the first visit, then play: the visit changes, the wavelength stays close to the held one.
+  // Across visits: start from a frame in the first visit; each visit always shows the same frame, so the wavelength does not drift.
   const box = await page.locator('#vaxis-track').boundingBox();
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   const held = Number.parseFloat(await page.locator('#r-wave').textContent());
   await page.locator('#fps').selectOption('10');
   await page.locator('#play').click();
+  await expect(page.locator('#play')).toHaveText('Pause');
+  await expect(page.locator('#play-wl')).toBeDisabled();
   await expect(page.locator('#play-note')).toContainText(`${held.toFixed(2)} µm`);
-  // Each visit always shows the same frame (the one closest to the held wavelength), so the wavelength does not drift.
   const waveOf = new Map();
   for (let i = 0; i < 14; i++) {
     const [v, w] = await page.evaluate(() => [document.querySelector('.visit-labels .cur').dataset.visit, document.getElementById('r-wave').textContent]); // read together: playback is running
@@ -227,13 +230,23 @@ test('play across visits holds the wavelength; the other mode walks through the 
   }
   expect(waveOf.size).toBe(3); // all three visits were shown
   await page.locator('#play').click();
+  await expect(page.locator('#play')).toHaveText('Play across visits');
 
-  // Through the frames, in Order: steps through one visit's frames first (time order), so the visit stays the same for a while.
-  await page.locator('#playmode').selectOption('frames');
-  await page.locator('#slider').fill('0');
-  await page.locator('#play').click();
-  await expect(page.locator('#play-note')).toBeHidden();
-  await expect.poll(() => page.locator('#r-frame').textContent()).not.toBe('1 of 40');
-  expect(await page.locator('.visit-labels .cur').getAttribute('data-visit')).toBe('0');
-  await page.locator('#play').click();
+  // Through wavelengths: the visit stays, the wavelength goes up to the end and comes back.
+  await page.locator('#play-wl').click();
+  await expect(page.locator('#play-wl')).toHaveText('Pause');
+  await expect(page.locator('#play')).toBeDisabled();
+  await expect(page.locator('#play-note')).toContainText('through the wavelengths of visit');
+  const visit = await page.locator('.visit-labels .cur').getAttribute('data-visit');
+  const waves = [];
+  for (let i = 0; i < 40; i++) {
+    const [v, w] = await page.evaluate(() => [document.querySelector('.visit-labels .cur').dataset.visit, Number.parseFloat(document.getElementById('r-wave').textContent)]);
+    expect(v).toBe(visit);
+    if (waves.at(-1) !== w) waves.push(w);
+    await page.waitForTimeout(110);
+  }
+  await page.locator('#play-wl').click();
+  expect(waves.length).toBeGreaterThan(4);
+  expect(waves.some((w, i) => i > 0 && w < waves[i - 1])).toBe(true); // it came back down
+  expect(waves.some((w, i) => i > 0 && w > waves[i - 1])).toBe(true);
 });

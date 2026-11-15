@@ -1,18 +1,18 @@
 import { fetchTargets, pollSeries } from './api.js';
-import { FOV_DEG, WIDE_FOV_DEG, bandLabel, blinkPair, buildSlots, cycleVisit, formatFlag, gridFovDeg, isWideField, locationQuery, mjdToUtc, nearestWavelength, nearestY, nextSlot, orderSlots, padPosition, padSpec, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, stackSlots, stepVisit, stepWavelength, visitsOf, zoomRect } from './model.js';
+import { FOV_DEG, WIDE_FOV_DEG, bandLabel, blinkPair, buildSlots, cycleVisit, pingPong, formatFlag, gridFovDeg, isWideField, locationQuery, mjdToUtc, nearestWavelength, nearestY, nextSlot, orderSlots, padPosition, padSpec, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, stackSlots, stepVisit, stepWavelength, visitsOf, zoomRect } from './model.js';
 
 const $ = (id) => document.getElementById(id);
 const el = {
   badge: $('badge'), targets: $('targets'), ra: $('ra'), dec: $('dec'), fov: $('fov'), fovNote: $('fov-note'), coords: $('coords'),
   progressText: $('progress-text'), bar: $('bar'), message: $('message'),
   frameBox: $('frame-box'), canvas: $('canvas'), scalebar: $('scalebar'), scalebarLabel: $('scalebar-label'), skipped: $('skipped'),
-  prev: $('prev'), play: $('play'), next: $('next'), slider: $('slider'), visitBar: $('visit-bar'), vtrack: $('visit-track'), vmarks: $('visit-marks'), vhandle: $('visit-handle'), vlabels: $('visit-labels'), vaxis: $('vaxis'), vaxisHint: $('vaxis-hint'), toFrames: $('to-frames'), vTrack: $('vaxis-track'), vTicks: $('vaxis-ticks'), vHandle: $('vaxis-handle'), vLabels: $('vaxis-labels'), fps: $('fps'), zoom: $('zoom'), pair: $('pair'), pairNote: $('pair-note'), playNote: $('play-note'), playmode: $('playmode'), playmodeWrap: $('playmode-wrap'),
-  view: $('view'), band: $('band'), bandWrap: $('band-wrap'), diff: $('diff'), diffWrap: $('diff-wrap'), order: $('order'), orderWrap: $('order-wrap'),
+  prev: $('prev'), play: $('play'), next: $('next'), slider: $('slider'), visitBar: $('visit-bar'), vtrack: $('visit-track'), vmarks: $('visit-marks'), vhandle: $('visit-handle'), vlabels: $('visit-labels'), vaxis: $('vaxis'), vaxisHint: $('vaxis-hint'), toFrames: $('to-frames'), vTrack: $('vaxis-track'), vTicks: $('vaxis-ticks'), vHandle: $('vaxis-handle'), vLabels: $('vaxis-labels'), fps: $('fps'), zoom: $('zoom'), pair: $('pair'), pairNote: $('pair-note'), playNote: $('play-note'), wdown: $('wdown'), wup: $('wup'), playWl: $('play-wl'),
+  view: $('view'), band: $('band'), bandWrap: $('band-wrap'), diff: $('diff'), diffWrap: $('diff-wrap'),
   mark: $('mark'), marker: $('marker'),
   rFrame: $('r-frame'), rDate: $('r-date'), rWave: $('r-wave'), rFlag: $('r-flag'), legend: $('legend'),
 };
 
-const state = { holdWl: null, targets: [], resp: null, slots: [], current: 0, playing: false, timer: null, abort: null, pos: null, pair: null };
+const state = { holdWl: null, playMode: null, dir: 1, targets: [], resp: null, slots: [], current: 0, playing: false, timer: null, abort: null, pos: null, pair: null };
 let padShown = null; // {slots, stacks, key, spec, visit} of the visit and wavelength controls as drawn
 const images = new Map(); // url -> HTMLImageElement, preloaded so blinking does not stutter
 const ctx = el.canvas.getContext('2d');
@@ -29,14 +29,14 @@ function preload(url) {
 const currentSlot = () => state.slots[state.current];
 const stackView = () => el.view.value === 'stack' && !!state.resp?.stacks;
 
-/** Slots for the current view: stacked visits of one band, or the individual frames in the chosen order. */
+/** Slots for the current view: stacked visits of one band, or the individual frames in time order. */
 function computeSlots() {
   if (!state.resp) return [];
   if (stackView()) return stackSlots(state.resp, el.band.value, el.diff.checked);
-  return orderSlots(buildSlots(state.resp), el.order.value);
+  return orderSlots(buildSlots(state.resp), 'time');
 }
 
-/** Rebuild the slots after a view, band, difference or order change. */
+/** Rebuild the slots after a view, band or difference change. */
 function reslot() {
   stopPlaying();
   state.pair = null;
@@ -107,12 +107,11 @@ function render() {
   setBadge(r);
   const has = state.slots.length > 0;
   el.frameBox.hidden = !has;
-  for (const b of [el.prev, el.play, el.next, el.slider, el.pair]) b.disabled = !has;
+  for (const b of [el.prev, el.next, el.slider, el.pair]) b.disabled = !has;
   const stacked = stackView();
   el.pair.disabled = !has || stacked;
   el.view.disabled = !r?.stacks;
   el.bandWrap.hidden = el.diffWrap.hidden = !stacked;
-  el.orderWrap.hidden = stacked;
   el.marker.hidden = !el.mark.checked;
   el.pair.checked = !!state.pair;
   renderPairNote();
@@ -120,8 +119,7 @@ function render() {
   el.slider.max = String(Math.max(0, state.slots.length - 1));
   el.slider.value = String(state.current);
   renderPad();
-  el.playmodeWrap.hidden = !(padActive()?.visits.length > 1);
-  el.play.textContent = state.playing ? 'Pause' : 'Play';
+  renderButtons();
   if (r) {
     el.progressText.textContent = progressText(r);
     el.bar.max = Math.max(1, r.progress.total);
@@ -221,12 +219,35 @@ function renderPad() {
   }
 }
 
-/** Playing across visits: Play shows the same wavelength in each visit in turn instead of walking through the frames. */
-const acrossVisits = () => !state.pair && el.playmode.value === 'visits' && padActive()?.visits.length > 1;
+/**
+ * With the visit and wavelength sliders in use (and not blinking a pair) the buttons follow the two axes: step the visit,
+ * step the wavelength, and play along either one. Otherwise (stacked view, one wavelength) they are plain frame buttons.
+ */
+const padMode = () => (padActive() && !state.pair ? (padActive().visits.length > 1 ? 'multi' : 'single') : 'classic');
+
+function renderButtons() {
+  const m = padMode(), playing = state.playing;
+  const set = (b, text) => { b.textContent = text; };
+  set(el.prev, m === 'multi' ? '◀︎ Visit' : 'Step ◀︎');
+  set(el.next, m === 'multi' ? 'Visit ▶︎' : 'Step ▶︎');
+  el.prev.hidden = el.next.hidden = m === 'single';
+  el.wdown.hidden = el.wup.hidden = el.playWl.hidden = m === 'classic';
+  el.play.hidden = m === 'single';
+  set(el.play, playing && state.playMode !== 'wl' ? 'Pause' : m === 'classic' ? 'Play' : 'Play across visits');
+  set(el.playWl, playing && state.playMode === 'wl' ? 'Pause' : 'Play through wavelengths');
+  const has = state.slots.length > 0;
+  el.wdown.disabled = el.wup.disabled = !has;
+  el.play.disabled = !has || (playing && state.playMode === 'wl');
+  el.playWl.disabled = !has || (playing && state.playMode !== 'wl');
+}
 
 function renderPlayNote() {
-  el.playNote.hidden = !(state.playing && acrossVisits() && state.holdWl);
-  if (!el.playNote.hidden) el.playNote.textContent = `Playing across visits at about ${state.holdWl.toFixed(2)} µm: each visit shows its frame closest to that wavelength, and the readout gives the exact one. Change Play to "through the frames" to walk through them in order.`;
+  const at = padActive() && padPosition(padActive(), state.current);
+  el.playNote.hidden = !(state.playing && (state.playMode === 'visits' ? state.holdWl : state.playMode === 'wl' && at));
+  if (el.playNote.hidden) return;
+  el.playNote.textContent = state.playMode === 'visits'
+    ? `Playing across visits at about ${state.holdWl.toFixed(2)} µm: each visit shows its frame closest to that wavelength, and the readout gives the exact one.`
+    : `Playing through the wavelengths of visit ${at.visit + 1}, shortest to longest and back.`;
 }
 
 function renderPairNote() {
@@ -255,17 +276,26 @@ function currentWavelength() {
 }
 
 function tick() {
-  if (acrossVisits()) {
+  const spec = padActive();
+  if (state.playMode === 'visits' && spec) {
     state.holdWl ??= currentWavelength(); // held from the moment blinking across visits begins
-    if (state.holdWl) return go(cycleVisit(padActive(), state.current, state.holdWl));
+    if (state.holdWl) return go(cycleVisit(spec, state.current, state.holdWl));
+  } else if (state.playMode === 'wl' && spec) {
+    const next = pingPong(spec, state.current, state.dir);
+    state.dir = next.dir;
+    return go(next.slot);
   }
   go(advance(1, { skipFailed: true }));
 }
 
-function startPlaying() {
+/** mode: 'visits' (hold the wavelength, change visit), 'wl' (hold the visit, walk the wavelengths), or 'frames' (every frame in time order). Default: the first that fits. */
+function startPlaying(mode) {
   if (state.slots.filter((s) => !s.skipped).length < 2) return;
+  const m = padMode();
+  state.playMode = mode ?? (m === 'multi' ? 'visits' : m === 'single' ? 'wl' : 'frames');
   state.playing = true;
   state.holdWl = currentWavelength(); // the wavelength held while blinking across visits
+  state.dir = 1;
   clearInterval(state.timer);
   state.timer = setInterval(tick, 1000 / Number(el.fps.value));
 }
@@ -351,8 +381,11 @@ function renderTargets() {
 }
 
 el.play.addEventListener('click', () => { state.playing ? stopPlaying() : startPlaying(); render(); });
-el.prev.addEventListener('click', () => { stopPlaying(); go(advance(-1)); });
-el.next.addEventListener('click', () => { stopPlaying(); go(advance(1)); });
+el.playWl.addEventListener('click', () => { state.playing ? stopPlaying() : startPlaying('wl'); render(); });
+el.prev.addEventListener('click', () => { stopPlaying(); if (padMode() === 'multi') pickSlot(stepVisit(padActive(), state.current, -1)); else go(advance(-1)); render(); });
+el.next.addEventListener('click', () => { stopPlaying(); if (padMode() === 'multi') pickSlot(stepVisit(padActive(), state.current, 1)); else go(advance(1)); render(); });
+el.wdown.addEventListener('click', () => { stopPlaying(); pickSlot(stepWavelength(padActive(), state.current, -1)); render(); });
+el.wup.addEventListener('click', () => { stopPlaying(); pickSlot(stepWavelength(padActive(), state.current, 1)); render(); });
 el.slider.addEventListener('input', () => { stopPlaying(); state.pair = null; go(Number(el.slider.value)); });
 // Pad: every change goes through the slider, so pair mode and stopping playback behave as for any other slider move.
 function pickSlot(slot) {
@@ -385,14 +418,13 @@ el.toFrames.addEventListener('click', () => { setView('frames'); reslot(); });
 el.zoom.addEventListener('change', render);
 el.mark.addEventListener('change', render);
 el.view.addEventListener('change', () => { setView(el.view.value); reslot(); });
-for (const c of [el.band, el.diff, el.order]) c.addEventListener('change', reslot);
+for (const c of [el.band, el.diff]) c.addEventListener('change', reslot);
 el.pair.addEventListener('change', () => {
   state.pair = el.pair.checked ? blinkPair(state.slots) : null;
   if (state.pair) { go(state.pair[0]); startPlaying(); }
   render();
 });
-el.fps.addEventListener('change', () => { if (state.playing) startPlaying(); });
-el.playmode.addEventListener('change', () => { if (state.playing) startPlaying(); render(); });
+el.fps.addEventListener('change', () => { if (state.playing) startPlaying(state.playMode); });
 el.coords.addEventListener('submit', (e) => {
   e.preventDefault();
   const p = parseLocation(`?ra=${encodeURIComponent(el.ra.value)}&dec=${encodeURIComponent(el.dec.value)}`);
