@@ -42,3 +42,38 @@ Any container host that runs a Dockerfile and keeps one instance running fits. W
 - **No rate limit per visitor.** The service limits itself (at most 8 archive downloads at once, 2 builds running and 6 waiting) but a single visitor can fill the queue. A host or proxy that limits requests per address helps.
 - **No accounts, no stored user data.** Positions typed by visitors go to the archive as part of the search; nothing else leaves the service.
 - **The cached targets are in the image.** Refreshing them is `make refresh` on a machine with archive access (`docs/data-updates.md`), then rebuild the image.
+
+## Deploying on AWS EC2 (the route chosen for T10)
+
+Chosen for learning and for the CV: EC2 is the AWS service most job postings name. Cost estimate (third-party figures for the server, IP and disk, so check the AWS Pricing Calculator): `t4g.small` about $0.0168 per hour, plus a public IPv4 address about $0.005 per hour, plus a 20 GB disk about $1.6 a month, so about **$17 a month**. The server runs only while you keep it; **stop or terminate it after the demo**. A `t4g` server is ARM (Graviton), the same architecture as the image built on an Apple-silicon Mac; the image built on the server itself is always the right one.
+
+1. **Account safety first.** Create a billing alert (AWS Budgets, for example $20 a month) before anything else. Do not use the root account for daily work: make an IAM user.
+2. **Launch the server.** EC2, Launch instance: Amazon Linux 2023, **arm64**, type `t4g.small`, a new key pair (keep the `.pem` file private), 20 GB gp3 disk. Region: `us-east-1` (nearest the archive's cloud copy, an untested possible speed-up; see the T40 note in `docs/WORKLOG.md`).
+3. **Security group (the firewall).** Allow inbound 22 (SSH) **from your own IP only**, and 80 and 443 from anywhere. Nothing else; the app's port 8000 stays closed to the internet.
+4. **Elastic IP.** Allocate one and attach it, so the address does not change when the server restarts.
+5. **A name for HTTPS.** Caddy gets a free certificate for a domain name. If you own a domain, point an A record at the Elastic IP. Without one, `<ip with dashes>.sslip.io` (for example `3-91-0-1.sslip.io`) resolves to that IP; this is a public free service and its certificate limits are shared, so treat it as a stopgap.
+6. **On the server** (`ssh -i key.pem ec2-user@<ip>`):
+
+```bash
+sudo dnf install -y docker git && sudo systemctl enable --now docker && sudo usermod -aG docker ec2-user
+```
+
+Log out and back in so the group applies. Then get the code (replace the URL with this repository's) and build:
+
+```bash
+git clone <repository-url> spherex-viewer && cd spherex-viewer && docker build -t spherex-viewer .
+```
+
+7. **Run the app and Caddy** on one private network, so only Caddy is reachable:
+
+```bash
+docker network create web
+docker run -d --name viewer --restart unless-stopped --network web -v spherex-cache:/data spherex-viewer
+docker run -d --name caddy --restart unless-stopped --network web -p 80:80 -p 443:443 -v caddy-data:/data caddy:2 caddy reverse-proxy --from YOUR.DOMAIN --to viewer:8000
+```
+
+8. **Check:** open `https://YOUR.DOMAIN`; `docker ps` shows both as running (the viewer as healthy); `docker logs viewer` shows requests.
+9. **Update later:** `git pull && docker build -t spherex-viewer .`, then `docker rm -f viewer` and run the viewer command again. Live builds in progress are lost on a restart.
+10. **Tear down:** terminate the instance, release the Elastic IP (an unattached one still costs), delete the disk if it is left over, and check the bill the next day.
+
+Not yet checked: none of these steps has been run on a real server. Memory on 2 GB is an estimate. Possible next steps for the CV, once this works: push the image to ECR and deploy it with GitHub Actions instead of building on the server.
