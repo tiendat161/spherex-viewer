@@ -15,6 +15,22 @@ Commits: abc1234, def5678
 
 ---
 
+## 2026-11-15: Remembered archive searches and a slow-archive message (T42); demo targets started (T41)
+Commits: see the T42 row on the board.
+
+**What:**
+- New `pipeline/tapcache.py`: live series remember the archive's list of images for a position under `.cache/tap/live/` (matched to 0.36 arcsec, valid for a week, damaged files ignored). A position searched before skips the search, also after a server restart. The cache build keeps its own copies as before.
+- After 90 s the page stops saying the search "usually takes about a minute" and says the archive is slower than usual today and that this step is the archive's own queue.
+- T41 (in progress, not committed): three famous positions (Orion M42, Eagle M16, Andromeda M31) are being added to `verify/targets.json` and built into `static/series/`, so a demo does not depend on the archive. Positions were read from SIMBAD (simbad.cfa.harvard.edu TAP) on 2026-11-15. The entries stay out of git until their series are built, because `make verify` needs every configured target built.
+
+**Why:** a live position took about 4 minutes to start once, and at the time of writing the archive's search service did not answer a trivial query within 60 s or 120 s (its web page answered at once). Remembering searches and having cached famous positions are the two things that remove the archive from a demo. The archive timeout was not shortened: a cancelled search would lose its place in the archive's queue and may be slower, and nothing measured says otherwise.
+
+**Gaps:**
+- T41 is not finished: the build was still on its first archive search about 10 minutes in. Until it finishes the demo targets do not exist; the site works without them.
+- A position nobody has searched before still pays for the search.
+- The slow message gives no countdown or retry count; the page does not know whether the server is retrying.
+- The 90 s threshold is a guess from four observations (47, 55, 67 s, and about 4 minutes).
+
 ## 2026-11-15: Staged loading of a live position (T40)
 Commits: `7e23de0` and `1ddb0f8` (contract, own commits), `5725cb3` (backend), see the T40 row for the web commit.
 
