@@ -644,3 +644,7 @@ Gaps: the "i" for the chart message and catalogue line is wired but only the mai
 ## T59: position mark removed
 **What:** Dat decided the magenta crosshair of T55 was not a good idea. Removed the mark (canvas shape, catalogue layer, colour, `.sky-mark` CSS, the label and "i" text about the cross) and the `viewCentre` offset, which existed only so the mark sat in the header strip: the fly-in now ends centred on the position, as in T50 (simpler and the T50 behaviour). The header overlay is back to `#0f1115b0`. Kept: the SIN globe start (`fov` 360), fly-in, reduced motion, tile-loaded gating, fallback, click-through, credit and privacy text. Tests: the mark cases and the `viewCentre` unit tests are gone; the globe case and a fly-in-to-RA/Dec case remain.
 
+
+## T60: toggle renamed to Combined / Single images
+**What:** The view toggle "By date" / "By wavelength" now reads "Combined" / "Single images" (Dat's decision), with new "i" tooltips: Combined = all the images of one epoch added together, deeper, best for seeing motion between epochs; Single images = one archive image at one wavelength. README and `docs/structure.md` use the new words. Ids (`seg-date`, `seg-wl`), CSS, JSON, contracts and the caption text were not changed (the caption already says "combined" / "One image"). The mock Playwright spec now checks the two labels.
+**Gaps:** The two WORKLOG/TASKS entries of older tasks still say "By date / By wavelength" as history. Needs a redeploy to show.

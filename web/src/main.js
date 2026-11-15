@@ -649,7 +649,7 @@ let draggingVisit = false;
 el.vtrack.addEventListener('pointerdown', (e) => { draggingVisit = true; el.vtrack.setPointerCapture(e.pointerId); el.slider.focus({ preventScroll: true }); pickOnVisits(e); });
 el.vtrack.addEventListener('pointermove', (e) => { if (draggingVisit) pickOnVisits(e); });
 for (const t of ['pointerup', 'pointercancel']) el.vtrack.addEventListener(t, () => { draggingVisit = false; });
-// "By date" (stacked visits) and "By wavelength" (individual frames) set the hidden view selector.
+// "Combined" (stacked visits) and "Single images" (individual frames) set the hidden view selector.
 el.segDate.addEventListener('click', () => { if (state.resp?.stacks && !stackView()) { setView('stack'); reslot(); } });
 el.segWl.addEventListener('click', () => { if (stackView()) { setView('frames'); reslot(); } });
 el.tabSpectrum.addEventListener('click', () => { state.chartTab = 'spectrum'; render(); });

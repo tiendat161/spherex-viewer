@@ -1,6 +1,6 @@
 # SPHEREx viewer
 
-A web tool for NASA Space Apps 2026, challenge "Planet X and SPHEREx". Enter a sky position (RA/Dec), and blink through real infrared images of that patch taken by the SPHEREx space telescope, by date or by wavelength, to spot things that move or change. It also shows the epochs stacked together and the difference between visits.
+A web tool for NASA Space Apps 2026, challenge "Planet X and SPHEREx". Enter a sky position (RA/Dec), and blink through real infrared images of that patch taken by the SPHEREx space telescope, as combined images per epoch or as single archive images, to spot things that move or change. It also shows the epochs stacked together and the difference between visits.
 
 **Status:** deployed on one AWS EC2 instance (Sydney) at https://16-179-73-6.sslip.io (see `docs/deploy.md`). The five cached targets open at once and were checked from outside.
 

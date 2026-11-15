@@ -313,12 +313,14 @@ test('top bar: target menu, pasting RA and Dec, view toggle, caption', async ({ 
   await page.getByRole('button', { name: 'Load' }).click();
   await expect(page.locator('#message')).toContainText('08h55m10.831s');
 
-  // The caption says in words what is on screen; the toggle is by date or by wavelength (the mock has no stacks, so only wavelength).
+  // The caption says in words what is on screen; the toggle is Combined or Single images (the mock has no stacks, so only Single images).
   await page.goto(wise);
   await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
   await expect(page.locator('#caption')).toContainText('One image');
   await expect(page.locator('#caption')).toContainText('µm');
   await expect(page.locator('#seg-wl')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#seg-date')).toHaveText('Combined');
+  await expect(page.locator('#seg-wl')).toHaveText('Single images');
   await expect(page.locator('#seg-date')).toBeDisabled();
   // Advanced settings are folded away.
   await expect(page.locator('#advanced')).not.toHaveAttribute('open', '');
