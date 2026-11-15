@@ -15,6 +15,15 @@ Commits: abc1234, def5678
 
 ---
 
+## 2026-11-15: Submission paperwork (T12)
+Commit: see `git log` (branch `t12-submission`, message starts "T12").
+
+**What:** `README.md`: status line now gives the public URL, says the five cached targets work and a live position was built once on the server (M42, about 252 s, through the backup search), and tells a demo to use cached targets or to request a live position early; the search description and limits mention the TAP/SIA2 backup. `REFERENCES.md`: the archive-search line said SIA2 was unused; it is now the live backup, with the R Draconis caveat.
+
+**Deadline:** not confirmed. Public listings (web search, not the official site, which could not be opened from here: certificate error) say the event ran 14 to 15 November 2026 and registration closes on the 15th; one blog says submissions close 15 November 23:59 local time. Treat it as tonight unless Dat sees otherwise.
+
+**Gaps:** (1) demo video not started: needs a screen recording of the public URL, a cached target first (blink by date, then by wavelength, the stacked and difference views, the Spectrum and Light curve), a live position last (requested a few minutes beforehand), and the REAL badge shown. (2) `REFERENCES.md` still has two `TODO`s for the author: the exact Gaia TAP endpoint, and which parts were AI-written. (3) Nothing re-checked on the live site after the README change (docs only).
+
 ## 2026-11-15: Live-build robustness (T44)
 Commit: see `git log` (message starts "T44").
 **What:** (1) Stretch re-renders, the final render and the stacks of a live series now run outside the job lock; a re-render is installed only if no newer one landed, and a series is marked ready only if no `extend` raised the cap meanwhile (it then takes another pass). (2) A frame that raises `ValueError` or WCS `NoConvergence` (or disagrees on BUNIT) counts as a failed frame, not a failed series. (3) `retry-after` is capped at 30 s (`MAX_RETRY_WAIT_S` in `pipeline/irsa.py`). Tests in `tests/pipeline/test_live.py` and `test_irsa.py`.

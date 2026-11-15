@@ -2,13 +2,13 @@
 
 A web tool for NASA Space Apps 2026, challenge "Planet X and SPHEREx". Enter a sky position (RA/Dec), and blink through real infrared images of that patch taken by the SPHEREx space telescope, by date or by wavelength, to spot things that move or change. It also shows the visits stacked together and the difference between visits.
 
-**Status:** deployed on one AWS EC2 instance at https://16-179-73-6.sslip.io (see `docs/deploy.md`); the cached targets were checked from outside. The live path (any other position) was **not** verified on that server: the archive's search service answered HTTP 502 at the time. The submission paperwork is still in progress.
+**Status:** deployed on one AWS EC2 instance (Sydney) at https://16-179-73-6.sslip.io (see `docs/deploy.md`). The five cached targets open at once and were checked from outside. A live position (any other) was built to the end once on that server: Orion M42, 8 frames in about 252 s, through the backup archive search (TAP was failing that day). Live builds depend on the IRSA archive, which was unreliable during the event, so for a demo use the cached targets or request a live position a few minutes beforehand.
 
 ## What it does
 
 - **Any position.** Type RA/Dec in decimal degrees or sexagesimal, or paste "RA Dec" together, or pick a target. Positions are also read from the URL: `/?ra=133.795129&dec=-7.245147&fov=0.2`.
 - **Five test targets are cached** and open at once: WISE 0855, Barnard's Star, Epsilon Indi B, RW Aurigae, R Draconis. They are the ones named in the challenge.
-- **Any other position is built live** from the IRSA archive: a first batch of 8 frames spread over dates and bands (the archive search is the slow part: usually under a few minutes, depending on the archive), then "Load more" or "Load up to 102".
+- **Any other position is built live** from the IRSA archive: a first batch of 8 frames spread over dates and bands (the archive search is the slow part: from seconds to several minutes, depending on the archive; if the main search (TAP) fails, a backup search (SIA2) is used and the page says the list of images may be incomplete), then "Load more" or "Load up to 102".
 - **Views:** individual frames (step through visits at one wavelength, or through the wavelengths), stacked visits per detector band, and the difference from the first visit. Background is subtracted per image.
 - **Field of view:** 0.1°, 0.2° (default), 0.5° or 1°. Cached targets are 0.2° only; other sizes are built live.
 - **Flux charts:** Spectrum and Light curve at the target position (aperture photometry, microjansky, with uncertainty; method not yet validated).
@@ -38,8 +38,8 @@ make cache          # rebuild the cached targets from the archive (contacts IRSA
 
 ## Known limits
 
-- The first batch for a new position waits for the archive search (not timed on the deployed server), and live series are kept in memory only.
-- Not checked outside Chromium. The submission deadline and WISE 0855's proper motion are unverified (see `docs/WORKLOG.md`, "Not verified").
+- The first batch for a new position waits for the archive search (one run timed on the deployed server: about 252 s), and live series are kept in memory only.
+- Not checked outside Chromium. The exact submission deadline (public listings say the hackathon closes on 15 November 2026; no official time was found) and WISE 0855's proper motion are unverified (see `docs/WORKLOG.md`, "Not verified").
 - Flux charts (Spectrum, Light curve) use a first-choice aperture that is not yet validated (T32). Not yet built: spectrum at a clicked point, Gaia/WISE catalogue overlays, per-pixel flag detail. The task board lists them.
 
 ## Data and credits

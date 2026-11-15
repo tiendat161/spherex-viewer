@@ -15,7 +15,6 @@ Details of finished work (what, why, what is still missing) are in [`WORKLOG.md`
 
 | ID | Task | Owner | Touches |
 |---|---|---|---|
-| T12 | Submission paperwork: README, REFERENCES (demo video not started) | t12-readme | `README.md`, `REFERENCES.md` |
 | T41 | Cache three famous positions as demo targets (Orion M42, Eagle M16, Andromeda M31) so a demo never waits for the archive | parked on branch `t41-demo-targets` (entries added, series not built: the archive search service was down, HTTP 502). To finish: when the archive answers, on that branch run `python -m pipeline.build verify/targets.json --only m42 m16 m31`, then `--offline` for flux, then `make verify` | `verify/targets.json`, `static/series/`, `tests/pipeline/test_targets.py` |
 
 ## Todo
@@ -24,7 +23,6 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 
 | ID | P | Task | Challenge item | Touches | Notes |
 |---|---|---|---|---|---|
-| T12 | P1 | Submission paperwork: rewrite `README.md`, finish `REFERENCES.md`, demo video | submission | `README.md`, `REFERENCES.md` | README still says "generic scaffolding only". Submission deadline is still unknown: check first. Independent of code tasks. |
 | T14 | P2 | Spectrum on click: brightness of the clicked point across all bands | "Extra kudos if your tool can generate spectra on the fly" | `contracts/`, `pipeline/` (new per-frame flux data), `api/main.py`, `web/src/main.js` | Needs per-frame flux values, which the 8-bit PNGs do not carry. Clashes with T13 and T15 in `main.js`. |
 | T15 | P2 | Overlay Gaia or WISE catalogue positions | "overlay astronomical data from other telescopes" | `api/main.py` (catalogue query), `web/src/main.js`, `web/index.html` | Would also answer where WISE 0855 and Epsilon Indi B should be. Aladin Lite was the planned route. |
 | T16 | P2 | Deeper stacks for Barnard's Star, Epsilon Indi B, RW Aurigae, R Draconis | "add together ... to improve the signal-to-noise" | `verify/targets.json` (`stack_images`), `static/series/`, `.cache/` | They stack only their 35–40 cached images (1–3 per detector per visit). A full fetch was started and stopped (about 14 images a minute). Suggested: `stack_images: 120`. Barnard's Star already has 170 cutouts cached. Contacts IRSA. Data only: no code clash. |
@@ -84,3 +82,4 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 | T47 | Small review items (T23 findings 7 to 14): `fullmatch` and ASCII digits in the `api/main.py` regexes; `series.json` reads cached by mtime, a damaged file skipped; `load` validated only on the live path; `tapcache` cap (500) and unique temp name; a rebuilt live series keeps its id; no restretch when `extend` asks for more than the archive has; dev requirements split into `requirements-dev.txt`; Makefile comment; no "REAL DATA" badge on error documents. Not done: Python 3.9 in Docker, the web build importing the dev mock | none | the commit on branch `t47-review-items` |
 | T48 | While TAP is down, live searches ask SIA2 first for 5 minutes (`TapHealth`, `TAP_SKIP_S` = 300, not tuned) instead of waiting for two 90 s TAP tries each time; TAP is tried again after the pause or if SIA2 fails. Not measured on the server after the change | "public-facing web tool" | the commit on branch `tap-skip` |
 | T46 | Fixed stale or unverified statements: contract decision 13 and live `frames[].index` meaning, flag bits cited to Explanatory Supplement Table 16, proper-motion adequacy marked unverified, live-wait text made indicative | "never invent scientific facts" | `ee71db0`, `a7657c3`, `2708374`, `5a004c6`, and the commit on branch `t46-claims` that adds this row |
+| T12 | Submission paperwork: `README.md` rewritten (public URL, status, limits), `REFERENCES.md` brought up to date. Not done: demo video, the two `TODO`s in `REFERENCES.md` (Gaia endpoint, AI-written split: need Dat), exact deadline unconfirmed | submission | the commit on branch `t12-submission` |

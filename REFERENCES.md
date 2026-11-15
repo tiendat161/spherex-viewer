@@ -6,7 +6,7 @@ Sections match the Space Apps submission form.
 
 - NASA/IPAC IRSA SPHEREx archive: https://irsa.ipac.caltech.edu/Missions/spherex.html
 - IRSA TAP service: https://irsa.ipac.caltech.edu/TAP (the spike in `spike/tap.py` queried `https://irsa.ipac.caltech.edu/TAP/sync`)
-- Archive search choice: the app searches with TAP (ADQL), not SIA2; both `dr1` and `qr3` images come back and are used (see `docs/WORKLOG.md`, T31). SIA2 (`https://irsa.ipac.caltech.edu/SIA`, collections `spherex_dr1`, `spherex_qr3`) answered one quick timing test but is not used by the app; see T43.
+- Archive search choice: the app searches with TAP (ADQL); both `dr1` and `qr3` images come back and are used (see `docs/WORKLOG.md`, T31). SIA2 (`https://irsa.ipac.caltech.edu/SIA`, collections `spherex_dr1`, `spherex_qr3`) is the backup for live positions when TAP fails: it answered in 1 to 5 s when TAP did not, but on R Draconis it lists 539 of the 2493 images TAP lists, so the page labels such a list as possibly incomplete (T43, T48). The cached targets are built from TAP only.
 - SPHEREx cutout service docs: https://irsa.ipac.caltech.edu/data/SPHEREx/docs/cutout_tool.html
 - SPHEREx Explanatory Supplement: https://irsa.ipac.caltech.edu/data/SPHEREx/docs/SPHEREx_Expsupp.pdf
 - IRSA SPHEREx tutorial notebooks: https://caltech-ipac.github.io/irsa-tutorials/spherex/
