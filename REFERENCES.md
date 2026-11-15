@@ -24,7 +24,7 @@ Sections match the Space Apps submission form.
 - Claude Code (AI assistance for code and docs): https://claude.com/claude-code
 - Generic scaffolding created before the event: the agent definitions in `.claude/` and the `Makefile` (plus `CLAUDE.md`), committed in `f080347` "Generic scaffolding (pre-event)".
 
-Note: these libraries are the project's intended stack. At the time of writing none is pinned in the repo yet. TODO: confirm each is actually used before submitting.
+Note: every library above is imported or run by the code (checked 2026-11-15 by searching `pipeline/`, `api/`, `Makefile` and `web/package.json`; `requests` is imported inside `pipeline/irsa.py`). Python versions are pinned in `requirements.txt`, web versions in `web/package.json`. Not used: Aladin Lite, Gaia or WISE catalogue overlays (planned tasks only). Also used for tests: pytest, jsonschema, httpx, Vitest, Playwright, Ajv.
 
 ## AI usage
 

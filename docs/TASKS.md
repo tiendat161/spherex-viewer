@@ -15,7 +15,7 @@ Details of finished work (what, why, what is still missing) are in [`WORKLOG.md`
 
 | ID | Task | Owner | Touches |
 |---|---|---|---|
-| | *(none)* | | |
+| T12 | Submission paperwork: README, REFERENCES (demo video not started) | t12-readme | `README.md`, `REFERENCES.md` |
 
 ## Todo
 
