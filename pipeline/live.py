@@ -201,7 +201,7 @@ class LiveSeries:
             frames = {str(i): {k: f.get(k) for k in ("obs_mjd", "wavelength_um", "flag_fraction", "flux", "mjd_avg")}
                       for i, f in self._frames.items() if i in self._pngs}
             meta = {"id": self.id, "ra": self.ra, "dec": self.dec, "fov": self.fov, "cap": self.cap, "total": self.total,
-                    "available": self.available, "failed": self.failed, "unit": self._unit, "gen": self.gen,
+                    "available": self.available, "search": self.search, "failed": self.failed, "unit": self._unit, "gen": self.gen,
                     "stretch": self.stretch, "stacks": self._stacks, "finished_at": self.finished_at, "frames": frames}
             pngs = {f"{i:02d}.png": b for i, b in self._pngs.items()}
             pngs.update(self._stack_pngs)
@@ -212,6 +212,7 @@ class LiveSeries:
         """A ready series from `snapshot` data: it shows, but has no pixels (`pix_dropped`), so it is rebuilt to be measured or extended."""
         job = cls(meta["ra"], meta["dec"], meta["fov"], meta["cap"], tap_dir=tap_dir)
         job.status, job.total, job.available, job.failed = "ready", meta["total"], meta["available"], meta["failed"]
+        job.search = meta.get("search")
         job._unit, job.gen, job.stretch, job._stacks, job.finished_at = meta["unit"], meta["gen"], meta["stretch"], meta["stacks"], meta["finished_at"]
         job.pix_dropped = True
         job._frames = {int(i): dict(f) for i, f in meta["frames"].items()}
