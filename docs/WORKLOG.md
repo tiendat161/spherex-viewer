@@ -596,3 +596,6 @@ Moved into an "i" (text kept): the long part of the RA/Dec hint; the sky-backdro
 
 Not changed: `title` tooltips on the image, sliders, tabs and view buttons (already hover text), the target menu's one-line position note (full text on hover, as before), the orange image panel, backdrop behaviour.
 Checked: `make test`, `make verify`, `make verify-docs`, Playwright mock specs on Chromium, Firefox and WebKit (the keyboard Tab test is skipped on WebKit, which does not Tab to buttons by default). The real Aladin backdrop was not checked with live tiles here (the tests use the stand-in).
+
+## 2026-11-15: Redeployed 6e5ea47 to EC2
+**What:** T54 info icons deployed (server build, container swapped, about 10 s downtime). Checked from outside: page 200, 5 targets, info-icon code in the bundle, Barnard series (40 frames), healthy. **Gaps:** popovers not opened in a browser on the public site; IRSA-dependent paths not rechecked. `docs/TASKS.md` left alone.
