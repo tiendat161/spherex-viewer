@@ -30,6 +30,10 @@
       <div id="progress" class="progress" aria-live="polite"><span id="progress-text">Choose a target.</span><progress id="bar" max="1" value="0"></progress></div>
       <div id="message" class="message" hidden></div>
       <div class="stage">
+        <div id="vaxis-hint" class="vaxis-hint" hidden>
+          <button id="to-frames" type="button" title="Stacks combine all the wavelengths of a band, so there is no wavelength to pick. Switch to the individual frames.">Pick a wavelength</button>
+          <span class="muted small">Stacks have no single wavelength</span>
+        </div>
         <div id="vaxis" class="vaxis" hidden>
           <div id="vaxis-labels" class="vaxis-labels"></div>
           <div id="vaxis-track" class="vaxis-track" title="Drag to change the wavelength within this visit; each mark is one frame, evenly spaced (the wavelengths are written beside it). Up and down arrow keys step by one frame">

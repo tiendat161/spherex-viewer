@@ -6,7 +6,7 @@ const el = {
   badge: $('badge'), targets: $('targets'), ra: $('ra'), dec: $('dec'), fov: $('fov'), fovNote: $('fov-note'), coords: $('coords'),
   progressText: $('progress-text'), bar: $('bar'), message: $('message'),
   frameBox: $('frame-box'), canvas: $('canvas'), scalebar: $('scalebar'), scalebarLabel: $('scalebar-label'), skipped: $('skipped'),
-  prev: $('prev'), play: $('play'), next: $('next'), slider: $('slider'), visitBar: $('visit-bar'), vtrack: $('visit-track'), vmarks: $('visit-marks'), vhandle: $('visit-handle'), vlabels: $('visit-labels'), vaxis: $('vaxis'), vTrack: $('vaxis-track'), vTicks: $('vaxis-ticks'), vHandle: $('vaxis-handle'), vLabels: $('vaxis-labels'), fps: $('fps'), zoom: $('zoom'), pair: $('pair'), pairNote: $('pair-note'),
+  prev: $('prev'), play: $('play'), next: $('next'), slider: $('slider'), visitBar: $('visit-bar'), vtrack: $('visit-track'), vmarks: $('visit-marks'), vhandle: $('visit-handle'), vlabels: $('visit-labels'), vaxis: $('vaxis'), vaxisHint: $('vaxis-hint'), toFrames: $('to-frames'), vTrack: $('vaxis-track'), vTicks: $('vaxis-ticks'), vHandle: $('vaxis-handle'), vLabels: $('vaxis-labels'), fps: $('fps'), zoom: $('zoom'), pair: $('pair'), pairNote: $('pair-note'),
   view: $('view'), band: $('band'), bandWrap: $('band-wrap'), diff: $('diff'), diffWrap: $('diff-wrap'), order: $('order'), orderWrap: $('order-wrap'),
   mark: $('mark'), marker: $('marker'),
   rFrame: $('r-frame'), rDate: $('r-date'), rWave: $('r-wave'), rFlag: $('r-flag'), legend: $('legend'),
@@ -180,6 +180,7 @@ function renderPad() {
     }) : []));
   }
   const spec = padShown.spec;
+  el.vaxisHint.hidden = !stackView(); // the stacked view has no wavelength slider: say so, and offer the way to it
   el.vaxis.hidden = !spec;
   el.visitBar.hidden = !spec || spec.visits.length < 2;
   el.slider.classList.toggle('visually-hidden', !!spec); // the native slider stays for the keyboard and screen readers
@@ -355,6 +356,7 @@ let draggingVisit = false;
 el.vtrack.addEventListener('pointerdown', (e) => { draggingVisit = true; el.vtrack.setPointerCapture(e.pointerId); el.slider.focus({ preventScroll: true }); pickOnVisits(e); });
 el.vtrack.addEventListener('pointermove', (e) => { if (draggingVisit) pickOnVisits(e); });
 for (const t of ['pointerup', 'pointercancel']) el.vtrack.addEventListener(t, () => { draggingVisit = false; });
+el.toFrames.addEventListener('click', () => { setView('frames'); reslot(); });
 el.zoom.addEventListener('change', render);
 el.mark.addEventListener('change', render);
 el.view.addEventListener('change', () => { setView(el.view.value); reslot(); });
