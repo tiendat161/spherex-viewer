@@ -59,6 +59,19 @@ for (const t of targets) {
     await expect(page.locator('#r-date')).toHaveText(/^\d{4}-\d\d-\d\d \d\d:\d\d UTC$/);
     await expect(page.locator('#r-wave')).toHaveText(/µm$/);
 
+    // The flux panel: a spectrum when some frames could be measured, a plain message (not an empty chart) when none could.
+    await expect(page.locator('#charts')).toBeVisible();
+    const measured = await page.locator('.chart-dot').count();
+    if (measured > 0) {
+      await expect(page.locator('#chart-title')).toContainText(`${measured} of ${t.done} frames measured`);
+      await expect(page.locator('#chart-title')).not.toContainText('SIMULATED');
+      await page.locator('#tab-curve').click();
+      await expect(page.locator('#chart-title')).toContainText(/Flux at about|Light curve/);
+      await page.locator('#tab-spectrum').click();
+    } else {
+      await expect(page.locator('#chart-message')).toContainText('not zero flux');
+    }
+
     // The frame is drawn at the grid size and is not a blank image.
     await expect.poll(() => page.evaluate(() => {
       const c = document.getElementById('canvas');

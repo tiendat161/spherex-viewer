@@ -1,4 +1,5 @@
 import { fetchTargets, pollSeries } from './api.js';
+import { PALETTE, fluxPoints, fluxSummary, lightCurveLayout, reasonText, reasonWords, spectrumLayout } from './chart.js';
 import { FOV_DEG, INITIAL_LOAD, MB_PER_IMAGE, isCachedPosition, loadPlan, loadTimeText, captionText, splitCoordinates, WIDE_FOV_DEG, bandLabel, blinkPair, buildSlots, cycleVisit, pingPong, formatFlag, gridFovDeg, isWideField, locationQuery, mjdToUtc, nearestWavelength, nearestY, nextSlot, orderSlots, padPosition, padSpec, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, stackSlots, stepVisit, stepWavelength, visitsOf, zoomRect } from './model.js';
 
 const $ = (id) => document.getElementById(id);
@@ -9,10 +10,11 @@ const el = {
   prev: $('prev'), play: $('play'), next: $('next'), slider: $('slider'), visitBar: $('visit-bar'), vtrack: $('visit-track'), vmarks: $('visit-marks'), vhandle: $('visit-handle'), vlabels: $('visit-labels'), vaxis: $('vaxis'), segDate: $('seg-date'), segWl: $('seg-wl'), caption: $('caption'), targetsMenu: $('targets-menu'), targetsCurrent: $('targets-current'), vTrack: $('vaxis-track'), vTicks: $('vaxis-ticks'), vHandle: $('vaxis-handle'), vLabels: $('vaxis-labels'), fps: $('fps'), zoom: $('zoom'), pair: $('pair'), pairNote: $('pair-note'), playNote: $('play-note'), wdown: $('wdown'), wup: $('wup'), playWl: $('play-wl'),
   view: $('view'), band: $('band'), bandWrap: $('band-wrap'), diff: $('diff'), diffWrap: $('diff-wrap'),
   mark: $('mark'), marker: $('marker'),
+  stageRow: $('stage-row'), charts: $('charts'), tabSpectrum: $('tab-spectrum'), tabCurve: $('tab-curve'), chart: $('chart'), chartTitle: $('chart-title'), chartLegend: $('chart-legend'), chartMessage: $('chart-message'), chartNote: $('chart-note'),
   rFrame: $('r-frame'), rDate: $('r-date'), rWave: $('r-wave'), rFlag: $('r-flag'), legend: $('legend'),
 };
 
-const state = { load: null, startedAt: 0, holdWl: null, playMode: null, dir: 1, targets: [], resp: null, slots: [], current: 0, playing: false, timer: null, abort: null, pos: null, pair: null };
+const state = { chartTab: 'spectrum', load: null, startedAt: 0, holdWl: null, playMode: null, dir: 1, targets: [], resp: null, slots: [], current: 0, playing: false, timer: null, abort: null, pos: null, pair: null };
 let padShown = null; // {slots, stacks, key, spec, visit} of the visit and wavelength controls as drawn
 const images = new Map(); // url -> HTMLImageElement, preloaded so blinking does not stutter
 const ctx = el.canvas.getContext('2d');
@@ -120,6 +122,7 @@ function render() {
   renderPairNote();
   renderPlayNote();
   renderMore();
+  renderCharts();
   el.slider.max = String(Math.max(0, state.slots.length - 1));
   el.slider.value = String(state.current);
   renderPad();
@@ -296,6 +299,102 @@ function renderMore() {
     el.moreAll.textContent = `${plan.allIsCapped ? `Load up to ${plan.all}` : `Load all ${plan.all}`} (${loadTimeText(n2)}, about ${Math.round(n2 * MB_PER_IMAGE)} MB)`;
     el.moreAll.dataset.total = String(plan.all);
   }
+}
+
+const SVG = 'http://www.w3.org/2000/svg';
+function svg(name, attrs = {}, text) {
+  const e = document.createElementNS(SVG, name);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, String(v));
+  if (text != null) e.textContent = text;
+  return e;
+}
+let chartShown = null; // {resp, tab, index} of the chart as drawn
+
+/**
+ * The Spectrum and Light curve next to the image: the flux of every frame that could be measured, coloured by visit.
+ * The light curve takes the frames near the wavelength on screen (the vertical slider drives it). A click on a point shows that frame.
+ */
+function renderCharts() {
+  const r = state.resp;
+  const frames = r?.frames ?? [];
+  const sum = fluxSummary(frames);
+  const show = sum.hasFlux;
+  el.charts.hidden = !show;
+  el.stageRow.classList.toggle('has-charts', show);
+  if (!show) return;
+  const cur = !stackView() ? currentSlot() : null;
+  const curIndex = cur && !cur.skipped ? cur.index : null;
+  if (chartShown && chartShown.resp === r && chartShown.tab === state.chartTab && chartShown.index === curIndex) return;
+  chartShown = { resp: r, tab: state.chartTab, index: curIndex };
+  for (const [tab, on] of [[el.tabSpectrum, state.chartTab === 'spectrum'], [el.tabCurve, state.chartTab === 'curve']]) tab.setAttribute('aria-selected', String(on));
+
+  // Visit of each frame, for the colour: the same grouping as the visit slider.
+  const slots = orderSlots(buildSlots(r), 'time');
+  const pad = padSpec(slots, visitsOf(r, slots));
+  const visitOf = new Map();
+  pad?.visits.forEach((v, i) => v.points.forEach((p) => visitOf.set(slots[p.slot].index, i)));
+  const points = fluxPoints(frames, visitOf);
+  const wl0 = cur && !cur.skipped ? cur.wavelength_um : points.length ? [...points].sort((a, b) => a.wl - b.wl)[Math.floor(points.length / 2)].wl : null;
+  const curve = state.chartTab === 'curve';
+  const lay = curve ? (wl0 ? lightCurveLayout(points, wl0) : null) : spectrumLayout(points);
+
+  el.chart.replaceChildren();
+  el.chartLegend.replaceChildren();
+  el.chartMessage.hidden = !!lay;
+  el.chart.hidden = !lay; // no empty frame when there is nothing to draw
+  const sim = r.data_origin === 'simulated' ? 'SIMULATED. ' : '';
+  if (!lay) {
+    el.chartTitle.textContent = curve ? 'Light curve' : 'Spectrum';
+    el.chartMessage.textContent = !points.length
+      ? `No flux could be measured in any of the ${sum.total} frames at this position. Reason: ${reasonWords(sum.reasons)}. This is not zero flux.`
+      : `Fewer than two measured frames near ${wl0.toFixed(2)} µm on different dates. Move the wavelength slider to a wavelength that several visits observed.`;
+  } else {
+    el.chartTitle.textContent = sim + (curve
+      ? `Flux at about ${wl0.toFixed(2)} µm: ${lay.dots.length} frames within 5%`
+      : `Flux at the requested position: ${sum.measured} of ${sum.total} frames measured`);
+    const { plot } = lay;
+    const axis = { stroke: '#2c313c', 'stroke-width': 1 };
+    el.chart.append(svg('rect', { x: plot.x0, y: plot.y0, width: plot.x1 - plot.x0, height: plot.y1 - plot.y0, fill: 'none', ...axis }));
+    for (const t of lay.yTicks) {
+      el.chart.append(svg('line', { x1: plot.x0, x2: plot.x1, y1: t.y, y2: t.y, stroke: '#2c313c', 'stroke-width': 0.5 }));
+      el.chart.append(svg('text', { x: plot.x0 - 5, y: t.y + 3.5, 'text-anchor': 'end', fill: '#9aa1ad', 'font-size': 10.5 }, t.label));
+    }
+    for (const t of lay.xTicks) {
+      el.chart.append(svg('line', { x1: t.x, x2: t.x, y1: plot.y1, y2: plot.y1 + 4, ...axis }));
+      el.chart.append(svg('text', { x: t.x, y: plot.y1 + 16, 'text-anchor': 'middle', fill: '#9aa1ad', 'font-size': 10.5 }, t.label));
+    }
+    if (lay.zeroY != null) el.chart.append(svg('line', { x1: plot.x0, x2: plot.x1, y1: lay.zeroY, y2: lay.zeroY, stroke: '#9aa1ad', 'stroke-dasharray': '3 3', 'stroke-width': 1 }));
+    el.chart.append(svg('text', { x: (plot.x0 + plot.x1) / 2, y: 276, 'text-anchor': 'middle', fill: '#9aa1ad', 'font-size': 11 }, curve ? 'Date (UTC)' : 'Wavelength (µm)'));
+    el.chart.append(svg('text', { transform: `translate(12 ${(plot.y0 + plot.y1) / 2}) rotate(-90)`, 'text-anchor': 'middle', fill: '#9aa1ad', 'font-size': 11 }, 'Flux (µJy)'));
+    for (const d of lay.dots) {
+      const color = PALETTE[d.visit % PALETTE.length];
+      const g = svg('g', { class: 'chart-dot', 'data-index': d.index, tabindex: 0, role: 'button', 'aria-label': `Show the frame at ${d.wl.toFixed(3)} micrometres` });
+      const when = mjdToUtc(d.mjd).slice(0, 10);
+      g.append(svg('title', {}, `${d.wl.toFixed(3)} µm · ${when} · ${d.flux.toFixed(1)} ± ${d.err.toFixed(1)} µJy · visit ${d.visit + 1}`));
+      g.append(svg('line', { x1: d.cx, x2: d.cx, y1: d.y0, y2: d.y1, stroke: color, 'stroke-width': 1.2, opacity: 0.8 }));
+      g.append(svg('circle', { cx: d.cx, cy: d.cy, r: d.index === curIndex ? 5.5 : 3.4, fill: color, stroke: d.index === curIndex ? '#fff' : 'none', 'stroke-width': 2 }));
+      el.chart.append(g);
+    }
+    const visits = [...new Set(lay.dots.map((d) => d.visit))].sort((a, b) => a - b);
+    for (const v of (visits.length > 1 ? visits : [])) {
+      const item = document.createElement('span');
+      const dot = document.createElement('i');
+      dot.style.background = PALETTE[v % PALETTE.length];
+      item.append(dot, `Visit ${v + 1}`);
+      el.chartLegend.append(item);
+    }
+  }
+  const ph = r.photometry;
+  el.chartNote.textContent = (ph ? `Aperture photometry at the requested position: ${ph.aperture_radius_pix} pixel radius (about ${Math.round(ph.aperture_radius_pix * 6.2)}″), background from a ring ${ph.annulus_inner_pix} to ${ph.annulus_outer_pix} pixels out, not aperture-corrected. These sizes are first choices, not checked against a source of known brightness. ` : '')
+    + (sum.measured < sum.total && lay ? `${sum.total - sum.measured} of ${sum.total} frames have no flux: ${reasonText(sum.reasons)}. ` : '')
+    + (curve ? 'Time is the mid-exposure time of each image.' : '');
+  el.chart.setAttribute('aria-label', `${curve ? 'Light curve' : 'Spectrum'}: ${lay ? lay.dots.length : 0} measured frames`);
+}
+
+function selectFrame(frameIndex) {
+  if (stackView()) { setView('frames'); reslot(); }
+  const slot = state.slots.findIndex((s) => !s.skipped && s.index === frameIndex);
+  if (slot >= 0) pickSlot(slot);
 }
 
 function renderPairNote() {
@@ -487,6 +586,10 @@ for (const t of ['pointerup', 'pointercancel']) el.vtrack.addEventListener(t, ()
 // "By date" (stacked visits) and "By wavelength" (individual frames) set the hidden view selector.
 el.segDate.addEventListener('click', () => { if (state.resp?.stacks && !stackView()) { setView('stack'); reslot(); } });
 el.segWl.addEventListener('click', () => { if (stackView()) { setView('frames'); reslot(); } });
+el.tabSpectrum.addEventListener('click', () => { state.chartTab = 'spectrum'; render(); });
+el.tabCurve.addEventListener('click', () => { state.chartTab = 'curve'; render(); });
+el.chart.addEventListener('click', (e) => { const g = e.target.closest('.chart-dot'); if (g) selectFrame(Number(g.dataset.index)); });
+el.chart.addEventListener('keydown', (e) => { const g = e.target.closest?.('.chart-dot'); if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); selectFrame(Number(g.dataset.index)); } });
 el.zoom.addEventListener('change', render);
 el.mark.addEventListener('change', render);
 el.view.addEventListener('change', () => { setView(el.view.value); reslot(); });

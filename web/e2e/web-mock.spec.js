@@ -344,3 +344,46 @@ test('a new position loads a first batch, says it is searching, then loads more 
   await expect(page.locator('#more')).toBeHidden(); // everything the archive lists is in
   await page.screenshot({ path: outDir + 'web-mock-staged.png', fullPage: true });
 });
+
+test('flux charts: spectrum and light curve next to the image, coloured by visit, a click shows the frame', async ({ page }) => {
+  await page.goto(wise);
+  await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
+  await expect(page.locator('#play')).toHaveText('Pause');
+  await page.locator('#play').click();
+
+  // The panel sits next to the image and says the data is simulated (this is the mock).
+  await expect(page.locator('#charts')).toBeVisible();
+  const box = await page.locator('#charts').boundingBox();
+  const img = await page.locator('#frame-box').boundingBox();
+  expect(box.x).toBeGreaterThan(img.x + img.width - 5); // to the right of the image, not below it
+  await expect(page.locator('#chart-title')).toHaveText('SIMULATED. Flux at the requested position: 36 of 40 frames measured');
+  await expect(page.locator('.chart-dot')).toHaveCount(36);
+  await expect(page.locator('#chart-legend span')).toHaveCount(3); // one colour per visit
+  await expect(page.locator('#chart-note')).toContainText('not aperture-corrected');
+  await expect(page.locator('#chart-note')).toContainText('4 of 40 frames have no flux');
+  await expect(page.locator('#chart-note')).toContainText('first choices, not checked');
+
+  // A click on a point shows that frame, and the point is marked.
+  await page.locator('.chart-dot[data-index="10"]').click();
+  await expect(page.locator('#slider')).toHaveValue('10');
+  await expect(page.locator('#r-frame')).toHaveText('11 of 40');
+  await expect(page.locator('.chart-dot[data-index="10"] circle')).toHaveAttribute('r', '5.5');
+  await page.locator('.chart-dot[data-index="20"]').click();
+  await expect(page.locator('#slider')).toHaveValue('20');
+  await expect(page.locator('.chart-dot[data-index="10"] circle')).toHaveAttribute('r', '3.4');
+
+  // Light curve: the frames within 5% of the wavelength on screen, by date. The mock's wavelengths step by 0.11 um, so frame 20 (2.9 um)
+  // has two neighbours inside the window and frame 0 (0.75 um) has none.
+  await page.locator('#tab-curve').click();
+  await expect(page.locator('#tab-curve')).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#chart-title')).toContainText('Flux at about 2.9');
+  expect(await page.locator('.chart-dot').count()).toBeGreaterThanOrEqual(2);
+  await expect(page.locator('#chart-note')).toContainText('mid-exposure time');
+  await page.locator('#slider').fill('0');
+  await expect(page.locator('#chart-message')).toContainText('Fewer than two measured frames near 0.75');
+  await expect(page.locator('.chart-dot')).toHaveCount(0);
+  await page.locator('#slider').fill('20');
+  await page.locator('#tab-spectrum').click();
+  await expect(page.locator('.chart-dot')).toHaveCount(36);
+  await page.screenshot({ path: outDir + 'web-mock-charts.png', fullPage: true });
+});

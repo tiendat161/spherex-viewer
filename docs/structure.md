@@ -44,6 +44,7 @@ The cached path runs the same steps as 4 and 5, once, in `pipeline/build.py`, an
 | Flux measurement: aperture and ring size, flag rule, error estimate | `pipeline/photometry.py` |
 | Live build limits (how many at once, how many kept, frame counts, memory for kept pixels) | constants at the top of `pipeline/live.py` (`LIVE_FRAMES`, `MAX_LIVE_FRAMES`, `HOT_PIXEL_BYTES`); the first batch size and the "Load more" step are `INITIAL_LOAD` and `MORE_STEP` in `web/src/model.js` |
 | The cached targets, their positions, frame counts, proper motion | `verify/targets.json`, read by `pipeline/targets.py`; then `make cache` |
+| The flux charts: what is drawn, colours, tabs, what a click does | `web/src/main.js` (`renderCharts`); the data handling is `web/src/chart.js` |
 | Player behaviour: controls, blink, zoom, frame order, badge, readouts | `web/src/main.js`; pure logic it uses is in `web/src/model.js` |
 | Page markup and styling | `web/index.html`, `web/src/style.css` |
 | How the frontend fetches and polls | `web/src/api.js` |
@@ -130,10 +131,11 @@ The frontend, built with Vite and no UI framework. It only ever calls relative `
 |---|---|
 | `index.html`, `src/style.css` | Page markup and styling: the top bar (target dropdown, RA and Dec boxes), the image with its sliders, the buttons, and the folded "Advanced" settings |
 | `src/model.js` | Pure helpers, no DOM: URL parsing and building, field-of-view list, frame slots and ordering, visits and the wavelength pad (`visitsOf`, `padSpec`, `labelIndexes`, `stepWavelength`, `stepVisit`, `cycleVisit`, `pingPong`), blink pair, zoom rectangle, scale bar, progress text, date conversion, splitting a pasted "RA Dec" (`splitCoordinates`), the one-line caption (`captionText`) |
+| `src/chart.js` | Pure helpers for the Spectrum and Light curve charts: which frames have a flux, tick values, where each point is drawn, the reasons in words. No DOM; the drawing is in `main.js` (`renderCharts`) |
 | `src/api.js` | `fetchTargets` and `pollSeries` |
-| `src/main.js` | The player: target list, form, canvas, controls, the target dropdown and paste handling, the By date and By wavelength toggle, the visit slider (for stacks and frames) and the vertical wavelength slider (`renderPad`), "Load more" and "Load all" for a live series, the visit and wavelength step buttons, the play loop (across visits, through wavelengths, or plain frames), badge, readouts |
+| `src/main.js` | The player: target list, form, canvas, controls, the target dropdown and paste handling, the By date and By wavelength toggle, the visit slider (for stacks and frames) and the vertical wavelength slider (`renderPad`), "Load more" and "Load all" for a live series, the Spectrum and Light curve panel (`renderCharts`), the visit and wavelength step buttons, the play loop (across visits, through wavelengths, or plain frames), badge, readouts |
 | `mock/plugin.js`, `mock/png.js` | Dev-only stand-in for the API (`npm run dev:mock`): serves the fixture and generated placeholder frames, labelled simulated. Never part of a build |
-| `test/model.test.js`, `test/api.test.js` | Vitest unit tests for the two modules |
+| `test/model.test.js`, `test/api.test.js`, `test/chart.test.js` | Vitest unit tests for the three modules |
 | `test/bundle.test.js` | Checks the built bundle contains no archive hostname |
 | `test/helpers.js` | Schema validators for the tests, built from `contracts/` |
 | `e2e/web-mock.spec.js` | Playwright spec against the mock (`make verify-web`); config `playwright.config.js` |

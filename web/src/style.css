@@ -7,8 +7,8 @@ h1 { font-size:20px; margin:0; } h2 { font-size:13px; text-transform:uppercase; 
 .badge-simulated { background:var(--sim); color:#111; border-color:#fff; box-shadow:0 0 0 3px var(--sim); }
 .badge-real { background:var(--real); color:#06210f; }
 .badge-unknown { background:transparent; color:var(--muted); border-color:var(--line); }
-main { padding:12px 20px 28px; max-width:900px; margin:0 auto; }
-.topbar { display:flex; flex-wrap:wrap; gap:10px 14px; align-items:flex-start; padding:12px 20px 0; max-width:900px; margin:0 auto; }
+main { padding:12px 20px 28px; max-width:1240px; margin:0 auto; }
+.topbar { display:flex; flex-wrap:wrap; gap:10px 14px; align-items:flex-start; padding:12px 20px 0; max-width:1240px; margin:0 auto; }
 .targets-menu { position:relative; flex:1 1 280px; min-width:0; }
 .targets-menu summary, .advanced summary { list-style:none; cursor:pointer; background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:7px 12px; display:flex; gap:10px; align-items:center; }
 .targets-menu summary::-webkit-details-marker, .advanced summary::-webkit-details-marker { display:none; }
@@ -69,3 +69,12 @@ select.visually-hidden { position:absolute; width:1px; height:1px; opacity:0; ov
 @media (max-width:640px) { .visit-labels .sub { display:none; } .visit-labels { height:20px; } .coords input { width:110px; } header { padding:10px 14px; } .topbar, main { padding-left:14px; padding-right:14px; } .visit-bar { margin:0 40px; } }
 
 .more { display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; margin:0 0 8px; } .more span { flex:1 1 240px; }
+
+.stage-row { display:grid; grid-template-columns:minmax(0, 1fr); gap:12px; align-items:start; }
+@media (min-width:1040px) { .stage-row.has-charts { grid-template-columns:minmax(0, 1fr) 400px; } }
+.charts { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px 12px; }
+.charts svg { width:100%; height:auto; display:block; margin-top:4px; }
+.chart-title { margin:8px 0 0; font-weight:600; font-size:13.5px; }
+.chart-legend { display:flex; flex-wrap:wrap; gap:4px 12px; font-size:12px; color:var(--muted); margin-top:2px; }
+.chart-legend i { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; vertical-align:-1px; }
+.chart-dot { cursor:pointer; } .chart-dot:hover circle { stroke:#fff; stroke-width:1.5; }
