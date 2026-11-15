@@ -36,6 +36,12 @@ verify-backend: verify-contract test-backend
 verify-web: verify-contract test-web
 	cd web && npx playwright test
 
+# Cross-browser: mock e2e then the real-data e2e (via verify) on Chromium, Firefox and WebKit.
+# One-time: cd web && npx playwright install firefox webkit
+verify-browsers:
+	cd web && E2E_BROWSERS=chromium,firefox,webkit npx playwright test
+	E2E_BROWSERS=chromium,firefox,webkit $(PY) verify/e2e.py
+
 # End-to-end check over every acceptance target in verify/targets.json.
 # Offline: builds web, serves it from the API, checks each target through the API and in a browser,
 # and saves verify/out/<id>.png.

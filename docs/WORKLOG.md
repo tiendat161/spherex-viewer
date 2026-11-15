@@ -3,6 +3,13 @@
 What was done, why, and what is still missing. Newest first. The task board is [`TASKS.md`](TASKS.md); IDs below refer to it.
 Commit messages stay short; the reasoning and the known gaps live here.
 
+## 2026-11-15: Frontend checked in Firefox and WebKit (T25)
+Commits: see TASKS.md
+
+**What:** Both Playwright configs take `E2E_BROWSERS` (default `chromium`; `chromium,firefox,webkit` for all). `make verify-browsers` runs the mock spec and the real-data spec (via `verify/e2e.py`) on all three. Firefox/WebKit screenshots go to `verify/out/<browser>/`. Result: mock spec 9 tests x 3 browsers and real-data spec 6 tests x 3 browsers all pass, and `make test` and `make verify` pass. Screenshots of WISE 0855 in Firefox and WebKit were inspected: canvas, vertical wavelength slider, visit slider, spectrum chart and badge render as in Chromium. No app code changed.
+**Why:** Only Chromium had been tested.
+**Gaps:** Two spec changes were needed, both test-side: (1) the mock remembers a "searched" position for the whole server, so the staged-loading test now uses a different RA per browser; (2) Firefox's synthetic `ClipboardEvent` drops its data, so the paste test now dispatches a plain event carrying the `DataTransfer`. A real paste in Firefox was not tried by hand. Not tested: Safari on iOS, mobile viewports, older browser versions, headed mode. The Playwright WebKit build is not Safari itself. Visit 3's label under the visit slider sits close to the right edge in both browsers (not browser-specific, not changed).
+
 ## Entry format
 
 ```
@@ -503,7 +510,7 @@ Commits: up to `2a34741`
 - That the bright object in the Epsilon Indi B field is Epsilon Indi A.
 - Flag meanings beyond Table 16 of the Explanatory Supplement: the mask ignores only `SOURCE` and `FULLSAMPLE`.
 - Which kinds of object are bright in which detector band (general astronomy knowledge, not checked against this data).
-- The frontend outside Chromium.
+- The frontend outside Chromium, Firefox and WebKit (Playwright builds); real Safari, mobile browsers and a hand-made paste in Firefox are untested.
 - The submission deadline.
 
 ## T16 + T18: deeper stacks, failed frames retried

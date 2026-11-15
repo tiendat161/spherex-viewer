@@ -16,6 +16,7 @@ Details of finished work (what, why, what is still missing) are in [`WORKLOG.md`
 | ID | Task | Owner | Touches |
 |---|---|---|---|
 | T41 | Cache three famous positions as demo targets (Orion M42, Eagle M16, Andromeda M31) so a demo never waits for the archive | parked on branch `t41-demo-targets` (entries added, series not built: the archive search service was down, HTTP 502). To finish: when the archive answers, on that branch run `python -m pipeline.build verify/targets.json --only m42 m16 m31`, then `--offline` for flux, then `make verify` | `verify/targets.json`, `static/series/`, `tests/pipeline/test_targets.py` |
+| T25 | Check the frontend outside Chromium (Firefox, WebKit) | claude/t25-browsers-84f8ae | `web/playwright*.config.js` |
 
 ## Todo
 
@@ -28,7 +29,6 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 | T20 | P2 | Flag detail: per-pixel flag overlay or a breakdown by flag bit | "display metadata, like contamination flags" | `pipeline/grid.py`, `pipeline/writer.py`, `contracts/`, `web/src/main.js` | Only a flagged fraction per frame is shown today. |
 | T22 | P3 | Keep live series across restarts | none | `pipeline/live.py`, `api/main.py` | Live results are in memory only (30 most recent). Matters once deployed (T10). |
 | T24 | P3 | Epsilon Indi B: confirm what the bright object at the field edge is and whether the target is visible | test target | none, or T15 | Presumed Epsilon Indi A, not checked. |
-| T25 | P3 | Check the frontend outside Chromium | none | `web/playwright*.config.js` | Only Chromium has been tested. |
 | T26 | P3 | Remove the merged Day 1 worktrees and branches (`claude/build-backend-2cca9d`, `claude/build-web-cb39ff`) | none | git only | Fully merged, no uncommitted work. Needs Dat's go-ahead. |
 | T32 | P2 | Validate and tune the photometry | none | `pipeline/photometry.py`, `tests/pipeline/`, docs | T28 uses an aperture, annulus and flag rule that are first choices, not tuned. Compare against a source with a known brightness (source and value to be found, not assumed), check the aperture size against the real PSF, decide whether an aperture correction is needed, and handle crowded fields and moving objects (WISE 0855, Barnard's Star). |
 

@@ -164,7 +164,8 @@ def main():
             if r.returncode != 0:
                 failures.append("Playwright real-data spec failed")
             for t in browser_targets:
-                shot = ROOT / "verify" / "out" / f"{t['id']}.png"
+                first = os.environ.get("E2E_BROWSERS", "chromium").split(",")[0].strip()
+                shot = ROOT / "verify" / "out" / ("" if first == "chromium" else first) / f"{t['id']}.png"
                 if not shot.is_file() or shot.stat().st_mtime < time.time() - 300:
                     failures.append(f"{t['id']}: no fresh screenshot at {shot.relative_to(ROOT)}")
         else:

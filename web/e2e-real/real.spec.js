@@ -4,7 +4,10 @@ import { mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 
-const outDir = fileURLToPath(new URL('../../verify/out/', import.meta.url));
+const outBase = fileURLToPath(new URL('../../verify/out/', import.meta.url));
+// Chromium screenshots keep their names; other browsers write to verify/out/<browser>/.
+let outDir = outBase;
+test.beforeEach(({}, info) => { outDir = info.project.name === 'chromium' ? outBase : `${outBase}${info.project.name}/`; });
 const targets = JSON.parse(process.env.E2E_TARGETS || '[]');
 
 test('target list was passed in', () => {

@@ -143,7 +143,7 @@ The frontend, built with Vite and no UI framework. It only ever calls relative `
 | `test/model.test.js`, `test/api.test.js`, `test/chart.test.js` | Vitest unit tests for the three modules |
 | `test/bundle.test.js` | Checks the built bundle contains no archive hostname |
 | `test/helpers.js` | Schema validators for the tests, built from `contracts/` |
-| `e2e/web-mock.spec.js` | Playwright spec against the mock (`make verify-web`); config `playwright.config.js` |
+| `e2e/web-mock.spec.js` | Playwright spec against the mock (`make verify-web`); config `playwright.config.js`; `E2E_BROWSERS=chromium,firefox,webkit` adds browsers (`make verify-browsers`) |
 | `e2e-real/real.spec.js` | Playwright spec against the real API, one test per target, run by `verify/e2e.py`; config `playwright.real.config.js` |
 | `vite.config.js`, `vitest.config.js` | Build and test configuration; the dev server proxies `/api` to port 8000 |
 | `package.json` | Scripts: `dev`, `dev:mock`, `build`, `test`, `e2e` |
@@ -198,7 +198,7 @@ Pytest unit tests; none touches the network.
 | `targets.json` | The acceptance targets: source positions, proper motions, field of view, frame counts and minimums, selection rule |
 | `check_contract.py` | `make verify-contract`: validates the schemas, the fixture and every cached series, and that every frame PNG exists at the right size |
 | `check_docs.py` | `make verify-docs`: every source file is mentioned in this guide, and every file this guide names exists |
-| `e2e.py` | `make verify`: builds the web app, starts the API with live builds off, checks each target through the API and in a browser, saves `verify/out/<id>.png` |
+| `e2e.py` | `make verify`: builds the web app, starts the API with live builds off, checks each target through the API and in a browser, saves `verify/out/<id>.png` (`verify/out/<browser>/` for Firefox/WebKit) |
 
 ## Documentation and history
 

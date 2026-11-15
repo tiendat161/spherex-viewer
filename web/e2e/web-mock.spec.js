@@ -2,7 +2,10 @@ import { mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 
-const outDir = fileURLToPath(new URL('../../verify/out/', import.meta.url));
+const outBase = fileURLToPath(new URL('../../verify/out/', import.meta.url));
+// Chromium screenshots keep their names; other browsers write to verify/out/<browser>/.
+let outDir = outBase;
+test.beforeEach(({}, info) => { outDir = info.project.name === 'chromium' ? outBase : `${outBase}${info.project.name}/`; });
 const wise = '/?ra=133.795129&dec=-7.245147';
 // The target menu and the advanced settings are folded away until opened.
 const openAdvanced = (page) => page.evaluate(() => { document.getElementById('advanced').open = true; });
@@ -282,7 +285,9 @@ test('top bar: target menu, pasting RA and Dec, view toggle, caption', async ({ 
   const paste = (id, text) => page.evaluate(([i, t]) => {
     const dt = new DataTransfer();
     dt.setData('text', t);
-    const e = new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true });
+    // Firefox's ClipboardEvent constructor drops the data, so a plain event carries it instead.
+    const e = new Event('paste', { bubbles: true, cancelable: true });
+    Object.defineProperty(e, 'clipboardData', { value: dt });
     document.getElementById(i).dispatchEvent(e);
     return e.defaultPrevented;
   }, [id, text]);
@@ -334,7 +339,9 @@ test('a new position loads a first batch, says it is searching, then loads more 
 
   // Any other position: the archive search first (nothing to show yet), then the first 8 frames.
   urls.length = 0;
-  await page.goto('/?ra=10&dec=20');
+  // The mock remembers a position once it has been "searched" (one server for all browser projects), so each project uses its own.
+  const ra = 10 + ['chromium', 'firefox', 'webkit'].indexOf(test.info().project.name);
+  await page.goto(`/?ra=${ra}&dec=20`);
   await expect(page.locator('#progress-text')).toContainText('Asking the archive');
   await expect(page.locator('#progress-text')).toContainText(' s ');
   await expect(page.locator('#progress-text')).toHaveText('8 of 40 images loaded', { timeout: 10000 });
