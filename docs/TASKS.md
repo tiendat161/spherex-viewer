@@ -16,7 +16,7 @@ Details of finished work (what, why, what is still missing) are in [`WORKLOG.md`
 | ID | Task | Owner | Touches |
 |---|---|---|---|
 | T12 | Submission paperwork: README, REFERENCES (demo video not started) | t12-readme | `README.md`, `REFERENCES.md` |
-| T41 | Cache three famous positions as demo targets (Orion M42, Eagle M16, Andromeda M31) so a demo never waits for the archive | `t40-staged-loading`; `python -m pipeline.build --only m42 m16 m31` was running when this was written, waiting on the archive | `verify/targets.json` (entries kept out of git until built), `static/series/`, `tests/pipeline/test_targets.py` |
+| T41 | Cache three famous positions as demo targets (Orion M42, Eagle M16, Andromeda M31) so a demo never waits for the archive | parked on branch `t41-demo-targets` (entries added, series not built: the archive search service was down, HTTP 502). To finish: when the archive answers, on that branch run `python -m pipeline.build verify/targets.json --only m42 m16 m31`, then `--offline` for flux, then `make verify` | `verify/targets.json`, `static/series/`, `tests/pipeline/test_targets.py` |
 
 ## Todo
 
