@@ -478,3 +478,9 @@ Commits: up to `2a34741`
 - Which kinds of object are bright in which detector band (general astronomy knowledge, not checked against this data).
 - The frontend outside Chromium.
 - The submission deadline.
+
+## T16 + T18: deeper stacks, failed frames retried
+
+**What:** Set `stack_images: 120` in `verify/targets.json` for Barnard's Star, Epsilon Indi B, RW Aurigae and R Draconis and re-ran the build (`pipeline.build --only`, resumed from `.cache/`). Visit stacks and difference images now come from 119-120 images per target (was 35-40); the 40 shown frames are unchanged in choice. The 8 frames that had failed earlier (Barnard's Star 3, R Draconis 5) downloaded this time: `done=40 failed=0` for all four. `make verify` passes.
+**Why:** The challenge asks to add images together to improve signal-to-noise; the stacks used only 1-3 images per detector per visit.
+**Gaps:** Epsilon Indi B has 119 images (the archive returned one fewer than 120). The cutout images are 120 per target, not every available image (Barnard's Star has 170 cached). Not checked visually beyond the `make verify` screenshots. Flux series were not recomputed beyond what the rebuild did.

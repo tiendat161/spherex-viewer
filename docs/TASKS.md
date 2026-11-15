@@ -16,8 +16,6 @@ Details of finished work (what, why, what is still missing) are in [`WORKLOG.md`
 | ID | Task | Owner | Touches |
 |---|---|---|---|
 | T41 | Cache three famous positions as demo targets (Orion M42, Eagle M16, Andromeda M31) so a demo never waits for the archive | parked on branch `t41-demo-targets` (entries added, series not built: the archive search service was down, HTTP 502). To finish: when the archive answers, on that branch run `python -m pipeline.build verify/targets.json --only m42 m16 m31`, then `--offline` for flux, then `make verify` | `verify/targets.json`, `static/series/`, `tests/pipeline/test_targets.py` |
-| T16 | Deeper stacks for Barnard's Star, Epsilon Indi B, RW Aurigae, R Draconis | claude/t16-t18-stacks-bd134e | `verify/targets.json` (`stack_images`), `static/series/`, `.cache/` |
-| T18 | Retry the 8 failed frames (Barnard's Star 3, R Draconis 5) | claude/t16-t18-stacks-bd134e | `static/series/`, `.cache/` |
 
 ## Todo
 
@@ -46,6 +44,8 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 
 | ID | Task | Challenge item | Commits |
 |---|---|---|---|
+| T16 | Deeper stacks: `stack_images: 120` for Barnard's Star, Epsilon Indi B, RW Aurigae, R Draconis (stacks now from 119-120 images, was 35-40) | "add together ... to improve the signal-to-noise" | `dbd05fa` |
+| T18 | The 8 failed frames (Barnard's Star 3, R Draconis 5) retried: all 40 of 40 frames now load for every target | test targets | `dbd05fa` |
 | T01 | Day 1 prototype: pipeline, API, blink viewer, five cached targets, `make verify` | core objective, test targets | up to `2a34741` |
 | T02 | Coordinates in the URL (`?ra=&dec=`) | "query your tool by including coordinates in the URL" | Day 1 |
 | T03 | Per-frame metadata: date, wavelength, flagged fraction, REAL/SIMULATED badge | "display metadata" (partly, see T20) | Day 1 |
