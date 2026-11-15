@@ -41,6 +41,7 @@ The cached path runs the same steps as 4 and 5, once, in `pipeline/build.py`, an
 | Archive queries, download limits, retries | `pipeline/irsa.py` (`MAX_IN_FLIGHT`, `CUTOUT_ATTEMPTS`, `TAP_ATTEMPTS`) |
 | Brightness mapping | `pipeline/stretch.py` |
 | Background subtraction, visit grouping, stacked and difference images | `pipeline/stack.py` |
+| Flux measurement: aperture and ring size, flag rule, error estimate | `pipeline/photometry.py` |
 | Live build limits (how many at once, how many kept, frame counts, memory for kept pixels) | constants at the top of `pipeline/live.py` (`LIVE_FRAMES`, `MAX_LIVE_FRAMES`, `HOT_PIXEL_BYTES`); the first batch size and the "Load more" step are `INITIAL_LOAD` and `MORE_STEP` in `web/src/model.js` |
 | The cached targets, their positions, frame counts, proper motion | `verify/targets.json`, read by `pipeline/targets.py`; then `make cache` |
 | Player behaviour: controls, blink, zoom, frame order, badge, readouts | `web/src/main.js`; pure logic it uses is in `web/src/model.js` |
@@ -97,7 +98,8 @@ Turns archive data into series. Used in two ways: `build.py` writes the static c
 | `irsa.py` | The one IRSA client (`IrsaClient`): archive query and cutout download, a process-wide limit on requests in flight (8), retries on HTTP 503, de-duplication across data releases |
 | `targets.py` | Reads `verify/targets.json`, converts positions to degrees, applies proper motion where the target asks for it; `sep_arcsec` |
 | `select.py` | Picks which images make a series: evenly spaced in time (`select_frames`), one per wavelength band (`select_per_wavelength`), or for live series an order in which any first N spread over the dates and detector bands (`spread_order`); prefers releases in the order of `RELEASE_PREFERENCE` (`dr1` first) |
-| `cutout.py` | Reads one downloaded cutout: image, flags, sky coordinates, unit and wavelength |
+| `cutout.py` | Reads one downloaded cutout: image, flags, variance, sky coordinates, unit, wavelength and `MJD-AVG`; helpers for sky-to-pixel and pixel solid angle |
+| `photometry.py` | Flux at a sky position on one native cutout: aperture photometry with a ring background, in microjansky with an uncertainty; says why when it cannot measure. Not yet called by the build, the live path or the API (T29) |
 | `grid.py` | The shared north-up grid: allowed fields of view, grid size, resampling every frame onto it, which pixels count as flagged |
 | `stretch.py` | Computes one brightness mapping per series and converts frames to 8-bit |
 | `stack.py` | Median background subtraction, grouping dates into visits, stacking per visit and detector band, difference from the first visit |
@@ -172,6 +174,7 @@ Pytest unit tests; none touches the network.
 | `pipeline/test_irsa.py` | The concurrency limit and retries |
 | `pipeline/test_targets.py` | Position parsing and proper motion |
 | `pipeline/test_stack.py` | Background subtraction, visits, stacks, differences |
+| `pipeline/test_photometry.py` | Flux recovery, background independence, error estimate, flagged and NaN pixels, off-image position |
 | `pipeline/test_build.py` | The cache build end to end on synthetic data |
 | `pipeline/test_live.py` | Live series: progress, stretch refresh, limits, staged loading and extension |
 | `pipeline/test_tapcache.py` | Remembered archive searches: matching, expiry, damaged files, skipping the search after a restart |

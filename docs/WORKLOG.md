@@ -168,6 +168,28 @@ Commits: see the T33 row on the board
 - Time is not shown on the axis any more. Seeing time and wavelength together is T34.
 - Not tried on a touch screen or outside Chromium (T25). A draggable wavelength range for the stacks was not done.
 
+## 2026-11-14: Flux extraction (T28)
+Commits: `35c9528`
+
+**What:**
+- New `pipeline/photometry.py`: `measure_flux(cutout, ra, dec)` does circular aperture photometry (radius 2 pixels, sub-pixel weights) on the native cutout, with a background from the median of a 4 to 7 pixel ring. It returns flux in microjansky and a 1-sigma uncertainty (the VARIANCE extension summed over the aperture, plus the background level's uncertainty). If any aperture pixel is non-finite or flagged (other than the SOURCE and FULLSAMPLE bits) it returns no flux and says why.
+- `pipeline/cutout.py` now also returns the VARIANCE extension and `MJD-AVG`, and has helpers for sky-to-pixel and pixel solid angle.
+- 13 new tests on simulated cutouts (known flux recovered within 2%, background level does not matter, reported error matches the scatter over 300 noise draws, flagged and NaN pixels).
+- Tried on every cached real cutout (not part of the repo, a scratch script): wise0855 224 measured of 258, epsindb 31 of 40, rwaur 3 of 40, barnard 0 of 170, rdra 0 of 35.
+
+**Why:** aperture photometry on the native cutout avoids the interpolation of the shared grid and is simple to explain. No new dependency (numpy and astropy only). Returning no flux for a flagged aperture rather than a partial sum avoids a number that is biased low.
+
+**Found on real data:**
+- A NaN pixel with zero weight turned the whole sum into NaN. Fixed and covered by a test.
+- Barnard's Star and R Draconis get no measurement: their apertures carry OVERFLOW, SUR_ERROR and BLOOM flags (Explanatory Supplement v2.0, Table 16, the cached copy in `.cache/expsupp/`), as expected for bright stars. Bright targets will have no spectrum under this rule.
+
+**Gaps:**
+- Aperture and ring sizes, the all-or-nothing flag rule and the error model are first choices, not tuned or checked against a source of known brightness (T32). No aperture correction, no PSF fit.
+- Epsilon Indi B gives about 27,000 uJy between 1.2 and 3.6 um, a nearly flat spectrum. Not checked against any reference, so it is not known whether that is the target, a neighbour or a problem.
+- WISE 0855 values are at the noise level (median error 62 uJy); the position may also be wrong for the observation epoch (T17).
+- Nothing calls `measure_flux` yet: the build, the live path, the contract and the API do not carry flux (T29), and nothing is displayed (T30).
+- The timestamp question (`time_bounds_lower` against `MJD-AVG`) is left to T29.
+
 ## 2026-11-14: Structure guide and a check that keeps it current (T27)
 Commits: `3ab1d85`, `18f595a`, `c8f4e76`
 
