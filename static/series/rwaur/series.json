@@ -29,283 +29,494 @@
    "obs_mjd": 60919.419647,
    "wavelength_um": 1.0685,
    "url": "/api/frames/rwaur/00.png",
-   "flag_fraction": 0.0564
+   "flag_fraction": 0.0564,
+   "mjd_avg": 60919.420313,
+   "flux": {
+    "ok": true,
+    "flux_ujy": 151118.329,
+    "flux_err_ujy": 479.228
+   }
   },
   {
    "index": 1,
    "obs_mjd": 60920.031631,
    "wavelength_um": 2.48406,
    "url": "/api/frames/rwaur/01.png",
-   "flag_fraction": 0.0315
+   "flag_fraction": 0.0315,
+   "mjd_avg": 60920.032297,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 2,
    "obs_mjd": 60920.981842,
    "wavelength_um": 2.76576,
    "url": "/api/frames/rwaur/02.png",
-   "flag_fraction": 0.0541
+   "flag_fraction": 0.0541,
+   "mjd_avg": 60920.982508,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 3,
    "obs_mjd": 60921.995509,
    "wavelength_um": 0.97252,
    "url": "/api/frames/rwaur/03.png",
-   "flag_fraction": 0.0404
+   "flag_fraction": 0.0404,
+   "mjd_avg": 60921.996175,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 4,
    "obs_mjd": 60922.066533,
    "wavelength_um": 0.94286,
    "url": "/api/frames/rwaur/04.png",
-   "flag_fraction": 0.0508
+   "flag_fraction": 0.0508,
+   "mjd_avg": 60922.067199,
+   "flux": {
+    "ok": true,
+    "flux_ujy": 156036.937,
+    "flux_err_ujy": 416.414
+   }
   },
   {
    "index": 5,
    "obs_mjd": 60926.27812,
    "wavelength_um": 4.28442,
    "url": "/api/frames/rwaur/05.png",
-   "flag_fraction": 0.0277
+   "flag_fraction": 0.0277,
+   "mjd_avg": 60926.278786,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 6,
    "obs_mjd": 60926.552713,
    "wavelength_um": 3.88508,
    "url": "/api/frames/rwaur/06.png",
-   "flag_fraction": 0.0271
+   "flag_fraction": 0.0271,
+   "mjd_avg": 60926.553379,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 7,
    "obs_mjd": 60927.90681,
    "wavelength_um": 1.29609,
    "url": "/api/frames/rwaur/07.png",
-   "flag_fraction": 0.0184
+   "flag_fraction": 0.0184,
+   "mjd_avg": 60927.907476,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 8,
    "obs_mjd": 60928.518456,
    "wavelength_um": 4.35726,
    "url": "/api/frames/rwaur/08.png",
-   "flag_fraction": 0.0242
+   "flag_fraction": 0.0242,
+   "mjd_avg": 60928.519123,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 9,
    "obs_mjd": 60935.106637,
    "wavelength_um": 4.39998,
    "url": "/api/frames/rwaur/09.png",
-   "flag_fraction": 0.3763
+   "flag_fraction": 0.3763,
+   "mjd_avg": 60935.107303,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 10,
    "obs_mjd": 60935.924925,
    "wavelength_um": 1.81018,
    "url": "/api/frames/rwaur/10.png",
-   "flag_fraction": 0.0337
+   "flag_fraction": 0.0337,
+   "mjd_avg": 60935.925592,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 11,
    "obs_mjd": 60936.196782,
    "wavelength_um": 2.2435,
    "url": "/api/frames/rwaur/11.png",
-   "flag_fraction": 0.0336
+   "flag_fraction": 0.0336,
+   "mjd_avg": 60936.197448,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 12,
    "obs_mjd": 60936.601787,
    "wavelength_um": 4.69979,
    "url": "/api/frames/rwaur/12.png",
-   "flag_fraction": 0.0331
+   "flag_fraction": 0.0331,
+   "mjd_avg": 60936.602453,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 13,
    "obs_mjd": 60938.232058,
    "wavelength_um": 4.80332,
    "url": "/api/frames/rwaur/13.png",
-   "flag_fraction": 0.0293
+   "flag_fraction": 0.0293,
+   "mjd_avg": 60938.232724,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 14,
    "obs_mjd": 61092.397775,
    "wavelength_um": 2.11135,
    "url": "/api/frames/rwaur/14.png",
-   "flag_fraction": 0.0273
+   "flag_fraction": 0.0273,
+   "mjd_avg": 61092.398441,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 15,
    "obs_mjd": 61098.644638,
    "wavelength_um": 1.62723,
    "url": "/api/frames/rwaur/15.png",
-   "flag_fraction": 0.2853
+   "flag_fraction": 0.2853,
+   "mjd_avg": 61098.645304,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 16,
    "obs_mjd": 61098.986346,
    "wavelength_um": 4.96913,
    "url": "/api/frames/rwaur/16.png",
-   "flag_fraction": 0.0247
+   "flag_fraction": 0.0247,
+   "mjd_avg": 61098.987012,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 17,
    "obs_mjd": 61100.209853,
    "wavelength_um": 1.36093,
    "url": "/api/frames/rwaur/17.png",
-   "flag_fraction": 0.0336
+   "flag_fraction": 0.0336,
+   "mjd_avg": 61100.210519,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 18,
    "obs_mjd": 61100.481887,
    "wavelength_um": 1.86888,
    "url": "/api/frames/rwaur/18.png",
-   "flag_fraction": 0.049
+   "flag_fraction": 0.049,
+   "mjd_avg": 61100.482554,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 19,
    "obs_mjd": 61101.431867,
    "wavelength_um": 4.2761,
    "url": "/api/frames/rwaur/19.png",
-   "flag_fraction": 0.0284
+   "flag_fraction": 0.0284,
+   "mjd_avg": 61101.432533,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 20,
    "obs_mjd": 61103.332591,
    "wavelength_um": 2.99664,
    "url": "/api/frames/rwaur/20.png",
-   "flag_fraction": 0.0576
+   "flag_fraction": 0.0576,
+   "mjd_avg": 61103.333257,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 21,
    "obs_mjd": 61104.216361,
    "wavelength_um": 1.6463,
    "url": "/api/frames/rwaur/21.png",
-   "flag_fraction": 0.1413
+   "flag_fraction": 0.1413,
+   "mjd_avg": 61104.217027,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 22,
    "obs_mjd": 61105.23129,
    "wavelength_um": 0.96489,
    "url": "/api/frames/rwaur/22.png",
-   "flag_fraction": 0.0301
+   "flag_fraction": 0.0301,
+   "mjd_avg": 61105.231956,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 23,
    "obs_mjd": 61106.31758,
    "wavelength_um": 3.91018,
    "url": "/api/frames/rwaur/23.png",
-   "flag_fraction": 0.0245
+   "flag_fraction": 0.0245,
+   "mjd_avg": 61106.318246,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 24,
    "obs_mjd": 61107.87862,
    "wavelength_um": 1.0358,
    "url": "/api/frames/rwaur/24.png",
-   "flag_fraction": 0.036
+   "flag_fraction": 0.036,
+   "mjd_avg": 61107.879287,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 25,
    "obs_mjd": 61108.217007,
    "wavelength_um": 1.25838,
    "url": "/api/frames/rwaur/25.png",
-   "flag_fraction": 0.0143
+   "flag_fraction": 0.0143,
+   "mjd_avg": 61108.217673,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 26,
    "obs_mjd": 61109.443889,
    "wavelength_um": 2.73919,
    "url": "/api/frames/rwaur/26.png",
-   "flag_fraction": 0.0323
+   "flag_fraction": 0.0323,
+   "mjd_avg": 61109.444555,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 27,
    "obs_mjd": 61285.100154,
    "wavelength_um": 3.48861,
    "url": "/api/frames/rwaur/27.png",
-   "flag_fraction": 0.0361
+   "flag_fraction": 0.0361,
+   "mjd_avg": 61285.10082,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 28,
    "obs_mjd": 61291.27665,
    "wavelength_um": 0.76999,
    "url": "/api/frames/rwaur/28.png",
-   "flag_fraction": 0.0352
+   "flag_fraction": 0.0352,
+   "mjd_avg": 61291.277316,
+   "flux": {
+    "ok": true,
+    "flux_ujy": 191658.137,
+    "flux_err_ujy": 479.538
+   }
   },
   {
    "index": 29,
    "obs_mjd": 61291.820382,
    "wavelength_um": 0.84605,
    "url": "/api/frames/rwaur/29.png",
-   "flag_fraction": 0.0652
+   "flag_fraction": 0.0652,
+   "mjd_avg": 61291.821048,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 30,
    "obs_mjd": 61292.024856,
    "wavelength_um": 3.11574,
    "url": "/api/frames/rwaur/30.png",
-   "flag_fraction": 0.039
+   "flag_fraction": 0.039,
+   "mjd_avg": 61292.025522,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 31,
    "obs_mjd": 61293.379966,
    "wavelength_um": 4.27023,
    "url": "/api/frames/rwaur/31.png",
-   "flag_fraction": 0.0236
+   "flag_fraction": 0.0236,
+   "mjd_avg": 61293.380632,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 32,
    "obs_mjd": 61295.958316,
    "wavelength_um": 3.87079,
    "url": "/api/frames/rwaur/32.png",
-   "flag_fraction": 0.0236
+   "flag_fraction": 0.0236,
+   "mjd_avg": 61295.958982,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 33,
    "obs_mjd": 61296.299083,
    "wavelength_um": 2.22144,
    "url": "/api/frames/rwaur/33.png",
-   "flag_fraction": 0.0351
+   "flag_fraction": 0.0351,
+   "mjd_avg": 61296.299749,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 34,
    "obs_mjd": 61296.570993,
    "wavelength_um": 1.63906,
    "url": "/api/frames/rwaur/34.png",
-   "flag_fraction": 0.1051
+   "flag_fraction": 0.1051,
+   "mjd_avg": 61296.571659,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 35,
    "obs_mjd": 61297.320798,
    "wavelength_um": 4.11393,
    "url": "/api/frames/rwaur/35.png",
-   "flag_fraction": 0.0288
+   "flag_fraction": 0.0288,
+   "mjd_avg": 61297.321464,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 36,
    "obs_mjd": 61297.85991,
    "wavelength_um": 4.51445,
    "url": "/api/frames/rwaur/36.png",
-   "flag_fraction": 0.0273
+   "flag_fraction": 0.0273,
+   "mjd_avg": 61297.860577,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 37,
    "obs_mjd": 61298.876811,
    "wavelength_um": 1.79167,
    "url": "/api/frames/rwaur/37.png",
-   "flag_fraction": 0.0297
+   "flag_fraction": 0.0297,
+   "mjd_avg": 61298.877477,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 38,
    "obs_mjd": 61299.283575,
    "wavelength_um": 1.96553,
    "url": "/api/frames/rwaur/38.png",
-   "flag_fraction": 0.0259
+   "flag_fraction": 0.0259,
+   "mjd_avg": 61299.284241,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   },
   {
    "index": 39,
    "obs_mjd": 61299.895897,
    "wavelength_um": 4.8214,
    "url": "/api/frames/rwaur/39.png",
-   "flag_fraction": 0.0292
+   "flag_fraction": 0.0292,
+   "mjd_avg": 61299.896563,
+   "flux": {
+    "ok": false,
+    "reason": "aperture_flagged"
+   }
   }
  ],
  "background": "median_subtracted",
+ "photometry": {
+  "method": "aperture",
+  "aperture_radius_pix": 2.0,
+  "annulus_inner_pix": 4.0,
+  "annulus_outer_pix": 7.0,
+  "aperture_corrected": false,
+  "at": "request_position"
+ },
  "stacks": {
   "visits": [
    {
