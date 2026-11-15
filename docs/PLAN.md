@@ -36,6 +36,7 @@ Status as of 2026-11-09 evening. Items marked (unverified) come from memory or s
 - Architecture direction: Python pipeline (query metadata, fetch small cutouts, fixed stretch, frames plus JSON, cache), a small API, a static front end, Aladin Lite for overlays. Backend vs direct browser calls decided in the Day 1 spike (CORS).
 - Confluent Cloud dropped: batch archive data does not need streaming. Stretch goal only.
 - Contract first: a JSON schema agreed between pipeline, API and UI before parallel sessions start.
+- Archive search is TAP (ADQL), not SIA2 (T31, 2026-11-15). The challenge text summarised above does not require SIA2; TAP returns both `dr1` and `qr3` images, and QR3 images are used. Unverified: the official challenge page was not re-read for this, so if it does require SIA2 this decision needs revisiting. Details in `docs/WORKLOG.md`.
 - Crop with sky coordinates through the WCS, never raw pixel numbers.
 - Use fixed stretch limits across all frames of a blink; let users switch stretch.
 - Keep prep code and the hackathon repo separate; copy only the generic `templates/` at kickoff.

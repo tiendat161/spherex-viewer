@@ -15,6 +15,15 @@ Commits: abc1234, def5678
 
 ---
 
+## 2026-11-15: Archive search stays TAP, QR3 confirmed covered (T31)
+Commit: see `git log` (branch `t31-tap-or-sia2`, message starts "Docs: T31").
+
+**What:** no code change. Decided to keep the TAP query (`IrsaClient.tap_rows`) instead of switching to SIA2, and documented it in `docs/PLAN.md` and `REFERENCES.md`. Checked QR3 coverage on the saved real archive answers in `.cache/tap/` (read through `observation_key`, `release_of` and `dedupe_prefer_release`): Barnard's Star 239 `dr1` + 119 `qr3`, Epsilon Indi B 338 + 120, R Draconis 1638 + 855, RW Aurigae 226 + 109, WISE 0855 258 + 0. All counts are kept after de-duplication, because in these answers no observation is listed under both releases; the release preference only matters if that happens.
+
+**Why:** TAP already returns both releases and works for every target, so switching would cost work and re-verification against a slow archive for no gain. The only thing that would force a switch is a rule that the tool must use SIA2.
+
+**Gaps:** (1) The phrase "Search DR1 and QR3 through SIA2" comes from the task board; it is not in `docs/PLAN.md`'s summary of the challenge text, and the official page was not re-read, so whether SIA2 is required is unverified. Re-read the Resources tab; if SIA2 is required, this needs a new task. (2) SIA2 was not tried, so nothing is known about its speed or coverage. (3) The counts come from searches saved on 2026-11-14 and may be older than the archive; `make refresh` would update them. (4) The WISE 0855 field has no `qr3` images; that is what the archive returned, not checked further.
+
 ## 2026-11-15: Deployed on AWS EC2 (T10)
 Commit: see `git log` (message starts "Deploy: record the EC2 deployment").
 
