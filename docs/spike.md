@@ -87,6 +87,8 @@ Query: `https://irsa.ipac.caltech.edu/SIA?COLLECTION=spherex_dr1` (and `spherex_
 
 Where both agree, the file URIs, times and bands are identical. For R Draconis SIA2 lists only 22% of what TAP lists; every SIA2 row is also in TAP. Widening the circle to 0.05° gave 451 dr1 rows, still far below 1638. The cause was not found. TAP itself did not answer for over 9 minutes on the same day, so these times are not a like-for-like speed comparison.
 
+From the EC2 host in Sydney (same day, later): SIA2 answered every call in 1 to 4 s (WISE 0855: 258 `dr1` and 0 `qr3` rows, three times; R Draconis: 413 and 126 rows again, the same short list). TAP did not answer within 150 s on three tries for WISE 0855 (curl timeout, no HTTP status). A first SIA2 `dr1` call for WISE 0855 returned HTTP 502 once and worked on every later call. R Draconis was not timed with TAP from EC2 (run stopped). So on this day TAP was down from the laptop and from EC2 alike.
+
 ## Caveats
 - The failed 503 requests were counted as failures, not retried, in the benchmark tables.
 - `make verify` and a UI screenshot are not applicable: no code under `pipeline/`, `api/` or `web/` was touched.

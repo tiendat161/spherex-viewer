@@ -22,7 +22,9 @@ Commit: see `git log` (branch `t31-tap-or-sia2`, message starts "T43").
 
 **Why TAP stays:** four targets give identical rows, but for R Draconis SIA2 lists 539 images and TAP 2493. Switching would silently drop most of that field's images, and the live path would remember the short list for a week (`tapcache`). Falling back from TAP to SIA2 would have the same problem. The cause of the difference is unknown.
 
-**Gaps:** (1) not timed from the EC2 host in Sydney, only from a laptop (SIA2 5 to 7 s). (2) TAP was not timed on a normal day, so there is no like-for-like speed comparison; SIA2's speed matters only if TAP is down again. (3) why SIA2 misses images for R Draconis (a deep field near the ecliptic pole) was not found; it could be asked of IRSA. (4) `access_estsize` is in kilobytes, so `contentlength` from SIA2 is an estimate; nothing reads it. (5) whether SIA2 is required by the challenge is still unverified (see T31). `make verify` was not run for this change; only `make test` (104 passed), because no behaviour changed.
+**Update, same day:** timed from the EC2 host: SIA2 1 to 4 s, TAP no answer in 150 s on three tries (`docs/spike.md`, section 5). SIA2 is therefore a working source when TAP is down, but it is not wired in as a fallback because of the R Draconis gap; whether to wire it in (and show the user that the list may be partial) is Dat's decision.
+
+**Gaps:** (1) ~~not timed from the EC2 host~~ done, see the update above. (2) TAP was not timed on a normal day, so there is no like-for-like speed comparison; SIA2's speed matters only if TAP is down again. (3) why SIA2 misses images for R Draconis (a deep field near the ecliptic pole) was not found; it could be asked of IRSA. (4) `access_estsize` is in kilobytes, so `contentlength` from SIA2 is an estimate; nothing reads it. (5) whether SIA2 is required by the challenge is still unverified (see T31). `make verify` was not run for this change; only `make test` (104 passed), because no behaviour changed.
 
 ## 2026-11-15: Archive search stays TAP, QR3 confirmed covered (T31)
 Commit: see `git log` (branch `t31-tap-or-sia2`, message starts "Docs: T31").
