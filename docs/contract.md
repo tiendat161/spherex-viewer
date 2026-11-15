@@ -54,6 +54,7 @@ JSON, validated by `contracts/series.schema.json`. No properties beyond these ar
 | `frames[].url` | string | 8-bit PNG of this frame on the API origin, shared stretch already applied |
 | `frames[].flag_fraction` | number 0 to 1 | Fraction of grid pixels flagged |
 | `error.message` | string | Present only when `status` is `error` |
+| `error.detail` | string, optional | Added 2026-11-15 (T56). The technical text behind `message` (HTTP status, service names), for developers. `message` is one plain sentence for a visitor; the page shows `detail` only inside an "i" popover. Same field in the spectrum and catalogue error objects |
 
 `data_origin` and `error` are additions to the originally requested field list: the first because the project rules require real and simulated data to be labelled, the second because an `error` status with no reason is not usable.
 

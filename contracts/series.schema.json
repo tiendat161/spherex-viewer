@@ -108,6 +108,10 @@
         "message": {
           "type": "string",
           "minLength": 1
+        },
+        "detail": {
+          "description": "Optional. The technical text behind `message` (status codes, service names), for developers; the page shows it only in an \"i\" popover.",
+          "type": "string"
         }
       }
     },
