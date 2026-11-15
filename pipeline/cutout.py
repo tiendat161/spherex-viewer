@@ -80,7 +80,7 @@ def read_cutout(source, ra, dec, with_wave_map=False):
     Returns dict(image, flags, variance, wcs, bunit, wavelength_um, mjd_avg).
     `variance` (the VARIANCE extension, unit bunit squared) and `mjd_avg` (header MJD-AVG) are None
     when the file does not have them. With `with_wave_map` the dict also has `wave_map`, the wavelength at every pixel
-    (used to measure at other positions than (ra, dec)).
+    (used to measure at other positions than (ra, dec)); None when the table gives no valid wavelength over the cutout.
     """
     f = io.BytesIO(source) if isinstance(source, (bytes, bytearray)) else source
     try:
@@ -95,7 +95,12 @@ def read_cutout(source, ra, dec, with_wave_map=False):
             mjd_avg = hdr.get("MJD-AVG")
             bunit = str(hdr.get("BUNIT", "")).strip()
             wl = wavelength_um_at(hdul, hdr, ra, dec)
-            wave_map = wavelength_map(hdul, hdr, image.shape) if with_wave_map else None
+            wave_map = None
+            if with_wave_map:
+                try:
+                    wave_map = wavelength_map(hdul, hdr, image.shape)
+                except CutoutError:
+                    pass  # no wavelength at other pixels: the frame is still good, only a spectrum at a clicked point loses it
     except CutoutError:
         raise
     except Exception as e:

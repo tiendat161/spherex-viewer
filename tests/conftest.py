@@ -4,6 +4,10 @@ from unittest import mock
 import numpy as np
 import pytest
 
+from pipeline import cutout as _cutout
+
+REAL_WAVELENGTH_MAP = _cutout.wavelength_map  # the unpatched function, for tests of it
+
 SIM_WAVE_BASE = 2.5      # SIMULATED wavelength (um) at x = 0
 SIM_WAVE_PER_PIX = 0.001  # SIMULATED change per pixel along x
 

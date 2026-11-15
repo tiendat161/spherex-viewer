@@ -89,3 +89,15 @@ def test_a_loading_series_reports_the_frames_measured_so_far():
     job = LiveSeries(RA, DEC, 0.2, 6)
     assert job.spectrum(RA, DEC)["frames"] == []
     valid(job.spectrum(RA, DEC))
+
+
+def test_polling_the_same_point_does_not_measure_again_until_something_changes():
+    job = finished_job()
+    with mock.patch("pipeline.live.flux_for_series", wraps=__import__("pipeline.live", fromlist=["x"]).flux_for_series) as m:
+        a = job.spectrum(SRC_RA, SRC_DEC)
+        n = m.call_count
+        assert n == 4 and job.spectrum(SRC_RA, SRC_DEC) is a and m.call_count == n  # same point, same frames: the answer is reused
+        job.spectrum(RA, DEC)
+        assert m.call_count == 2 * n  # another point is measured
+        job.spectrum(SRC_RA, SRC_DEC)
+        assert m.call_count == 3 * n  # only the last point is remembered

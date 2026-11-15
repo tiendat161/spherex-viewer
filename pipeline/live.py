@@ -85,6 +85,11 @@ class TapHealth:
         self._until = 0.0
 
 
+def error_document(message) -> dict:
+    """A document with status error and nothing else, valid for the contract's `spectrum` response (the series response needs `grid` and `stretch` too)."""
+    return {"status": "error", "data_origin": "real", "progress": {"done": 0, "total": 0, "failed": 0}, "frames": [], "error": {"message": message}}
+
+
 def _native_bytes(c) -> int:
     """Bytes of the arrays of a kept native cutout (see `LiveSeries.spectrum`)."""
     return 0 if c is None else sum(a.nbytes for a in (c["image"], c["flags"], c["variance"], c["wave_map"]) if a is not None)
@@ -119,13 +124,13 @@ class LiveSeries:
         self._stack_pngs = {}   # file name -> bytes
         self._unit = None
         self._all_mjds = []
+        self._spectrum_cache = None  # (key, document) of the last `spectrum` answer
 
     # ---- read side (API threads) -------------------------------------------------
     def doc(self) -> dict:
         with self._lock:
             if self.status == "error":
-                return {"status": "error", "data_origin": "real", "progress": {"done": 0, "total": 0, "failed": 0},
-                        "grid": None, "stretch": None, "frames": [], "error": {"message": self.error}}
+                return dict(error_document(self.error), grid=None, stretch=None)
             frames = []
             for i, f in sorted(self._frames.items()):
                 if i not in self._pngs:
@@ -162,13 +167,14 @@ class LiveSeries:
         as downloaded (the method of `frames[].flux`), with the wavelength at that pixel of each frame."""
         with self._lock:
             if self.status == "error":
-                return {"status": "error", "data_origin": "real", "progress": {"done": 0, "total": 0, "failed": 0}, "frames": [],
-                        "error": {"message": self.error}}
+                return error_document(self.error)
             if self.pix_dropped:
-                return {"status": "error", "data_origin": "real", "progress": {"done": 0, "total": 0, "failed": 0}, "frames": [],
-                        "error": {"message": "The pixels of this series were released to save memory. Load the position again."}}
+                return error_document("The pixels of this series were released to save memory. Load the position again.")
             items = [(i, f["native"], f["obs_mjd"]) for i, f in sorted(self._frames.items()) if f.get("native") is not None]
             status, total, failed, available = self.status, self.total, self.failed, self.available
+            key = (at_ra, at_dec, len(items), status, total, failed)
+            if self._spectrum_cache and self._spectrum_cache[0] == key:  # polling: nothing changed since the last answer
+                return self._spectrum_cache[1]
         frames = []
         for i, c, obs_mjd in items:  # the cutouts are never modified, so measuring outside the lock is safe
             x, y = sky_to_pixel(c["wcs"], at_ra, at_dec)
@@ -183,6 +189,8 @@ class LiveSeries:
                "point": {"ra": at_ra, "dec": at_dec}, "progress": progress, "frames": frames}
         if any(f["flux"]["ok"] for f in frames):
             doc["photometry"] = spectrum_method_block()
+        with self._lock:
+            self._spectrum_cache = (key, doc)  # the last point only: a poll repeats the same request
         return doc
 
     def png(self, name: str):
@@ -258,7 +266,7 @@ class LiveSeries:
                     self._pngs[i] = _png_bytes(pix, stretch["vmin"], stretch["vmax"])
             self.gen += 1
 
-    def _add(self, index, obs_mjd, band, c, pix, flagged, flux=None, keep_native=True):
+    def _add(self, index, obs_mjd, band, c, pix, flagged, flux=None):
         with self._lock:
             if self._unit is None:
                 self._unit = c["bunit"]
@@ -267,7 +275,7 @@ class LiveSeries:
             self._frames[index] = {"obs_mjd": obs_mjd, "wavelength_um": c["wavelength_um"],
                                    "flag_fraction": float(flagged.mean()), "pix": pix, "flagged": flagged, "band": band,
                                    "flux": flux, "mjd_avg": c.get("mjd_avg"),
-                                   "native": c if keep_native and "wave_map" in c else None}  # the cutout as downloaded, for `spectrum`
+                                   "native": c if c.get("wave_map") is not None else None}  # the cutout as downloaded, for `spectrum`
             n = len(self._frames)
             restretch = n & (n - 1) == 0 or self.stretch is None  # 1, 2, 4, 8, ...
             stretch = self.stretch
@@ -469,6 +477,14 @@ class LiveBuilder:
             self._jobs.append(job)
             self._pool.submit(self._run_job, job)
             return job
+
+    def find_at(self, ra, dec, fov):
+        """The live series at this position (within 1 arcsec) and field of view, as it is now, or None. Starts and extends nothing."""
+        with self._lock:
+            j = next((j for j in self._jobs if j.fov == fov and sep_arcsec(ra, dec, j.ra, j.dec) <= MATCH_ARCSEC), None)
+            if j is not None:
+                j.last_used = time.time()
+            return j
 
     def find(self, series_id):
         with self._lock:
