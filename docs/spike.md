@@ -73,6 +73,22 @@ I checked headers with curl only; I did not test in a browser. Without this head
 
 **Barnard's Star** (Gaia DR3 2016.0 pm, 10.393″/yr): 10.6″ over the same-length window; 102″ from its 2016.0 position by 2025.85. The Barnard cutouts above were centered on my 2026.0 propagated position (about 1.6″ from its 2025.85 position by the same arithmetic).
 
+## 5. SIA2 against TAP (T43, 2026-11-15, from a laptop; not from the EC2 host)
+
+Query: `https://irsa.ipac.caltech.edu/SIA?COLLECTION=spherex_dr1` (and `spherex_qr3`), `POS=circle <ra> <dec> 0.0003`, one call per collection. The answer is a VOTable whose rows carry `t_min`, `t_max`, `energy_bandpassname`, `access_url` (the same file URL as TAP's `uri`, with the host in front) and `access_estsize` (kilobytes). So every field the pipeline reads can be filled (`IrsaClient.sia_rows`).
+
+| Target | SIA2 rows (both collections) | TAP rows (saved 2026-11-14) | SIA2 time |
+|---|---|---|---|
+| WISE 0855 | 258 | 258 | 5.3 s |
+| Barnard's Star | 358 | 358 | 5.6 s |
+| Epsilon Indi B | 458 | 458 | 6.5 s |
+| RW Aurigae | 335 | 335 | 6.1 s |
+| R Draconis | 539 (413 dr1 + 126 qr3) | 2493 (1638 dr1 + 855 qr3) | 6.7 s |
+
+Where both agree, the file URIs, times and bands are identical. For R Draconis SIA2 lists only 22% of what TAP lists; every SIA2 row is also in TAP. Widening the circle to 0.05° gave 451 dr1 rows, still far below 1638. The cause was not found. TAP itself did not answer for over 9 minutes on the same day, so these times are not a like-for-like speed comparison.
+
+From the EC2 host in Sydney (same day, later): SIA2 answered every call in 1 to 4 s (WISE 0855: 258 `dr1` and 0 `qr3` rows, three times; R Draconis: 413 and 126 rows again, the same short list). TAP did not answer within 150 s on three tries for WISE 0855 (curl timeout, no HTTP status). A first SIA2 `dr1` call for WISE 0855 returned HTTP 502 once and worked on every later call. R Draconis was not timed with TAP from EC2 (run stopped). So on this day TAP was down from the laptop and from EC2 alike.
+
 ## Caveats
 - The failed 503 requests were counted as failures, not retried, in the benchmark tables.
 - `make verify` and a UI screenshot are not applicable: no code under `pipeline/`, `api/` or `web/` was touched.
