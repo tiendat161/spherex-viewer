@@ -220,6 +220,44 @@ def test_sia2_fallback_when_tap_fails_is_marked_and_not_remembered(tmp_path):
     assert list(tmp_path.iterdir()) == []  # a possibly partial list is not kept for a week
 
 
+def test_after_tap_fails_the_next_searches_go_to_sia2_first_until_the_pause_ends():
+    from pipeline.live import TapHealth
+    now = [0.0]
+    health = TapHealth(skip_s=300, clock=lambda: now[0])
+    calls = []
+
+    class TapDown(FakeClient):
+        def tap_rows(self, ra, dec, *a, **k):
+            calls.append("tap")
+            raise IrsaError("TAP query failed after retries: HTTP 502")
+        def sia_rows(self, ra, dec, *a, **k):
+            calls.append("sia")
+            return FakeClient.tap_rows(self, ra, dec)
+
+    LiveSeries(1.0, 1.0, 0.2, 4).run(TapDown(), health)
+    assert calls == ["tap", "sia"] and health.down()
+    j = LiveSeries(2.0, 2.0, 0.2, 4)
+    j.run(TapDown(), health)
+    assert calls == ["tap", "sia", "sia"] and j.doc()["progress"]["search"] == "sia2"  # no TAP wait this time
+    now[0] = 301
+    assert not health.down()
+    LiveSeries(3.0, 3.0, 0.2, 4).run(TapDown(), health)
+    assert calls[-2:] == ["tap", "sia"]  # the pause is over: TAP is tried again
+
+
+def test_when_sia2_fails_during_the_pause_tap_is_still_tried():
+    from pipeline.live import TapHealth
+    health = TapHealth(skip_s=300)
+    health.failed()
+
+    class OnlyTap(FakeClient):
+        def sia_rows(self, ra, dec, *a, **k):
+            raise IrsaError("SIA2 down")
+    j = LiveSeries(RA, DEC, 0.2, 4)
+    j.run(OnlyTap(), health)
+    assert j.doc()["progress"]["search"] == "tap" and not health.down()
+
+
 def test_both_searches_failing_names_both():
     class AllDown(FakeClient):
         def tap_rows(self, ra, dec, *a, **k):

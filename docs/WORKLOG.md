@@ -30,6 +30,15 @@ Commits: branch `t46-claims`, messages start "T46".
 
 **Gaps:** not verified: that bit N means 2**N (the table gives bit numbers only); the proper-motion adequacy (no full propagation was done); `IMAGES_PER_MIN` and `MB_PER_IMAGE` are still from one run and only labelled as rough. The "proper motion negligible" note for RW Aurigae in `targets.py` was not reviewed. The index text was screenshotted in the Advanced panel; `make test` and `make verify` passed.
 
+## 2026-11-15: Skip TAP for a while after it fails (T48)
+Commit: on branch `tap-skip`, merged to main.
+
+**What:** `pipeline/live.py` `TapHealth`, owned by `LiveBuilder`: when TAP fails, searches for the next 300 s ask SIA2 first (1 to 5 s on EC2); if SIA2 fails too, TAP is still tried. A TAP success clears the pause. Two unit tests with a fake clock.
+
+**Why:** the M42 run on EC2 took 252 s, about 180 s of it two TAP timeouts before the fallback; every visitor would wait that again while TAP is down.
+
+**Gaps:** not run on the server after the change; the 300 s is a guess. The first search after the pause still pays the full TAP wait. A position searched via SIA2 may list fewer images than TAP (T43).
+
 ## 2026-11-15: Live build verified on the EC2 server through SIA2 (T10, T43)
 Commit: see `git log` (message starts "Deploy: record").
 

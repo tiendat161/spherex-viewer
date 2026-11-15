@@ -51,6 +51,7 @@ MAX_KEPT = 30             # finished series kept in memory
 TAP_LIVE_ATTEMPTS = 2     # live archive search: TAP tries before falling back to SIA2 (T43)
 TAP_LIVE_TIMEOUT_S = 90   # seconds one TAP try may take; the usual search takes 10 to 67 s, once about 4 minutes
 SIA_LIVE_TIMEOUT_S = 60
+TAP_SKIP_S = 300.0        # after TAP fails, searches go to SIA2 first for this long, so a visitor does not wait for TAP again (not tuned)
 ERROR_TTL_S = 60.0        # a failed series is retried if asked for again after this long
 
 
@@ -66,6 +67,22 @@ def _encode(arr) -> bytes:
 
 def _png_bytes(pixels, vmin, vmax) -> bytes:
     return _encode(stretch_mod.apply(pixels, vmin, vmax))
+
+
+class TapHealth:
+    """Remembers that TAP just failed, so the next searches skip its long wait for a while. Shared by one LiveBuilder."""
+
+    def __init__(self, skip_s=TAP_SKIP_S, clock=time.monotonic):
+        self._skip_s, self._clock, self._until = skip_s, clock, 0.0
+
+    def down(self) -> bool:
+        return self._clock() < self._until
+
+    def failed(self):
+        self._until = self._clock() + self._skip_s
+
+    def worked(self):
+        self._until = 0.0
 
 
 class LiveSeries:
@@ -236,24 +253,33 @@ class LiveSeries:
             self.status, self.error, self.finished_at = "error", message, time.time()
             self._frames, self._pngs = {}, {}
 
-    def run(self, client):
+    def run(self, client, health=None):
         try:
-            self._run(client)
+            self._run(client, health or TapHealth(0.0))
         except Exception as e:  # a job must always end in ready or error, never hang in loading
             self._fail(f"{type(e).__name__}: {e}")
 
-    def _run(self, client):
+    def _run(self, client, health):
         if self._order is None:
             rows = self._rows
             if rows is None and self._tap_dir is not None:
                 rows = tapcache.load(self._tap_dir, self.ra, self.dec)  # searched before: skip the slow step
                 if rows is not None:
                     self.search = "tap"  # only complete TAP answers are remembered
+            if rows is None and health.down():
+                # TAP failed a moment ago: ask SIA2 first (seconds). If that fails too, TAP is still tried below.
+                try:
+                    rows = client.sia_rows(self.ra, self.dec, SIA_LIVE_TIMEOUT_S)
+                    self.search = "sia2"
+                except IrsaError:
+                    rows = None
             if rows is None:
                 try:
                     rows = client.tap_rows(self.ra, self.dec, TAP_LIVE_ATTEMPTS, TAP_LIVE_TIMEOUT_S)
                     self.search = "tap"
+                    health.worked()
                 except IrsaError as tap_err:
+                    health.failed()
                     # TAP is down or too slow: SIA2 answers in seconds but may list fewer images (T43). Say so, and do not remember it.
                     try:
                         rows = client.sia_rows(self.ra, self.dec, SIA_LIVE_TIMEOUT_S)
@@ -341,9 +367,10 @@ class LiveBuilder:
         self._hot_pixel_bytes = hot_pixel_bytes
         self._tap_dir = tap_dir  # folder for remembered archive searches, or None
         self._max_total_bytes = max_total_bytes
+        self._tap_health = TapHealth()
 
     def _run_job(self, job):
-        job.run(self._client)
+        job.run(self._client, self._tap_health)
         self._trim()
         with self._lock:
             self._evict_to_budget()
