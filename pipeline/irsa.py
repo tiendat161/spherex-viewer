@@ -30,6 +30,9 @@ DEFAULT_RETRY_WAIT_S = 5.0   # spike: 503 carried retry-after: 5
 
 # Process-wide: shared by every IrsaClient instance, covers TAP and cutouts.
 _GATE = threading.BoundedSemaphore(MAX_IN_FLIGHT)
+# Catalogue overlay queries (T15) are optional: they wait on their own small gate, so they never take a slot from image downloads.
+CATALOGUE_IN_FLIGHT = 2
+_CATALOGUE_GATE = threading.BoundedSemaphore(CATALOGUE_IN_FLIGHT)
 
 
 class Response(NamedTuple):
@@ -113,18 +116,19 @@ class IrsaClient:
         self._transport = transport
         self._sleep = sleep
 
-    def _send(self, method: str, url: str, data: Optional[dict] = None, timeout: Optional[float] = None) -> Response:
-        with _GATE:
+    def _send(self, method: str, url: str, data: Optional[dict] = None, timeout: Optional[float] = None,
+              gate: Optional[threading.BoundedSemaphore] = None) -> Response:
+        with (gate or _GATE):
             if timeout is None:
                 return self._transport(method, url, data)
             return self._transport(method, url, data, timeout)  # only given when a caller asks for a shorter wait
 
     def _with_retries(self, what: str, attempts: int, method: str, url: str, data: Optional[dict] = None,
-                      timeout: Optional[float] = None) -> bytes:
+                      timeout: Optional[float] = None, gate: Optional[threading.BoundedSemaphore] = None) -> bytes:
         last = "no attempt"
         for attempt in range(1, attempts + 1):
             try:
-                resp = self._send(method, url, data, timeout)
+                resp = self._send(method, url, data, timeout, gate)
             except Exception as e:  # network error: counts as an attempt
                 last = f"{type(e).__name__}: {e}"
                 wait = DEFAULT_RETRY_WAIT_S
@@ -146,10 +150,11 @@ class IrsaClient:
         )
         return list(csv.DictReader(io.StringIO(body.decode("utf-8"))))
 
-    def tap_query(self, adql: str, attempts: int = 2, timeout: Optional[float] = None) -> List[Dict[str, str]]:
-        """Any ADQL query to IRSA TAP, rows as dicts (used for catalogue tables, pipeline/catalogue.py)."""
+    def tap_query(self, adql: str, attempts: int = 1, timeout: Optional[float] = None) -> List[Dict[str, str]]:
+        """Any ADQL query to IRSA TAP, rows as dicts (catalogue tables, pipeline/catalogue.py). One attempt by default and its
+        own concurrency gate (CATALOGUE_IN_FLIGHT): an optional query must neither wait long nor take a slot from image downloads."""
         body = self._with_retries("TAP catalogue query", attempts, "POST", TAP_URL,
-                                  {"QUERY": adql, "LANG": "ADQL", "FORMAT": "csv"}, timeout)
+                                  {"QUERY": adql, "LANG": "ADQL", "FORMAT": "csv"}, timeout, _CATALOGUE_GATE)
         return list(csv.DictReader(io.StringIO(body.decode("utf-8"))))
 
     def sia_rows(self, ra: float, dec: float, timeout: Optional[float] = None) -> List[Dict[str, str]]:

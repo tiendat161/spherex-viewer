@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "catalogue.schema.json",
   "title": "Catalogue sources around a position",
-  "description": "Response of GET /api/catalogue (T15): sources of the AllWISE Source Catalog (WISE, NASA/IPAC IRSA) inside a field. Always real catalogue data, never simulated. Positions are the catalogue's own, ICRS degrees, at the catalogue's reference epoch, not corrected for proper motion: a moving object is where the catalogue saw it, not where it is now. `mjd` is the catalogue's own mean observation date of the source in W1 (column w1mjdmean); no proper motion is applied or invented.",
+  "description": "Response of GET /api/catalogue (T15): sources of the AllWISE Source Catalog (WISE, NASA/IPAC IRSA) inside a field. Always real catalogue data, never simulated. Positions are the catalogue's own, ICRS degrees, at the catalogue's reference epoch, not corrected for proper motion: a moving object is where the catalogue saw it, not where it is now. `mjd` is the catalogue's own column w1mjdmean, described in IRSA's AllWISE documentation as the mean MJD of the observations used for the entry in W1 (found by search; the Explanatory Supplement was not read, so the exact meaning is unverified here). No proper motion is applied or invented.",
   "type": "object",
   "additionalProperties": false,
   "required": ["status", "catalogue", "sources"],
@@ -29,8 +29,8 @@
           "designation": {"type": "string"},
           "ra": {"type": "number"},
           "dec": {"type": "number"},
-          "w1_mag": {"type": ["number", "null"], "description": "W1 (3.4 um) profile-fit magnitude, Vega system (w1mpro); null when the catalogue has none."},
-          "mjd": {"type": ["number", "null"], "description": "Mean MJD of the W1 observations of this source (w1mjdmean); null when the catalogue has none."}
+          "w1_mag": {"type": ["number", "null"], "description": "W1 profile-fit magnitude (column w1mpro), Vega system per IRSA's AllWISE documentation; null when the catalogue has none. Only W1 is fetched."},
+          "mjd": {"type": ["number", "null"], "description": "Catalogue column w1mjdmean (see the description above); null when the catalogue has none."}
         }
       }
     },

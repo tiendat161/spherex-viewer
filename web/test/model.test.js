@@ -417,3 +417,12 @@ describe('skyToPixel', () => {
     expect(skyToPixel(grid, 313.795, 7.245)).toBeNull();
   });
 });
+
+describe('medianMjd', () => {
+  it('takes the median of the finite values and ignores the rest', async () => {
+    const { medianMjd } = await import('../src/model.js');
+    expect(medianMjd([{ mjd: 3 }, { mjd: null }, { mjd: 1 }, { mjd: 2 }])).toBe(2);
+    expect(medianMjd([{ mjd: null }])).toBeNull();
+    expect(medianMjd([])).toBeNull();
+  });
+});

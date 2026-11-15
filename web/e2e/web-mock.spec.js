@@ -409,3 +409,32 @@ test('flux charts: spectrum and light curve next to the image, coloured by visit
   await expect(page.locator('.chart-dot')).toHaveCount(36);
   await page.screenshot({ path: outDir + 'web-mock-charts.png', fullPage: true });
 });
+
+test('mock: catalogue overlay is off by default, draws circles with a hover label, and fails softly', async ({ page }) => {
+  await page.goto(wise);
+  await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
+  await expect(page.locator('#cat-canvas')).toBeHidden();
+  await openAdvanced(page);
+  await page.locator('#catalogue').check();
+  await expect(page.locator('#cat-note')).toContainText('REAL catalogue data: 8 AllWISE');
+  await expect(page.locator('#cat-note')).toContainText('not corrected for proper motion');
+  await expect(page.locator('#cat-canvas')).toBeVisible();
+  // Hover the first circle: its designation and catalogue epoch appear.
+  // The mock's source 0 is 0.03 deg east of the centre: 0.03 * cos(dec) * 3600 / 6.2 pixels left of the middle of the 116-pixel image.
+  const box = await page.locator('#canvas').boundingBox();
+  const fx = 0.5 - (0.03 * Math.cos((-7.245147 * Math.PI) / 180) * 3600) / 6.2 / 116;
+  await page.mouse.move(box.x + box.width * fx, box.y + box.height / 2);
+  await expect(page.locator('#cat-tip')).toContainText('MOCK-');
+  await expect(page.locator('#cat-tip')).toContainText('catalogue epoch');
+  await page.screenshot({ path: `${outDir}catalogue-overlay.png` });
+  await page.locator('#catalogue').uncheck();
+  await expect(page.locator('#cat-canvas')).toBeHidden();
+});
+
+test('mock: catalogue service failure gives a message and keeps the images', async ({ page }) => {
+  await page.goto('/?ra=0&dec=0');
+  await openAdvanced(page);
+  await page.locator('#catalogue').check();
+  await expect(page.locator('#cat-note')).toContainText('unavailable');
+  await expect(page.locator('#badge')).not.toHaveText('NO DATA YET');
+});

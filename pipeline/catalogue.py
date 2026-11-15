@@ -4,8 +4,10 @@ Why AllWISE through IRSA TAP and not Gaia: the service already reaches IRSA (sam
 concurrency rules, nothing new to open in the deployed container), and WISE is an infrared survey like SPHEREx.
 The ESA Gaia TAP endpoint (https://gea.esac.esa.int/tap-server/tap/sync, documented at
 https://www.cosmos.esa.int/web/gaia-users/archive/programmatic-access) was unreachable from the development machine on
-2026-11-15, so it was not used. The table name `allwise_p3as_psd` is the one IRSA documents for ADQL queries on the AllWISE
-Source Catalog. Positions are the catalogue's, not moved for proper motion (contracts/catalogue.schema.json).
+2026-11-15, so it was not used. The table name `allwise_p3as_psd` is the one listed as the AllWISE Source Catalog's TAP table in
+the IRSA/VO registry record (https://dc.g-vo.org/I/ivo://irsa.ipac/WISE/Catalog/AllWISE/Source_Catalog, found by search; the
+column names `w1mpro` and `w1mjdmean` are from IRSA's AllWISE column documentation text). NOT confirmed against the live service
+(HTTP 502 on 2026-11-15). Positions are the catalogue's, not moved for proper motion (contracts/catalogue.schema.json).
 """
 import math
 from typing import Dict, List, Optional
@@ -16,10 +18,11 @@ TABLE = "allwise_p3as_psd"
 NAME = "AllWISE Source Catalog (WISE, NASA/IPAC IRSA)"
 SERVICE = "https://irsa.ipac.caltech.edu/TAP/sync"
 MAX_SOURCES = 400            # the brightest this many are returned
-TIMEOUT_S = 25.0             # a visitor waits for this; the overlay is optional, so fail rather than hang
+TIMEOUT_S = 20.0             # the whole wait: one attempt (tap_query attempts=1), no retries; the overlay is optional, so fail rather than hang
 
 
 def query_text(ra: float, dec: float, fov_deg: float) -> str:
+    ra = ra % 360.0  # CIRCLE on the sphere wraps at RA 0/360 and at the poles by itself; nothing to split here
     radius = fov_deg * 0.75  # half the diagonal is 0.707 * fov: covers the corners of the square field
     return (f"SELECT TOP {MAX_SOURCES + 1} designation, ra, dec, w1mpro, w1mjdmean FROM {TABLE} "
             f"WHERE CONTAINS(POINT('ICRS', ra, dec), CIRCLE('ICRS', {ra:.6f}, {dec:.6f}, {radius:.6f})) = 1 ORDER BY w1mpro")

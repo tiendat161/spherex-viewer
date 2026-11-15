@@ -350,3 +350,34 @@ def test_catalogue_endpoint(tmp_path, monkeypatch):
     assert c.get("/api/catalogue", params={"ra": RA, "dec": DEC, "fov": 0.3}).json()["status"] == "error"
     off = TestClient(create_app(series_dir=series_dir))  # live=None: no archive contact
     assert off.get("/api/catalogue", params={"ra": RA, "dec": DEC}).json()["status"] == "error"
+
+
+def test_catalogue_cached_and_rate_limited(tmp_path, monkeypatch):
+    from api import main as api_main
+    series_dir, _ = make_cache(tmp_path)
+    calls = []
+    def fake(ra, dec, fov):
+        calls.append((ra, dec, fov))
+        return {"status": "ok", "catalogue": {"name": "n", "table": "t", "service": "s"}, "sources": []}
+    monkeypatch.setattr(api_main.catalogue_mod, "catalogue_document", fake)
+    c = TestClient(create_app(series_dir=series_dir, live=object(), rate_limit=3))
+    p = {"ra": RA, "dec": DEC}
+    assert c.get("/api/catalogue", params=p).status_code == 200
+    assert c.get("/api/catalogue", params=p).status_code == 200
+    assert len(calls) == 1  # the second answer came from the cache
+    assert c.get("/api/catalogue", params={"ra": RA, "dec": DEC, "fov": 0.5}).status_code == 200 and len(calls) == 2
+    r = c.get("/api/catalogue", params=p)
+    assert r.status_code == 429 and r.headers["retry-after"] == "30" and r.json()["status"] == "error"
+
+
+def test_catalogue_failure_is_not_cached(tmp_path, monkeypatch):
+    from api import main as api_main
+    series_dir, _ = make_cache(tmp_path)
+    calls = []
+    def fake(ra, dec, fov):
+        calls.append(1)
+        return {"status": "error", "catalogue": {"name": "n", "table": "t", "service": "s"}, "sources": [], "error": {"message": "down"}}
+    monkeypatch.setattr(api_main.catalogue_mod, "catalogue_document", fake)
+    c = TestClient(create_app(series_dir=series_dir, live=object()))
+    c.get("/api/catalogue", params={"ra": RA, "dec": DEC}); c.get("/api/catalogue", params={"ra": RA, "dec": DEC})
+    assert len(calls) == 2

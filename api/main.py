@@ -17,7 +17,7 @@ import os
 import re
 import threading
 import time
-from collections import deque
+from collections import OrderedDict, deque
 from pathlib import Path
 from typing import Optional
 
@@ -40,6 +40,8 @@ FRAME_RE = re.compile(r"([0-9]{2,3}|[sd]_[A-Za-z0-9]+_[0-9]{1,3})\.png")  # (ful
 
 RATE_LIMIT = 120      # /api/series requests per client per RATE_WINDOW_S (the web app polls every 2 s: 30 a minute per tab)
 RATE_WINDOW_S = 60.0
+CATALOGUE_TTL_S = 600.0    # /api/catalogue answers kept this long, so toggling the overlay does not query IRSA again
+CATALOGUE_CACHE_MAX = 64
 
 
 class RateLimiter:
@@ -199,8 +201,15 @@ def create_app(series_dir: Optional[Path] = None, web_dist: Optional[Path] = Non
             return JSONResponse(error_document(str(e)))
         return JSONResponse(doc)
 
+    cat_cache = OrderedDict()  # (ra, dec, fov) rounded -> (time, document); only answered queries, so a failure is retried
+
     @app.get("/api/catalogue")  # T15 overlay: one self-contained block
     def catalogue(request: Request):
+        if limiter is not None and not limiter.allow(request.client.host if request.client else "?"):
+            return JSONResponse({"status": "error", "catalogue": {"name": catalogue_mod.NAME, "table": catalogue_mod.TABLE,
+                                 "service": catalogue_mod.SERVICE}, "sources": [],
+                                 "error": {"message": "Too many requests from this address. Wait a minute and try again."}},
+                                status_code=429, headers={"Retry-After": "30"})
         try:
             ra, dec, fov = _num(request, "ra"), _num(request, "dec"), allowed_fov(_num(request, "fov", CACHED_FOV))
             if not (0 <= ra < 360) or not (-90 <= dec <= 90) or fov is None:
@@ -213,7 +222,16 @@ def create_app(series_dir: Optional[Path] = None, web_dist: Optional[Path] = Non
             return JSONResponse({"status": "error", "catalogue": {"name": catalogue_mod.NAME, "table": catalogue_mod.TABLE,
                                  "service": catalogue_mod.SERVICE}, "sources": [],
                                  "error": {"message": "This server does not contact archives, so the catalogue overlay is unavailable."}})
-        return JSONResponse(catalogue_mod.catalogue_document(ra, dec, fov))
+        key, now = (round(ra, 4), round(dec, 4), fov), time.monotonic()
+        hit = cat_cache.get(key)
+        if hit is not None and now - hit[0] < CATALOGUE_TTL_S:
+            return JSONResponse(hit[1])
+        doc = catalogue_mod.catalogue_document(ra, dec, fov)
+        if doc["status"] == "ok":
+            cat_cache[key] = (now, doc)
+            while len(cat_cache) > CATALOGUE_CACHE_MAX:
+                cat_cache.popitem(last=False)
+        return JSONResponse(doc)
 
     @app.get("/api/targets")
     def targets():

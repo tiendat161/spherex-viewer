@@ -9,7 +9,7 @@ const el = {
   frameBox: $('frame-box'), canvas: $('canvas'), scalebar: $('scalebar'), scalebarLabel: $('scalebar-label'), skipped: $('skipped'),
   prev: $('prev'), play: $('play'), next: $('next'), slider: $('slider'), visitBar: $('visit-bar'), vtrack: $('visit-track'), vmarks: $('visit-marks'), vhandle: $('visit-handle'), vlabels: $('visit-labels'), vaxis: $('vaxis'), segDate: $('seg-date'), segWl: $('seg-wl'), caption: $('caption'), targetsMenu: $('targets-menu'), targetsCurrent: $('targets-current'), vTrack: $('vaxis-track'), vTicks: $('vaxis-ticks'), vHandle: $('vaxis-handle'), vLabels: $('vaxis-labels'), fps: $('fps'), zoom: $('zoom'), pair: $('pair'), pairNote: $('pair-note'), playNote: $('play-note'), wdown: $('wdown'), wup: $('wup'), playWl: $('play-wl'),
   view: $('view'), band: $('band'), bandWrap: $('band-wrap'), diff: $('diff'), diffWrap: $('diff-wrap'),
-  mark: $('mark'), marker: $('marker'), catToggle: $('catalogue'), catCanvas: $('cat-canvas'), catNote: $('cat-note'),
+  mark: $('mark'), marker: $('marker'), catToggle: $('catalogue'), catCanvas: $('cat-canvas'), catNote: $('cat-note'), catTip: $('cat-tip'),
   stageRow: $('stage-row'), charts: $('charts'), tabSpectrum: $('tab-spectrum'), tabPoint: $('tab-point'), pointMarker: $('point-marker'), tabCurve: $('tab-curve'), chart: $('chart'), chartTitle: $('chart-title'), chartLegend: $('chart-legend'), chartHelp: $('chart-help'), chartMessage: $('chart-message'), chartNote: $('chart-note'),
   rFrame: $('r-frame'), rDate: $('r-date'), rWave: $('r-wave'), rFlag: $('r-flag'), legend: $('legend'),
 };
@@ -445,6 +445,8 @@ function renderCatalogue() {
   const g = state.resp?.grid, c = el.catCanvas;
   const on = el.catToggle.checked && !!g && !!state.pos && !el.frameBox.hidden;
   c.hidden = !on;
+  state.catDrawn = [];
+  el.catTip.hidden = true;
   el.catNote.hidden = !el.catToggle.checked;
   if (!el.catToggle.checked) return;
   if (!on) { el.catNote.textContent = 'WISE catalogue sources: shown once the image is loaded.'; return; }
@@ -465,6 +467,7 @@ function renderCatalogue() {
   if (doc.status === 'error') { el.catNote.textContent = `WISE catalogue sources unavailable. ${doc.error.message}`; return; }
   const zoom = Number(el.zoom.value);
   let shown = 0;
+  const drawn = state.catDrawn = [];
   cx.lineWidth = 1.5 * dpr; cx.strokeStyle = '#ff8c1a'; cx.shadowColor = '#000'; cx.shadowBlur = 2 * dpr;
   for (const s of doc.sources) {
     const p = skyToPixel(g, s.ra, s.dec);
@@ -472,12 +475,13 @@ function renderCatalogue() {
     const { u, v } = imageToBox(p.fx, p.fy, zoom);
     if (u < 0 || u > 1 || v < 0 || v > 1) continue;
     cx.beginPath(); cx.arc(u * c.width, v * c.height, 7 * dpr, 0, 2 * Math.PI); cx.stroke();
+    drawn.push({ x: u * box.width, y: v * box.height, s });
     shown++;
   }
   const mjd = medianMjd(doc.sources);
-  el.catNote.textContent = `REAL catalogue data: ${shown} AllWISE (WISE, 3.4–22 µm) source${shown === 1 ? '' : 's'} in view, orange circles` +
+  el.catNote.textContent = `REAL catalogue data: ${shown} AllWISE (WISE) source${shown === 1 ? '' : 's'} in view, orange circles; hover a circle for its designation, W1 magnitude and catalogue epoch` +
     `${doc.truncated ? ` (the field holds more; the ${doc.sources.length} brightest in W1 were fetched)` : ''}. ` +
-    `Positions are the catalogue's, at its own epoch${mjd ? ` (median observation date of these sources ${mjdToUtc(mjd).slice(0, 10)} UTC)` : ''}, ` +
+    `Positions are the catalogue's, at the catalogue epoch${mjd ? ` (median of the catalogue's mean W1 dates for these sources: ${mjdToUtc(mjd).slice(0, 10)} UTC; column meaning not verified here)` : ''}, ` +
     'not corrected for proper motion: a moving object is where WISE saw it, not where SPHEREx saw it. Not all of them are visible in the SPHEREx images.';
 }
 
@@ -733,6 +737,18 @@ el.chart.addEventListener('keydown', (e) => { const g = e.target.closest?.('.cha
 el.zoom.addEventListener('change', render);
 el.mark.addEventListener('change', render);
 el.catToggle.addEventListener('change', render);
+window.addEventListener('resize', () => { if (el.catToggle.checked) renderCatalogue(); });
+el.canvas.addEventListener('mousemove', (e) => {
+  const box = el.canvas.getBoundingClientRect(), x = e.clientX - box.left, y = e.clientY - box.top;
+  let best = null, bd = 10;
+  for (const d of state.catDrawn ?? []) { const dd = Math.hypot(d.x - x, d.y - y); if (dd < bd) { bd = dd; best = d; } }
+  el.catTip.hidden = !best;
+  if (!best) return;
+  const { designation, w1_mag: w1, mjd } = best.s;
+  el.catTip.textContent = `${designation || 'AllWISE source'} · W1 ${w1 == null ? 'n/a' : w1.toFixed(2)} · catalogue epoch ${mjd == null ? 'n/a' : mjdToUtc(mjd).slice(0, 10)}`;
+  el.catTip.style.left = `${Math.min(x + 12, box.width - 150)}px`; el.catTip.style.top = `${Math.max(y - 28, 0)}px`;
+});
+el.canvas.addEventListener('mouseleave', () => { el.catTip.hidden = true; });
 el.view.addEventListener('change', () => { setView(el.view.value); reslot(); });
 for (const c of [el.band, el.diff]) c.addEventListener('change', reslot);
 el.pair.addEventListener('change', () => {

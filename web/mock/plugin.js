@@ -62,6 +62,14 @@ export function mockApi() {
       server.middlewares.use((req, res, next) => {
         const url = new URL(req.url, 'http://x');
         if (url.pathname === '/api/targets') return json(res, targets);
+        if (url.pathname === '/api/catalogue') {
+          // SIMULATED sources (the mock never contacts IRSA): a ring of 8 around the requested position, and ra=0 asks for the error path.
+          const ra = Number(url.searchParams.get('ra')), dec = Number(url.searchParams.get('dec'));
+          const info = { name: 'MOCK AllWISE', table: 'allwise_p3as_psd', service: 'mock' };
+          if (ra === 0) return json(res, { status: 'error', catalogue: info, sources: [], error: { message: 'MOCK: the catalogue service did not answer.' } });
+          const sources = Array.from({ length: 8 }, (_, i) => ({ designation: `MOCK-${i}`, ra: ra + 0.03 * Math.cos(i), dec: dec + 0.03 * Math.sin(i), w1_mag: 12 + i, mjd: 55300 + i }));
+          return json(res, { status: 'ok', catalogue: info, sources, truncated: false });
+        }
         const m = /^\/api\/frames\/placeholder\/(?:(barnard)\/)?(\d+)\.png$/.exec(url.pathname);
         if (m) {
           const n = sizes.includes(Number(url.searchParams.get('n'))) ? Number(url.searchParams.get('n')) : 116;

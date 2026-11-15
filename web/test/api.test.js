@@ -54,3 +54,23 @@ describe('pollSpectrum', () => {
     expect((await pollSpectrum(1, 2, 0.2, { ra: 1, dec: 2 }, { fetchFn: async () => ok({ hello: 1 }) })).status).toBe('error');
   });
 });
+
+describe('fetchCatalogue', () => {
+  const ok = { status: 'ok', sources: [], catalogue: {} };
+  it('returns the API document, also for an error status such as 429', async () => {
+    const { fetchCatalogue } = await import('../src/api.js');
+    const urls = [];
+    const f = async (u) => { urls.push(u); return { status: 429, json: async () => ({ status: 'error', sources: [], error: { message: 'Too many' } }) }; };
+    expect((await fetchCatalogue(1, 2, 0.2, { fetchFn: f })).error.message).toBe('Too many');
+    expect(urls[0]).toBe('/api/catalogue?ra=1&dec=2&fov=0.2');
+    expect((await fetchCatalogue(1, 2, 0.2, { fetchFn: async () => ({ status: 200, json: async () => ok }) })).status).toBe('ok');
+  });
+  it('turns a network failure or a non-document answer into an error document', async () => {
+    const { fetchCatalogue } = await import('../src/api.js');
+    const down = await fetchCatalogue(1, 2, 0.2, { fetchFn: async () => { throw new Error('offline'); } });
+    expect(down.status).toBe('error');
+    expect(down.error.message).toContain('offline');
+    const html = await fetchCatalogue(1, 2, 0.2, { fetchFn: async () => ({ status: 502, json: async () => { throw new SyntaxError('x'); } }) });
+    expect(html.status).toBe('error');
+  });
+});

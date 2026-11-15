@@ -48,3 +48,20 @@ def test_unreadable_answer_is_an_error_document():
         raise ValueError("boom")
     doc = catalogue.catalogue_document(1, 2, 0.2, IrsaClient(transport=transport, sleep=lambda s: None))
     assert doc["status"] == "error"
+
+
+def test_query_text_at_the_poles_and_across_ra_wrap():
+    # CIRCLE on the sphere handles both; the text must keep the position as given (RA folded into 0..360) and the radius.
+    assert "CIRCLE('ICRS', 359.990000, 0.000000, 0.150000)" in catalogue.query_text(359.99, 0.0, 0.2)
+    assert "CIRCLE('ICRS', 0.010000, 0.000000, 0.150000)" in catalogue.query_text(0.01, 0.0, 0.2)
+    assert "CIRCLE('ICRS', 10.000000, 90.000000, 0.750000)" in catalogue.query_text(10.0, 90.0, 1.0)
+    assert "CIRCLE('ICRS', 10.000000, -90.000000, 0.075000)" in catalogue.query_text(10.0, -90.0, 0.1)
+
+
+def test_one_attempt_and_own_gate():
+    calls = []
+    def transport(method, url, data, timeout=300):
+        calls.append(timeout)
+        return Response(502, {}, b"")
+    doc = catalogue.catalogue_document(1, 2, 0.2, IrsaClient(transport=transport, sleep=lambda s: None))
+    assert doc["status"] == "error" and calls == [catalogue.TIMEOUT_S]  # no retry

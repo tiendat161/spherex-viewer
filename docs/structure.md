@@ -46,7 +46,7 @@ The cached path runs the same steps as 4 and 5, once, in `pipeline/build.py`, an
 | The cached targets, their positions, frame counts, proper motion | `verify/targets.json`, read by `pipeline/targets.py`; then `make cache` |
 | The flux charts: what is drawn, colours, tabs, what a click does | `web/src/main.js` (`renderCharts`); the data handling is `web/src/chart.js` |
 | Spectrum at a clicked point: the measurement, the endpoint, the cached-target fallback | `pipeline/live.py` (`LiveSeries.spectrum`), `pipeline/cutout.py` (`wavelength_map`), `api/main.py` (`spectrum`), `contracts/spectrum.schema.json`; the click is `onImageClick` in `web/src/main.js` |
-| WISE catalogue overlay: the query, the endpoint, the drawing | `pipeline/catalogue.py` (table, radius, row limit, error text), `api/main.py` (`catalogue`), `contracts/catalogue.schema.json`; the drawing is `renderCatalogue` in `web/src/main.js` (`skyToPixel` in `web/src/model.js`), the toggle is under Advanced in `web/index.html` |
+| WISE catalogue overlay: the query, the endpoint, the drawing | `pipeline/catalogue.py` (table, radius, row limit, error text), `api/main.py` (`catalogue`: rate limit, answer cache `CATALOGUE_TTL_S`), `pipeline/irsa.py` (`tap_query`, its own gate `CATALOGUE_IN_FLIGHT`), `contracts/catalogue.schema.json`; the drawing is `renderCatalogue` in `web/src/main.js` (`skyToPixel` in `web/src/model.js`), the toggle is under Advanced in `web/index.html` |
 | Player behaviour: controls, blink, zoom, frame order, badge, readouts | `web/src/main.js`; pure logic it uses is in `web/src/model.js` |
 | Page markup and styling | `web/index.html`, `web/src/style.css` |
 | How the frontend fetches and polls | `web/src/api.js` |
@@ -143,7 +143,7 @@ The frontend, built with Vite and no UI framework. It only ever calls relative `
 | `src/chart.js` | Pure helpers for the Spectrum and Light curve charts: which frames have a flux, tick values, where each point is drawn, the reasons in words. No DOM; the drawing is in `main.js` (`renderCharts`) |
 | `src/api.js` | `fetchTargets`, `pollSeries` and `pollSpectrum` |
 | `src/main.js` | The player: target list, form, canvas, controls, the target dropdown and paste handling, the By date and By wavelength toggle, the visit slider (for stacks and frames) and the vertical wavelength slider (`renderPad`), "Load more" and "Load all" for a live series, the Spectrum and Light curve panel (`renderCharts`), a click on the image (`onImageClick`) that adds the Clicked point tab (`measurePoint` polls `/api/spectrum`; the marker is `renderPointMarker`), the visit and wavelength step buttons, the play loop (across visits, through wavelengths, or plain frames), badge, readouts |
-| `mock/plugin.js`, `mock/png.js` | Dev-only stand-in for the API (`npm run dev:mock`): serves the fixture and generated placeholder frames, labelled simulated. Never part of a build |
+| `mock/plugin.js`, `mock/png.js` | Dev-only stand-in for the API (`npm run dev:mock`): serves the fixture and generated placeholder frames, and simulated catalogue sources for `/api/catalogue`, labelled simulated. Never part of a build |
 | `test/model.test.js`, `test/api.test.js`, `test/chart.test.js` | Vitest unit tests for the three modules |
 | `test/bundle.test.js` | Checks the built bundle contains no archive hostname |
 | `test/helpers.js` | Schema validators for the tests, built from `contracts/` |
