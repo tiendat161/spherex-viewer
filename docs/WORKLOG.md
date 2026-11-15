@@ -15,6 +15,23 @@ Commits: abc1234, def5678
 
 ---
 
+## 2026-11-15: Buttons follow the two sliders (T38)
+Commits: see the T38 row on the board. Replaces the Play selector of T37.
+
+**What:**
+- The Order selector (Time or Wavelength) and the Play selector are gone: with a visit slider and a wavelength slider they said the same thing twice. Individual frames are always in time order underneath (this only shows in "1 of 102" and in the hidden slider).
+- With the sliders in use the buttons follow the axes: "◀ Visit" and "Visit ▶" step the visit (keeping the wavelength as nearly as possible), "▼ λ" and "λ ▲" step the wavelength within the visit, "Play across visits" holds the wavelength and cycles the visits, "Play through wavelengths" holds the visit and goes from the shortest wavelength to the longest and back. While one plays the other is disabled and the playing one reads "Pause". A note says what is held. With a single visit only the wavelength buttons show.
+- In the stacked view, with "Blink widest pair" on, or with fewer than two wavelengths, the buttons are the plain "Step" and "Play" as before. The detector Band filter of the stacked view is unchanged.
+- Unit test for the turn-round step (`pingPong`); the Playwright tests drive the step and play buttons.
+
+**Why:** requested after trying T37: the Order selector no longer meant anything the user could see. Play follows the axis the way the arrow keys already did. No contract change, no new dependency.
+
+**Gaps:**
+- The old "walk through every frame in time order" play is gone from the individual-frames view (it mostly showed the background changing); the plain frame walk remains for the stacked view and for pair blinking.
+- The Band (detector) filter applies to the stacked view only; the individual frames are not filtered by detector.
+- Playback speed stays at 5 fps; the Speed setting changes it.
+- Not tried on a touch screen or outside Chromium (T25).
+
 ## 2026-11-15: Play across visits at one wavelength (T37)
 Commits: see the T37 row on the board.
 
