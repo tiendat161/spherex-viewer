@@ -11,29 +11,23 @@
     <h1>SPHEREx blink viewer</h1>
     <div id="badge" class="badge badge-unknown" role="status" aria-label="Data origin">NO DATA YET</div>
   </header>
-  <main>
-    <aside>
-      <h2>Cached targets</h2>
+  <div class="topbar">
+    <details id="targets-menu" class="targets-menu">
+      <summary><span class="menu-label">Target</span> <span id="targets-current">Pick a cached target</span></summary>
       <ul id="targets" class="targets"><li class="muted">Loading targets…</li></ul>
-      <form id="coords">
-        <h2>Position (ICRS, degrees)</h2>
-        <label>RA <input id="ra" name="ra" inputmode="decimal" autocomplete="off" /></label>
-        <label>Dec <input id="dec" name="dec" inputmode="decimal" autocomplete="off" /></label>
-        <label>Field of view
-          <select id="fov" name="fov"><option value="0.1">0.1°</option><option value="0.2" selected>0.2° (cached targets)</option><option value="0.5">0.5°</option><option value="1">1°</option></select>
-        </label>
-        <button type="submit">Load series</button>
-        <p class="muted small">Any other position is built live from the SPHEREx archive (IRSA): up to 40 frames spread evenly over the observation dates. The archive is slow, so expect a few minutes; frames appear as they arrive and the brightness scale is refined as more come in. The cached targets are stored at 0.2° only: any other field of view is built live, also for a cached target, and wider fields take longer. At 0.5° and 1° part of an image can be empty where the field runs off the edge of the detector.</p>
-      </form>
-    </aside>
+    </details>
+    <form id="coords" class="coords">
+      <label>RA <input id="ra" name="ra" inputmode="decimal" autocomplete="off" placeholder="degrees" aria-label="Right ascension, decimal degrees" /></label>
+      <label>Dec <input id="dec" name="dec" inputmode="decimal" autocomplete="off" placeholder="degrees" aria-label="Declination, decimal degrees" /></label>
+      <button type="submit">Load</button>
+    </form>
+    <p class="coords-hint muted small">Paste RA and Dec together (separated by a space) into either box, or one at a time. Decimal degrees, ICRS. Any position is built live from the SPHEREx archive; the cached targets open at once.</p>
+  </div>
+  <main>
     <section id="viewer">
       <div id="progress" class="progress" aria-live="polite"><span id="progress-text">Choose a target.</span><progress id="bar" max="1" value="0"></progress></div>
       <div id="message" class="message" hidden></div>
       <div class="stage">
-        <div id="vaxis-hint" class="vaxis-hint" hidden>
-          <button id="to-frames" type="button" title="Stacks combine all the wavelengths of a band, so there is no wavelength to pick. Switch to the individual frames.">Pick a wavelength</button>
-          <span class="muted small">Stacks have no single wavelength</span>
-        </div>
         <div id="vaxis" class="vaxis" hidden>
           <div id="vaxis-labels" class="vaxis-labels"></div>
           <div id="vaxis-track" class="vaxis-track" title="Drag to change the wavelength within this visit; each mark is one frame, evenly spaced (the wavelengths are written beside it). Up and down arrow keys step by one frame">
@@ -48,7 +42,13 @@
           <div id="skipped" class="skipped" hidden></div>
         </div>
       </div>
+      <p id="caption" class="caption" aria-live="polite"></p>
       <div class="controls">
+        <div class="seg" role="group" aria-label="Look at it">
+          <button id="seg-date" type="button" aria-pressed="false" title="One deep image per visit: all the images of a group of dates combined, so only time changes between frames">By date</button>
+          <button id="seg-wl" type="button" aria-pressed="true" title="Every archive image on its own, at its own wavelength">By wavelength</button>
+        </div>
+        <select id="view" class="visually-hidden" tabindex="-1" aria-hidden="true"><option value="stack">Stacked visits</option><option value="frames" selected>Individual frames</option></select>
         <button id="prev" type="button" aria-label="Step back">◀︎ Step</button>
         <button id="next" type="button" aria-label="Step forward">Step ▶︎</button>
         <button id="wdown" type="button" title="Next shorter wavelength in this visit (down arrow)" aria-label="Shorter wavelength" hidden>▼ λ</button>
@@ -64,33 +64,38 @@
             <div id="visit-labels" class="visit-labels"></div>
           </div>
         </div>
-        <label class="speed">Speed
-          <select id="fps"><option value="1">1 fps</option><option value="2">2 fps</option><option value="5" selected>5 fps</option><option value="10">10 fps</option></select>
-        </label>
-        <label class="speed">Zoom
-          <select id="zoom"><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select>
-        </label>
-        <label class="speed" title="Blink two frames far apart in time and close in wavelength"><input id="pair" type="checkbox" /> Blink widest pair</label>
-        <label class="speed" title="Draw a circle on the requested position (the centre of the image)"><input id="mark" type="checkbox" /> Mark centre</label>
-      </div>
-      <div class="controls">
-        <label class="speed" title="Stacked visits: all images from one group of dates combined, so only time changes between frames. Individual frames: every archive image on its own.">View
-          <select id="view"><option value="stack">Stacked visits</option><option value="frames" selected>Individual frames</option></select>
-        </label>
-        <label class="speed" id="band-wrap" hidden>Band <select id="band"></select></label>
-        <label class="speed" id="diff-wrap" hidden title="Show each later visit minus the earliest visit. Things that did not change cancel to grey; a moving object leaves a dark and a bright spot."><input id="diff" type="checkbox" /> Difference from first visit</label>
       </div>
       <p id="pair-note" class="muted small" hidden></p>
       <p id="play-note" class="muted small" hidden></p>
-      <dl id="readout" class="readout">
-        <div><dt>Frame</dt><dd id="r-frame">—</dd></div>
-        <div><dt>Observed</dt><dd id="r-date">—</dd></div>
-        <div><dt>Wavelength</dt><dd id="r-wave">—</dd></div>
-        <div><dt>Flagged</dt><dd id="r-flag">—</dd></div>
-      </dl>
       <p id="fov-note" class="note-wide small" hidden>Wide field: the wavelength shown is exact only at the centre of the image. SPHEREx observes each position on the detector at its own wavelength, so towards the edges of a field this wide the light is from a different wavelength than the one shown. How large the difference is has not been measured for this tool.</p>
-      <p id="legend" class="muted small"></p>
-      <p class="muted small">The requested position is the centre of the image; tick "Mark centre" to circle it. North is up, east is left; frames are not rotated or flipped. A moving target can be off-centre and shifts between frames: look for something that hops across the field while the stars stay put. Images are shown pixel-for-pixel with nearest-neighbour scaling; zoom magnifies the centre of the same pixels and does not resample or restretch them.</p>
+
+      <details id="advanced" class="advanced">
+        <summary>Advanced</summary>
+        <div class="adv-grid">
+          <label class="speed">Speed
+            <select id="fps"><option value="1">1 fps</option><option value="2">2 fps</option><option value="5" selected>5 fps</option><option value="10">10 fps</option></select>
+          </label>
+          <label class="speed">Zoom
+            <select id="zoom"><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select>
+          </label>
+          <label class="speed" title="Blink two frames far apart in time and close in wavelength"><input id="pair" type="checkbox" /> Blink widest pair</label>
+          <label class="speed" title="Draw a circle on the requested position (the centre of the image)"><input id="mark" type="checkbox" /> Mark centre</label>
+          <label class="speed" id="band-wrap" hidden title="Which detector array the stacked images come from">Detector band <select id="band"></select></label>
+          <label class="speed" id="diff-wrap" hidden title="Show each later visit minus the earliest visit. Things that did not change cancel to grey; a moving object leaves a dark and a bright spot."><input id="diff" type="checkbox" /> Difference from first visit</label>
+          <label class="speed" title="Width of the patch of sky. Wider fields are built live and take longer.">Field of view
+            <select id="fov" name="fov"><option value="0.1">0.1°</option><option value="0.2" selected>0.2° (cached targets)</option><option value="0.5">0.5°</option><option value="1">1°</option></select>
+          </label>
+        </div>
+        <dl id="readout" class="readout">
+          <div><dt>Frame</dt><dd id="r-frame">—</dd></div>
+          <div><dt>Observed</dt><dd id="r-date">—</dd></div>
+          <div><dt>Wavelength</dt><dd id="r-wave">—</dd></div>
+          <div><dt>Flagged</dt><dd id="r-flag">—</dd></div>
+        </dl>
+        <p id="legend" class="muted small"></p>
+        <p class="muted small">Any position that is not cached is built live from the SPHEREx archive (IRSA): up to 40 frames spread evenly over the observation dates. The archive is slow, so expect a few minutes; frames appear as they arrive and the brightness scale is refined as more come in. The cached targets are stored at 0.2° only: any other field of view is built live, also for a cached target, and wider fields take longer. At 0.5° and 1° part of an image can be empty where the field runs off the edge of the detector.</p>
+        <p class="muted small">The requested position is the centre of the image; tick "Mark centre" to circle it. North is up, east is left; frames are not rotated or flipped. A moving target can be off-centre and shifts between frames: look for something that hops across the field while the stars stay put. Images are shown pixel-for-pixel with nearest-neighbour scaling; zoom magnifies the centre of the same pixels and does not resample or restretch them.</p>
+      </details>
     </section>
   </main>
   <script type="module" src="/src/main.js"></script>

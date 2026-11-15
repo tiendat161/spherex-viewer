@@ -1,12 +1,12 @@
 import { fetchTargets, pollSeries } from './api.js';
-import { FOV_DEG, WIDE_FOV_DEG, bandLabel, blinkPair, buildSlots, cycleVisit, pingPong, formatFlag, gridFovDeg, isWideField, locationQuery, mjdToUtc, nearestWavelength, nearestY, nextSlot, orderSlots, padPosition, padSpec, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, stackSlots, stepVisit, stepWavelength, visitsOf, zoomRect } from './model.js';
+import { FOV_DEG, captionText, splitCoordinates, WIDE_FOV_DEG, bandLabel, blinkPair, buildSlots, cycleVisit, pingPong, formatFlag, gridFovDeg, isWideField, locationQuery, mjdToUtc, nearestWavelength, nearestY, nextSlot, orderSlots, padPosition, padSpec, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, stackSlots, stepVisit, stepWavelength, visitsOf, zoomRect } from './model.js';
 
 const $ = (id) => document.getElementById(id);
 const el = {
   badge: $('badge'), targets: $('targets'), ra: $('ra'), dec: $('dec'), fov: $('fov'), fovNote: $('fov-note'), coords: $('coords'),
   progressText: $('progress-text'), bar: $('bar'), message: $('message'),
   frameBox: $('frame-box'), canvas: $('canvas'), scalebar: $('scalebar'), scalebarLabel: $('scalebar-label'), skipped: $('skipped'),
-  prev: $('prev'), play: $('play'), next: $('next'), slider: $('slider'), visitBar: $('visit-bar'), vtrack: $('visit-track'), vmarks: $('visit-marks'), vhandle: $('visit-handle'), vlabels: $('visit-labels'), vaxis: $('vaxis'), vaxisHint: $('vaxis-hint'), toFrames: $('to-frames'), vTrack: $('vaxis-track'), vTicks: $('vaxis-ticks'), vHandle: $('vaxis-handle'), vLabels: $('vaxis-labels'), fps: $('fps'), zoom: $('zoom'), pair: $('pair'), pairNote: $('pair-note'), playNote: $('play-note'), wdown: $('wdown'), wup: $('wup'), playWl: $('play-wl'),
+  prev: $('prev'), play: $('play'), next: $('next'), slider: $('slider'), visitBar: $('visit-bar'), vtrack: $('visit-track'), vmarks: $('visit-marks'), vhandle: $('visit-handle'), vlabels: $('visit-labels'), vaxis: $('vaxis'), segDate: $('seg-date'), segWl: $('seg-wl'), caption: $('caption'), targetsMenu: $('targets-menu'), targetsCurrent: $('targets-current'), vTrack: $('vaxis-track'), vTicks: $('vaxis-ticks'), vHandle: $('vaxis-handle'), vLabels: $('vaxis-labels'), fps: $('fps'), zoom: $('zoom'), pair: $('pair'), pairNote: $('pair-note'), playNote: $('play-note'), wdown: $('wdown'), wup: $('wup'), playWl: $('play-wl'),
   view: $('view'), band: $('band'), bandWrap: $('band-wrap'), diff: $('diff'), diffWrap: $('diff-wrap'),
   mark: $('mark'), marker: $('marker'),
   rFrame: $('r-frame'), rDate: $('r-date'), rWave: $('r-wave'), rFlag: $('r-flag'), legend: $('legend'),
@@ -111,6 +111,9 @@ function render() {
   const stacked = stackView();
   el.pair.disabled = !has || stacked;
   el.view.disabled = !r?.stacks;
+  el.segDate.disabled = !r?.stacks; // stacks exist once the series has finished loading
+  el.segDate.setAttribute('aria-pressed', String(stacked));
+  el.segWl.setAttribute('aria-pressed', String(!stacked));
   el.bandWrap.hidden = el.diffWrap.hidden = !stacked;
   el.marker.hidden = !el.mark.checked;
   el.pair.checked = !!state.pair;
@@ -149,6 +152,8 @@ function render() {
   // The wavelength in the readout is the one at the grid centre; on a wide field say so.
   el.fovNote.hidden = !(r?.grid ? isWideField(r.grid) : state.pos?.fov >= WIDE_FOV_DEG);
   renderReadout();
+  const at = padActive() && padPosition(padActive(), state.current);
+  el.caption.textContent = captionText(currentSlot(), at && padActive().visits.length > 1 ? `visit ${at.visit + 1} of ${padActive().visits.length}` : '');
   drawCurrent();
 }
 
@@ -156,8 +161,30 @@ function render() {
 const padActive = () => padShown?.spec ?? null;
 
 /**
- * The visit slider (horizontal, one evenly spaced mark per visit) and the wavelength slider (vertical, one evenly
- * spaced mark per frame of the current visit). A frame is a (visit, wavelength) point: the visit slider picks the
+ * What the visit slider shows: one item per visit, which one is current, and the slot to go to for visit i. Null when there is
+ * no choice (fewer than two visits). Individual frames: the visits of the pad, keeping the wavelength. Stacks: one slot per visit.
+ */
+function visitInfo() {
+  if (stackView()) {
+    if (state.slots.length < 2) return null;
+    return {
+      items: state.slots.map((s) => ({ n: s.visit + 1, start: s.start_mjd, end: s.end_mjd, count: `${s.n_images} image${s.n_images === 1 ? '' : 's'}` })),
+      at: state.current, pick: (i) => i,
+    };
+  }
+  const spec = padActive();
+  if (!spec || spec.visits.length < 2) return null;
+  const at = padPosition(spec, state.current);
+  return {
+    items: spec.visits.map((v, i) => ({ n: i + 1, start: v.start_mjd, end: v.end_mjd, count: `${v.points.length} frames` })),
+    at: at ? at.visit : -1,
+    pick: (i) => nearestWavelength(spec.visits[i], currentWavelength() ?? spec.visits[0].points[0].wl), // the closest wavelength in that visit
+  };
+}
+
+/**
+ * The visit slider (horizontal, one evenly spaced mark per visit) and, for individual frames, the wavelength slider (vertical,
+ * one evenly spaced mark per frame of the current visit). A frame is a (visit, wavelength) point: the visit slider picks the
  * visit, the vertical one the frame within it. Changing visit keeps the wavelength as nearly as it can.
  */
 function renderPad() {
@@ -165,25 +192,33 @@ function renderPad() {
   if (!padShown || padShown.slots !== state.slots || padShown.stacks !== state.resp?.stacks || padShown.key !== key) {
     const spec = stackView() ? null : padSpec(state.slots, visitsOf(state.resp, state.slots));
     padShown = { slots: state.slots, stacks: state.resp?.stacks, key, spec, visit: -1 };
-    const n = spec?.visits.length ?? 0;
+    const items = (stackView() ? visitInfo() : spec && spec.visits.length > 1 ? visitInfo() : null)?.items ?? [];
+    const n = items.length;
     const vx = (i) => (n === 1 ? 0.5 : i / (n - 1)) * 100;
-    el.vmarks.replaceChildren(...(n > 1 ? spec.visits.map((_, i) => { const m = document.createElement('div'); m.className = 'visit-mark'; m.style.left = `${vx(i)}%`; return m; }) : []));
-    el.vlabels.replaceChildren(...(n > 1 ? spec.visits.map((v, i) => {
+    el.vmarks.replaceChildren(...items.map((_, i) => { const m = document.createElement('div'); m.className = 'visit-mark'; m.style.left = `${vx(i)}%`; return m; }));
+    el.vlabels.replaceChildren(...items.map((v, i) => {
       const d = document.createElement('div');
       d.dataset.visit = String(i);
       d.style.left = `${vx(i)}%`;
       const b = document.createElement('b');
-      b.textContent = `Visit ${i + 1}`;
-      const span = `${mjdToUtc(v.start_mjd).slice(0, 10)}${v.end_mjd - v.start_mjd >= 1 ? ` to ${mjdToUtc(v.end_mjd).slice(0, 10)}` : ''}`;
-      d.append(b, document.createElement('br'), `${span} · ${v.points.length}`);
+      b.textContent = `Visit ${v.n}`;
+      const span = `${mjdToUtc(v.start).slice(0, 10)}${v.end - v.start >= 1 ? ` to ${mjdToUtc(v.end).slice(0, 10)}` : ''}`;
+      const sub = document.createElement('span');
+      sub.className = 'sub'; // hidden on a narrow screen, where the caption already gives the dates
+      sub.append(document.createElement('br'), `${span} · ${v.count}`);
+      d.append(b, sub);
       return d;
-    }) : []));
+    }));
   }
   const spec = padShown.spec;
-  el.vaxisHint.hidden = !stackView(); // the stacked view has no wavelength slider: say so, and offer the way to it
+  const info = visitInfo();
   el.vaxis.hidden = !spec;
-  el.visitBar.hidden = !spec || spec.visits.length < 2;
-  el.slider.classList.toggle('visually-hidden', !!spec); // the native slider stays for the keyboard and screen readers
+  el.visitBar.hidden = !info;
+  el.slider.classList.toggle('visually-hidden', !!spec || !!info); // the native slider stays for the keyboard and screen readers
+  if (info) { // the handle and the current visit's label
+    el.vhandle.style.left = `${(info.items.length === 1 ? 0.5 : Math.max(0, info.at) / (info.items.length - 1)) * 100}%`;
+    for (const d of el.vlabels.children) d.classList.toggle('cur', Number(d.dataset.visit) === info.at);
+  }
   if (!spec) return;
   const at = padPosition(spec, state.current);
   const cur = at ? spec.visits[at.visit].points[at.point] : null;
@@ -211,11 +246,6 @@ function renderPad() {
     e.style.top = `${(1 - cur.y) * 100}%`;
     e.textContent = `${cur.wl.toFixed(2)} µm`;
     el.vLabels.append(e);
-  }
-  if (at && !el.visitBar.hidden) {
-    const n = spec.visits.length;
-    el.vhandle.style.left = `${(at.visit / (n - 1)) * 100}%`;
-    for (const d of el.vlabels.children) d.classList.toggle('cur', Number(d.dataset.visit) === at.visit);
   }
 }
 
@@ -357,10 +387,14 @@ async function load(ra, dec, { fov = FOV_DEG, push = false } = {}) {
 }
 
 function markTargets() {
+  let current = null;
   for (const b of el.targets.querySelectorAll('button')) {
     const t = state.targets[Number(b.dataset.i)];
-    b.setAttribute('aria-pressed', String(!!state.pos && t.ra === state.pos.ra && t.dec === state.pos.dec && state.pos.fov === FOV_DEG));
+    const on = !!state.pos && t.ra === state.pos.ra && t.dec === state.pos.dec && state.pos.fov === FOV_DEG;
+    b.setAttribute('aria-pressed', String(on));
+    if (on) current = t.name;
   }
+  el.targetsCurrent.textContent = current ?? (state.pos ? 'Your own position' : 'Pick a cached target');
 }
 
 function renderTargets() {
@@ -371,9 +405,9 @@ function renderTargets() {
     b.dataset.i = String(i);
     b.dataset.id = t.id;
     const name = document.createElement('span'); name.className = 'name'; name.textContent = t.name;
-    const note = document.createElement('span'); note.className = 'note'; note.textContent = `RA ${t.ra}, Dec ${t.dec}. ${t.position_note}`;
+    const note = document.createElement('span'); note.className = 'note'; note.textContent = `RA ${t.ra}, Dec ${t.dec}. ${t.position_note}`; note.title = note.textContent; // one line here, in full on hover
     b.append(name, note);
-    b.addEventListener('click', () => load(t.ra, t.dec, { push: true })); // the cached series: default field of view
+    b.addEventListener('click', () => { el.targetsMenu.open = false; load(t.ra, t.dec, { push: true }); }); // the cached series: default field of view
     li.append(b);
     return li;
   }));
@@ -402,19 +436,19 @@ el.vTrack.addEventListener('pointerdown', (e) => { dragging = true; el.vTrack.se
 el.vTrack.addEventListener('pointermove', (e) => { if (dragging) pickOnVAxis(e); });
 for (const t of ['pointerup', 'pointercancel']) el.vTrack.addEventListener(t, () => { dragging = false; });
 function pickOnVisits(e) {
-  const spec = padActive(), at = spec && padPosition(spec, state.current);
-  if (!spec || spec.visits.length < 2) return;
+  const info = visitInfo();
+  if (!info) return;
   const r = el.vtrack.getBoundingClientRect();
-  const to = Math.round(Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) * (spec.visits.length - 1));
-  if (at && to === at.visit) return;
-  const wl = at ? spec.visits[at.visit].points[at.point].wl : spec.visits[0].points[0].wl;
-  pickSlot(nearestWavelength(spec.visits[to], wl)); // the closest wavelength in that visit
+  const to = Math.round(Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) * (info.items.length - 1));
+  if (to !== info.at) pickSlot(info.pick(to));
 }
 let draggingVisit = false;
 el.vtrack.addEventListener('pointerdown', (e) => { draggingVisit = true; el.vtrack.setPointerCapture(e.pointerId); el.slider.focus({ preventScroll: true }); pickOnVisits(e); });
 el.vtrack.addEventListener('pointermove', (e) => { if (draggingVisit) pickOnVisits(e); });
 for (const t of ['pointerup', 'pointercancel']) el.vtrack.addEventListener(t, () => { draggingVisit = false; });
-el.toFrames.addEventListener('click', () => { setView('frames'); reslot(); });
+// "By date" (stacked visits) and "By wavelength" (individual frames) set the hidden view selector.
+el.segDate.addEventListener('click', () => { if (state.resp?.stacks && !stackView()) { setView('stack'); reslot(); } });
+el.segWl.addEventListener('click', () => { if (stackView()) { setView('frames'); reslot(); } });
 el.zoom.addEventListener('change', render);
 el.mark.addEventListener('change', render);
 el.view.addEventListener('change', () => { setView(el.view.value); reslot(); });
@@ -425,6 +459,16 @@ el.pair.addEventListener('change', () => {
   render();
 });
 el.fps.addEventListener('change', () => { if (state.playing) startPlaying(state.playMode); });
+// Paste "RA Dec" into either box and both fill; a single value pastes as usual.
+for (const box of [el.ra, el.dec]) {
+  box.addEventListener('paste', (e) => {
+    const both = splitCoordinates(e.clipboardData?.getData('text'));
+    if (!both) return;
+    e.preventDefault();
+    [el.ra.value, el.dec.value] = both;
+  });
+}
+document.addEventListener('click', (e) => { if (el.targetsMenu.open && !el.targetsMenu.contains(e.target)) el.targetsMenu.open = false; });
 el.coords.addEventListener('submit', (e) => {
   e.preventDefault();
   const p = parseLocation(`?ra=${encodeURIComponent(el.ra.value)}&dec=${encodeURIComponent(el.dec.value)}`);

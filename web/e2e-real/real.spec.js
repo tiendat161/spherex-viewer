@@ -31,11 +31,14 @@ for (const t of targets) {
     await expect(page.locator('#r-frame')).toHaveText(/^Visit \d+ of \d+$/);
     await expect(page.locator('#r-wave')).toContainText('combined');
     await expect(page.locator('#marker')).toBeHidden();
-    await expect(page.locator('#vaxis')).toBeHidden(); // no wavelength slider for stacks, a button to the frames instead
-    await expect(page.locator('#vaxis-hint')).toBeVisible();
+    await expect(page.locator('#vaxis')).toBeHidden(); // no wavelength slider for stacks
+    await expect(page.locator('#seg-date')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#caption')).toContainText('images combined');
+    await expect(page.locator('.visit-mark').first()).toBeVisible(); // the visit slider is the same one as for the frames
     await expect(page.locator('#play')).toHaveText('Pause');
     await page.locator('#play').click();
     await page.locator('#slider').fill('0');
+    await page.evaluate(() => { document.getElementById('advanced').open = true; });
     await page.locator('#mark').check();
     await expect(page.locator('#marker')).toBeVisible();
     await page.locator('#diff').check();
@@ -47,10 +50,9 @@ for (const t of targets) {
     await page.screenshot({ path: `${outDir}${t.id}-stack.png`, fullPage: true });
 
     // Individual frames: pause on a middle frame so the screenshot is repeatable.
-    await page.locator('#to-frames').click();
+    await page.locator('#seg-wl').click();
     await expect(page.locator('#view')).toHaveValue('frames');
     await expect(page.locator('#vaxis')).toBeVisible();
-    await expect(page.locator('#vaxis-hint')).toBeHidden();
     const mid = Math.floor(t.done / 2);
     await page.locator('#slider').fill(String(mid));
     await expect(page.locator('#r-frame')).toContainText(` of ${t.total}`);

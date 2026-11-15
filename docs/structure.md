@@ -124,10 +124,10 @@ The frontend, built with Vite and no UI framework. It only ever calls relative `
 
 | Path | Holds |
 |---|---|
-| `index.html`, `src/style.css` | Page markup and styling |
-| `src/model.js` | Pure helpers, no DOM: URL parsing and building, field-of-view list, frame slots and ordering, visits and the wavelength pad (`visitsOf`, `padSpec`, `labelIndexes`, `stepWavelength`, `stepVisit`, `cycleVisit`, `pingPong`), blink pair, zoom rectangle, scale bar, progress text, date conversion |
+| `index.html`, `src/style.css` | Page markup and styling: the top bar (target dropdown, RA and Dec boxes), the image with its sliders, the buttons, and the folded "Advanced" settings |
+| `src/model.js` | Pure helpers, no DOM: URL parsing and building, field-of-view list, frame slots and ordering, visits and the wavelength pad (`visitsOf`, `padSpec`, `labelIndexes`, `stepWavelength`, `stepVisit`, `cycleVisit`, `pingPong`), blink pair, zoom rectangle, scale bar, progress text, date conversion, splitting a pasted "RA Dec" (`splitCoordinates`), the one-line caption (`captionText`) |
 | `src/api.js` | `fetchTargets` and `pollSeries` |
-| `src/main.js` | The player: target list, form, canvas, controls, the visit slider and the vertical wavelength slider (`renderPad`), the visit and wavelength step buttons, the play loop (across visits, through wavelengths, or plain frames), badge, readouts |
+| `src/main.js` | The player: target list, form, canvas, controls, the target dropdown and paste handling, the By date and By wavelength toggle, the visit slider (for stacks and frames) and the vertical wavelength slider (`renderPad`), the visit and wavelength step buttons, the play loop (across visits, through wavelengths, or plain frames), badge, readouts |
 | `mock/plugin.js`, `mock/png.js` | Dev-only stand-in for the API (`npm run dev:mock`): serves the fixture and generated placeholder frames, labelled simulated. Never part of a build |
 | `test/model.test.js`, `test/api.test.js` | Vitest unit tests for the two modules |
 | `test/bundle.test.js` | Checks the built bundle contains no archive hostname |

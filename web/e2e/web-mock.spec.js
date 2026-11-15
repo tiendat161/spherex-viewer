@@ -4,6 +4,9 @@ import { expect, test } from '@playwright/test';
 
 const outDir = fileURLToPath(new URL('../../verify/out/', import.meta.url));
 const wise = '/?ra=133.795129&dec=-7.245147';
+// The target menu and the advanced settings are folded away until opened.
+const openAdvanced = (page) => page.evaluate(() => { document.getElementById('advanced').open = true; });
+const openTargets = (page) => page.evaluate(() => { document.getElementById('targets-menu').open = true; });
 
 test('mock: simulated badge, 40 frames, play/step/slider, screenshot', async ({ page }) => {
   const requests = [];
@@ -44,13 +47,16 @@ test('mock: simulated badge, 40 frames, play/step/slider, screenshot', async ({ 
   })).toBe(true);
 
   // Target picker sets the URL; an uncached mock target shows the error message.
+  await openTargets(page);
   await page.locator('#targets button').nth(2).click();
   await expect(page.locator('#message')).toContainText('only WISE 0855 and Barnard');
   expect(page.url()).toMatch(/\?ra=331\.\d+&dec=-56\.\d+/);
+  await openTargets(page);
   await page.locator('#targets button').nth(1).click();
   await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
   await expect(page.locator('#badge')).toHaveText('SIMULATED DATA');
   expect(page.url()).toMatch(/\?ra=269\.\d+&dec=4\.\d+/);
+  await openTargets(page);
   await page.locator('#targets button').nth(0).click();
   await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
   await expect(page.locator('#play')).toHaveText('Pause');
@@ -92,6 +98,7 @@ test('zoom magnifies the centre; pair blink alternates two frames', async ({ pag
   });
   await expect.poll(async () => (await px()).data.some((v) => v > 100)).toBe(true);
   const full = await px();
+  await openAdvanced(page);
   await page.locator('#zoom').selectOption('4');
   const zoomed = await px();
   expect(zoomed.w).toBe(116);
@@ -122,6 +129,7 @@ test('field of view: selector, URL parameter, grid size, wide-field note', async
   await expect(page.locator('#scalebar-label')).toHaveText('60″');
 
   // Choosing a size reloads the same position at that size and puts it in the URL.
+  await openAdvanced(page);
   await page.locator('#fov').selectOption('0.5');
   await expect(page).toHaveURL(/\?ra=133\.795129&dec=-7\.245147&fov=0\.5$/);
   await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
@@ -144,6 +152,7 @@ test('field of view: selector, URL parameter, grid size, wide-field note', async
   await expect.poll(() => page.evaluate(() => document.getElementById('canvas').width)).toBe(581);
   await expect(page.locator('#fov-note')).toBeVisible();
   await expect(page.locator('#scalebar-label')).toHaveText('5′');
+  await openTargets(page);
   await page.locator('#targets button').nth(0).click();
   await expect(page.locator('#fov')).toHaveValue('0.2');
   await expect(page).toHaveURL(/dec=-7\.245147$/);
@@ -216,6 +225,7 @@ test('two play buttons follow the two sliders: across visits holds the wavelengt
   const box = await page.locator('#vaxis-track').boundingBox();
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   const held = Number.parseFloat(await page.locator('#r-wave').textContent());
+  await openAdvanced(page);
   await page.locator('#fps').selectOption('10');
   await page.locator('#play').click();
   await expect(page.locator('#play')).toHaveText('Pause');
@@ -249,4 +259,52 @@ test('two play buttons follow the two sliders: across visits holds the wavelengt
   expect(waves.length).toBeGreaterThan(4);
   expect(waves.some((w, i) => i > 0 && w < waves[i - 1])).toBe(true); // it came back down
   expect(waves.some((w, i) => i > 0 && w > waves[i - 1])).toBe(true);
+});
+
+test('top bar: target menu, pasting RA and Dec, view toggle, caption', async ({ page }) => {
+  await page.goto('/');
+  // The target list is folded away in a bar; picking one closes it, names it in the bar and loads it.
+  await expect(page.locator('#targets-menu')).not.toHaveAttribute('open', '');
+  await expect(page.locator('#targets-current')).toHaveText('Pick a cached target');
+  await expect(page.locator('#targets button').first()).toBeHidden();
+  await page.locator('#targets-menu summary').click();
+  await expect(page.locator('#targets button').first()).toBeVisible();
+  await page.locator('#targets button').nth(1).click();
+  await expect(page.locator('#targets-menu')).not.toHaveAttribute('open', '');
+  await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
+  await expect(page.locator('#targets-current')).not.toHaveText('Pick a cached target');
+  // Clicking elsewhere closes an open menu.
+  await page.locator('#targets-menu summary').click();
+  await page.locator('h1').click();
+  await expect(page.locator('#targets-menu')).not.toHaveAttribute('open', '');
+
+  // Paste RA and Dec together into either box: both fill. A single value pastes normally.
+  const paste = (id, text) => page.evaluate(([i, t]) => {
+    const dt = new DataTransfer();
+    dt.setData('text', t);
+    const e = new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true });
+    document.getElementById(i).dispatchEvent(e);
+    return e.defaultPrevented;
+  }, [id, text]);
+  expect(await paste('ra', '133.795129 -7.245147')).toBe(true);
+  await expect(page.locator('#ra')).toHaveValue('133.795129');
+  await expect(page.locator('#dec')).toHaveValue('-7.245147');
+  expect(await paste('dec', '10.5, 20.25')).toBe(true);
+  await expect(page.locator('#ra')).toHaveValue('10.5');
+  await expect(page.locator('#dec')).toHaveValue('20.25');
+  expect(await paste('ra', '77.7')).toBe(false); // one value: the browser pastes it as usual
+
+  // The caption says in words what is on screen; the toggle is by date or by wavelength (the mock has no stacks, so only wavelength).
+  await page.goto(wise);
+  await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
+  await expect(page.locator('#caption')).toContainText('One image');
+  await expect(page.locator('#caption')).toContainText('µm');
+  await expect(page.locator('#seg-wl')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#seg-date')).toBeDisabled();
+  // Advanced settings are folded away.
+  await expect(page.locator('#advanced')).not.toHaveAttribute('open', '');
+  await expect(page.locator('#zoom')).toBeHidden();
+  await page.locator('#advanced summary').click();
+  await expect(page.locator('#zoom')).toBeVisible();
+  await page.screenshot({ path: outDir + 'web-mock-topbar.png', fullPage: true });
 });

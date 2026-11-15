@@ -307,3 +307,24 @@ export function pingPong(spec, slot, dir) {
   const back = stepWavelength(spec, slot, -dir);
   return { slot: back, dir: back === slot ? dir : -dir };
 }
+
+/**
+ * RA and Dec pasted together, separated by spaces (or a comma or semicolon): ['133.79', '-7.24'], else null.
+ * Only decimal degrees, the same as the boxes accept. A single value or anything else is not split.
+ */
+export function splitCoordinates(text) {
+  const t = String(text ?? '').trim().split(/[\s,;]+/).filter(Boolean);
+  return t.length === 2 && t.every((x) => x !== '' && Number.isFinite(Number(x))) ? t : null;
+}
+
+/** One plain sentence about the frame on screen. `visitText` is e.g. 'visit 2 of 3' for an individual frame, or ''. */
+export function captionText(slot, visitText = '') {
+  if (!slot || slot.skipped) return '';
+  if (slot.stack) {
+    const d = (m) => mjdToUtc(m).slice(0, 10);
+    const dates = slot.end_mjd - slot.start_mjd >= 1 ? `${d(slot.start_mjd)} to ${d(slot.end_mjd)}` : d(slot.start_mjd);
+    const band = `${slot.band.wavelength_min_um.toFixed(2)}–${slot.band.wavelength_max_um.toFixed(2)} µm`;
+    return `Visit ${slot.visit + 1} of ${slot.visits} · ${dates} · ${slot.n_images} image${slot.n_images === 1 ? '' : 's'} combined, ${band}${slot.diff ? ' · minus the first visit' : ''}`;
+  }
+  return `One image · ${mjdToUtc(slot.obs_mjd)} · ${slot.wavelength_um.toFixed(3)} µm${visitText ? ` · ${visitText}` : ''}`;
+}

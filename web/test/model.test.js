@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { blinkPair, buildSlots, cycleVisit, pingPong, labelIndexes, nearestWavelength, nearestY, padPosition, padSpec, stepVisit, stepWavelength, visitsOf, gridFovDeg, isWideField, locationQuery, mjdToUtc, nextSlot, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, seriesUrl, zoomRect } from '../src/model.js';
+import { captionText, splitCoordinates, blinkPair, buildSlots, cycleVisit, pingPong, labelIndexes, nearestWavelength, nearestY, padPosition, padSpec, stepVisit, stepWavelength, visitsOf, gridFovDeg, isWideField, locationQuery, mjdToUtc, nextSlot, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, seriesUrl, zoomRect } from '../src/model.js';
 import { errorResponse, fixture, gapResponse, loadingResponse, validateSeries, validateTargets } from './helpers.js';
 
 describe('hand-built responses are schema-valid', () => {
@@ -246,5 +246,37 @@ describe('visits and the wavelength pad', () => {
     expect(padSpec([f(0, 1, 1)], [])).toBeNull();
     expect(padSpec([f(0, 1, 1), f(1, 2, 1)], [])).toBeNull();
     expect(padSpec([], [])).toBeNull();
+  });
+});
+
+describe('splitCoordinates: RA and Dec pasted together', () => {
+  it.each([
+    ['133.795129 -7.245147', ['133.795129', '-7.245147']],
+    ['  133.795129   -7.245147  ', ['133.795129', '-7.245147']],
+    ['133.795129,-7.245147', ['133.795129', '-7.245147']],
+    ['133.795129, -7.245147', ['133.795129', '-7.245147']],
+    ['133.795129\t-7.245147', ['133.795129', '-7.245147']],
+  ])('%j', (text, out) => expect(splitCoordinates(text)).toEqual(out));
+  it.each(['133.795129', '', '   ', '1 2 3', 'abc def', '08h55m10.8s -7d14m42s', '133.7 north'])('does not split %j', (text) => {
+    expect(splitCoordinates(text)).toBeNull();
+  });
+  it('is null for missing text', () => expect(splitCoordinates(undefined)).toBeNull());
+});
+
+describe('captionText', () => {
+  const frame = { obs_mjd: 60800.5, wavelength_um: 1.2346, skipped: false };
+  const stack = { stack: true, visit: 1, visits: 3, start_mjd: 60980, end_mjd: 61022, n_images: 56, band: { wavelength_min_um: 0.74, wavelength_max_um: 5 } };
+  it('describes one image with its date, wavelength and visit', () => {
+    expect(captionText(frame, 'visit 2 of 3')).toBe(`One image · ${mjdToUtc(60800.5)} · 1.235 µm · visit 2 of 3`);
+    expect(captionText(frame)).not.toContain('visit');
+  });
+  it('describes a stack by visit, dates, how many images and the band', () => {
+    expect(captionText(stack)).toBe(`Visit 2 of 3 · ${mjdToUtc(60980).slice(0, 10)} to ${mjdToUtc(61022).slice(0, 10)} · 56 images combined, 0.74–5.00 µm`);
+    expect(captionText({ ...stack, diff: true, n_images: 1, end_mjd: 60980.2 })).toContain('1 image combined');
+    expect(captionText({ ...stack, diff: true })).toContain('minus the first visit');
+  });
+  it('is empty without a frame, or for a failed one', () => {
+    expect(captionText(undefined)).toBe('');
+    expect(captionText({ skipped: true, index: 3 })).toBe('');
   });
 });
