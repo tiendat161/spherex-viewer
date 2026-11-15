@@ -128,3 +128,12 @@ def test_shorter_timeout_and_attempts_reach_the_transport():
     with pytest.raises(IrsaError):
         c.tap_rows(1.0, 2.0, attempts=2, timeout=90)
     assert seen == [90, 90]
+
+
+def test_retry_after_is_capped():
+    from pipeline.irsa import MAX_RETRY_WAIT_S
+    seq = [Response(503, {"retry-after": "3600"}, b"busy"), Response(200, {}, b"ok")]
+    sleeps = []
+    c = IrsaClient(lambda m, u, d: seq.pop(0), sleep=sleeps.append)
+    assert c.fetch_cutout("ibe/a.fits", 1, 2, 0.3) == b"ok"
+    assert sleeps == [MAX_RETRY_WAIT_S]

@@ -249,3 +249,49 @@ def test_total_memory_budget_evicts_old_finished_series():
     wait(c)
     assert b.find(c.id) is c
     assert c.doc()["status"] == "ready"
+
+
+def test_one_bad_frame_is_a_gap_not_a_failed_series():
+    from astropy.wcs import NoConvergence
+    import pipeline.live as live
+
+    real = live.reproject_frame
+    calls = []
+
+    def flaky(*a, **k):
+        calls.append(1)
+        if len(calls) == 2:
+            raise NoConvergence("simulated")
+        return real(*a, **k)
+
+    with mock.patch.object(live, "reproject_frame", flaky):
+        j = LiveSeries(RA, DEC, 0.2, 6)
+        j.run(FakeClient())
+    d = j.doc()
+    valid(d)
+    assert d["status"] == "ready" and d["progress"]["done"] == 5 and d["progress"]["failed"] == 1
+
+
+def test_polls_are_not_blocked_while_pngs_are_rendered():
+    import threading
+    import pipeline.live as live
+
+    gate, started = threading.Event(), threading.Event()
+    real = live._png_bytes
+
+    def slow(*a, **k):
+        started.set()
+        gate.wait(10)
+        return real(*a, **k)
+
+    j = LiveSeries(RA, DEC, 0.2, 3)
+    with mock.patch.object(live, "_png_bytes", slow):
+        t = threading.Thread(target=j.run, args=(FakeClient(),))
+        t.start()
+        assert started.wait(10)
+        t0 = time.time()
+        j.doc()  # would hang until `gate` opens if rendering held the lock
+        assert time.time() - t0 < 1.0
+        gate.set()
+        t.join(30)
+    assert j.doc()["status"] == "ready"

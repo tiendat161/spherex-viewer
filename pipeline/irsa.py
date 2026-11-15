@@ -25,6 +25,7 @@ MAX_IN_FLIGHT = 8
 CUTOUT_ATTEMPTS = 4          # contract decision 11
 TAP_ATTEMPTS = 3
 SIA_ATTEMPTS = 2             # TAP is the fallback, so give up on SIA2 sooner
+MAX_RETRY_WAIT_S = 30.0       # a server asking for longer does not park a worker that long (T44)
 DEFAULT_RETRY_WAIT_S = 5.0   # spike: 503 carried retry-after: 5
 
 # Process-wide: shared by every IrsaClient instance, covers TAP and cutouts.
@@ -102,7 +103,7 @@ def cutout_url(uri: str, ra: float, dec: float, size_deg: float) -> str:
 
 def _retry_after(resp: Response) -> float:
     try:
-        return max(0.0, float(resp.headers.get("retry-after", DEFAULT_RETRY_WAIT_S)))
+        return min(MAX_RETRY_WAIT_S, max(0.0, float(resp.headers.get("retry-after", DEFAULT_RETRY_WAIT_S))))
     except ValueError:
         return DEFAULT_RETRY_WAIT_S
 

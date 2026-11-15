@@ -15,6 +15,12 @@ Commits: abc1234, def5678
 
 ---
 
+## 2026-11-15: Live-build robustness (T44)
+Commit: see `git log` (message starts "T44").
+**What:** (1) Stretch re-renders, the final render and the stacks of a live series now run outside the job lock; a re-render is installed only if no newer one landed, and a series is marked ready only if no `extend` raised the cap meanwhile (it then takes another pass). (2) A frame that raises `ValueError` or WCS `NoConvergence` (or disagrees on BUNIT) counts as a failed frame, not a failed series. (3) `retry-after` is capped at 30 s (`MAX_RETRY_WAIT_S` in `pipeline/irsa.py`). Tests in `tests/pipeline/test_live.py` and `test_irsa.py`.
+**Why:** T23 findings 1, 3, 4.
+**Gaps:** The lock-free rendering is tested with a blocked render, not measured on a 1 degree field. Frames that arrive during a re-render get the new stretch rendered under the lock (a few frames, cheap). Not run against the live archive (down).
+
 ## 2026-11-15: SIA2 as the backup archive search for live series (T43)
 Commits: see `git log` (the contract commit "Contract: optional progress.search", then "T43: SIA2 backup ...").
 

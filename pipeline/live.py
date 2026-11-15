@@ -26,6 +26,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
+from astropy.wcs import NoConvergence
 from PIL import Image
 
 from . import stretch as stretch_mod
@@ -90,6 +91,8 @@ class LiveSeries:
         self._next = 0          # _order[:_next] have been handed to download threads
         self._frames = {}       # index -> {"obs_mjd","wavelength_um","flag_fraction","pix","flagged"}
         self._pngs = {}         # index -> bytes, rendered with self.stretch
+        self._render_seq = 0    # numbers re-renders; only the newest finished one is installed
+        self._installed_seq = 0
         self._stacks = None     # contract `stacks` with file names; from the last finished pass
         self._stack_pngs = {}   # file name -> bytes
         self._unit = None
@@ -175,13 +178,32 @@ class LiveSeries:
             return False
 
     # ---- build side (worker threads) ---------------------------------------------
+    def _render(self, items):
+        """Limits over `items` ([(index, pix, flagged)]) and a PNG per item. No lock: this is the slow part (T44)."""
+        vmin, vmax = stretch_mod.compute_limits([p for _, p, _ in items], [f for _, _, f in items])
+        stretch = {"kind": stretch_mod.KIND, "vmin": round(vmin, 6), "vmax": round(vmax, 6), "unit": self._unit}
+        return stretch, {i: _png_bytes(p, stretch["vmin"], stretch["vmax"]) for i, p, _ in items}
+
+    def _items(self):
+        """Frames that still hold pixels, as (index, pix, flagged). Lock held. The arrays are never changed in place."""
+        return [(i, f["pix"], f["flagged"]) for i, f in self._frames.items() if "pix" in f]
+
     def _restretch(self):
-        """Recompute the limits over the frames done so far and re-render every PNG. Lock held."""
-        fs = list(self._frames.values())
-        vmin, vmax = stretch_mod.compute_limits([f["pix"] for f in fs], [f["flagged"] for f in fs])
-        self.stretch = {"kind": stretch_mod.KIND, "vmin": round(vmin, 6), "vmax": round(vmax, 6), "unit": self._unit}
-        self._pngs = {i: _png_bytes(f["pix"], self.stretch["vmin"], self.stretch["vmax"]) for i, f in self._frames.items()}
-        self.gen += 1
+        """Recompute the limits over the frames done so far and re-render every PNG. Called without the lock: the
+        rendering runs outside it so polls are not held up, and the result is installed only if no newer one was."""
+        with self._lock:
+            self._render_seq += 1
+            seq, items = self._render_seq, self._items()
+        stretch, pngs = self._render(items)  # ValueError if every pixel is flagged
+        with self._lock:
+            if seq < self._installed_seq:
+                return  # a newer re-render already landed
+            self._installed_seq = seq
+            self.stretch, self._pngs = stretch, pngs
+            for i, pix, _ in self._items():  # frames that arrived while rendering get the new stretch now (cheap)
+                if i not in pngs:
+                    self._pngs[i] = _png_bytes(pix, stretch["vmin"], stretch["vmax"])
+            self.gen += 1
 
     def _add(self, index, obs_mjd, band, c, pix, flagged, flux=None):
         with self._lock:
@@ -193,13 +215,18 @@ class LiveSeries:
                                    "flag_fraction": float(flagged.mean()), "pix": pix, "flagged": flagged, "band": band,
                                    "flux": flux, "mjd_avg": c.get("mjd_avg")}
             n = len(self._frames)
-            if n & (n - 1) == 0 or self.stretch is None:  # 1, 2, 4, 8, ...
-                try:
-                    self._restretch()
-                except ValueError:
-                    pass  # e.g. every pixel so far is flagged; the frame stays unlisted until a stretch exists
-            else:
-                self._pngs[index] = _png_bytes(pix, self.stretch["vmin"], self.stretch["vmax"])
+            restretch = n & (n - 1) == 0 or self.stretch is None  # 1, 2, 4, 8, ...
+            stretch = self.stretch
+        if restretch:
+            try:
+                self._restretch()
+            except ValueError:
+                pass  # e.g. every pixel so far is flagged; the frame stays unlisted until a stretch exists
+        else:
+            png = _png_bytes(pix, stretch["vmin"], stretch["vmax"])
+            with self._lock:
+                if self.stretch is stretch:  # not replaced while rendering; otherwise the re-render covers this frame
+                    self._pngs[index] = png
 
     def _fail(self, message):
         with self._lock:
@@ -255,32 +282,45 @@ class LiveSeries:
                 if not np.isfinite(pix).any():
                     raise CutoutError("no coverage on the grid")
                 pix = subtract_background(pix, flagged)
-            except (IrsaError, CutoutError):
+                self._add(i, float(row["time_bounds_lower"]), band_id(row.get("energy_bandpassname", "")), c, pix, flagged, flux)
+            except (IrsaError, CutoutError, ValueError, NoConvergence):  # one bad frame (e.g. a WCS that does not converge) is a gap, not a failed series
                 with self._lock:
                     self.failed += 1
-                return
-            self._add(i, float(row["time_bounds_lower"]), band_id(row.get("energy_bandpassname", "")), c, pix, flagged, flux)
+                    self._frames.pop(i, None)
+                    self._pngs.pop(i, None)
 
         while True:
             with self._lock:
                 hi, lo = min(self.cap, len(self._order)), self._next
                 if lo >= hi:
-                    return self._finish_pass()  # decided under the same lock as `extend`, so no request is missed
-                self._next, self.total = hi, hi
+                    snap = [{**f, "index": i} for i, f in self._frames.items()]  # the frames this pass produced
+                    if not snap:
+                        self.status, self.finished_at = "error", time.time()
+                        self.error = f"None of the {self.total} images could be read from the archive. Try again later."
+                        return
+                    total = hi
+                else:
+                    self._next, self.total = hi, hi
+                    snap = None
+            if snap is not None:
+                # All frames up to `total` are in or failed. Stretch, PNGs and stacks are made outside the lock; the series
+                # is marked ready only if `extend` did not raise the cap meanwhile (then it takes another pass).
+                items = [(f["index"], f["pix"], f["flagged"]) for f in snap if "pix" in f]
+                stretch, pngs = self._render(items)  # ValueError -> error (run)
+                stacks, arrays = build_stacks(snap, self._unit, self._all_mjds)
+                stack_pngs = {name: _encode(a) for name, a in arrays.items()}
+                with self._lock:
+                    if min(self.cap, len(self._order)) != total or self._next != total:
+                        continue
+                    self.stretch, self._pngs, self.gen = stretch, pngs, self.gen + 1
+                    self._render_seq += 1
+                    self._installed_seq = self._render_seq
+                    self.failed = self.total - len(self._frames)
+                    self._stacks, self._stack_pngs = stacks, stack_pngs
+                    self.status, self.finished_at = "ready", time.time()
+                return
             with ThreadPoolExecutor(MAX_IN_FLIGHT) as ex:
                 list(ex.map(work, range(lo, hi)))  # re-raises anything unexpected from a worker
-
-    def _finish_pass(self):
-        """All frames up to the current total are in or failed: final stretch, stacks, status. Lock held."""
-        if not self._frames:
-            self.status, self.finished_at = "error", time.time()
-            self.error = f"None of the {self.total} images could be read from the archive. Try again later."
-            return
-        self._restretch()  # final: all frames, the contract's shared stretch (ValueError -> error)
-        self.failed = self.total - len(self._frames)
-        self._stacks, arrays = build_stacks(list(self._frames.values()), self._unit, self._all_mjds)
-        self._stack_pngs = {name: _encode(a) for name, a in arrays.items()}
-        self.status, self.finished_at = "ready", time.time()
 
 
 class LiveBuilder:
