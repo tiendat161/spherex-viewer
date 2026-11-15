@@ -13,7 +13,7 @@ So the API fetches and resamples in the background, serves small images from its
 ## Request
 
 ```
-GET /api/series?ra=<deg>&dec=<deg>&fov=<deg>&max_frames=102
+GET /api/series?ra=<deg>&dec=<deg>&fov=<deg>&max_frames=102&load=8
 ```
 
 | Parameter | Required | Default | Meaning |
@@ -21,7 +21,8 @@ GET /api/series?ra=<deg>&dec=<deg>&fov=<deg>&max_frames=102
 | `ra` | yes | none | Right ascension, ICRS, decimal degrees, 0 ≤ ra < 360 |
 | `dec` | yes | none | Declination, ICRS, decimal degrees, −90 to 90 |
 | `fov` | no | `0.2` | Full width of the square field, degrees. One of `0.1`, `0.2`, `0.5`, `1` (2026-11-14, T13: was `0.2` only); any other value returns `status: "error"` |
-| `max_frames` | no | `102` | Upper limit on frames in the series. A cached series is returned only when its frame count is at most `max_frames` (2026-11-14: was a fixed 40; raised so the WISE 0855 per-wavelength series fits) |
+| `max_frames` | no | `102` | Upper limit on frames in the series. A cached series is returned only when its frame count is at most `max_frames` (2026-11-14: was a fixed 40; raised so the WISE 0855 per-wavelength series fits). For a live series it is the number of frames to load only when `load` is absent (then `min(max_frames, 40)`, as before) |
+| `load` | no | none | Live series only (2026-11-15, T40): how many frames to have loaded, 1 to 102; ignored for a cached series. The first request for a position typically asks for 8; a later request for the same position and `fov` with a larger `load` extends the same series (frames already loaded are kept, `frames[].index` stays the same) and the status goes back to `loading` until they are in. The frames are taken in an order that spreads any first N over the observation dates and the detector bands. A smaller `load` than the series already has returns the frames it already has |
 
 The coordinates are used as given: no epoch or proper-motion correction (open decision 1).
 
@@ -34,8 +35,9 @@ JSON, validated by `contracts/series.schema.json`. No properties beyond these ar
 | `status` | `"ready"`, `"loading"` or `"error"` | `ready`: every planned frame is done or failed. `loading`: poll again. `error`: the series could not be built. |
 | `data_origin` | `"real"` or `"simulated"` | `simulated` if any part of the response is placeholder or synthetic. The UI must show it. |
 | `progress.done` | integer ≥ 0 | Frames resampled and present in `frames` |
-| `progress.total` | integer ≥ 0 | Frames planned (at most `max_frames`); 0 until the archive query returns |
+| `progress.total` | integer ≥ 0 | Frames planned: the `load` asked for (live) or the cached series' frame count; at most the images available; 0 until the archive query returns |
 | `progress.failed` | integer ≥ 0 | Frames given up on; they are not in `frames` |
+| `progress.available` | integer ≥ 0, optional | Added 2026-11-15 (T40). Distinct images the archive lists for this position; a live series can be extended up to this many (at most 102). Absent for a cached series, and until the archive query has returned |
 | `grid` | object, or null unless `ready` | The shared grid, below |
 | `grid.center` | `{ra, dec}` | ICRS degrees; equals the request `ra`/`dec` |
 | `grid.pixel_scale_arcsec` | `6.2` (constant) | Arcseconds per pixel |

@@ -44,12 +44,17 @@
           "minimum": 0
         },
         "total": {
-          "description": "Frames planned for this series (at most max_frames). 0 until the archive query has returned.",
+          "description": "Frames planned for this series: for a live series the `load` asked for (or fewer, if the archive lists fewer images). 0 until the archive query has returned.",
           "type": "integer",
           "minimum": 0
         },
         "failed": {
           "description": "Frames given up on. Not present in `frames`.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "available": {
+          "description": "Optional. Distinct images the archive lists for this position (releases de-duplicated). A live series loads `total` of them and can be asked for more with `load`, up to this many (and at most 102). Present once the archive query has returned; absent for a cached series.",
           "type": "integer",
           "minimum": 0
         }
