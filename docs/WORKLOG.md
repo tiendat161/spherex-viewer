@@ -15,6 +15,19 @@ Commits: abc1234, def5678
 
 ---
 
+## 2026-11-15: Play across visits at one wavelength (T37)
+Commits: see the T37 row on the board.
+
+**What:** a "Play" selector for the individual frames when the series has two or more visits. "Across visits, same wavelength" (the new default) shows each visit in turn at the wavelength the current frame had when Play started: the frame of each visit closest to it, wrapping round. The wavelength is held from the start, so it does not drift from one visit to the next, and a note says which wavelength is held. "Through the frames, in Order" is the old behaviour. Step, the arrow keys, the stacked view, "Blink widest pair" and series with a single visit are unchanged. Unit test for `cycleVisit`; a Playwright test checks that each visit always shows the same frame while playing, and the other mode.
+
+**Why:** the useful blink for spotting motion is one wavelength seen at different dates; walking through frames in time order mostly shows the background changing. No contract change, no new dependency.
+
+**Gaps:**
+- The held wavelength is only matched as nearly as each visit allows; the nearest frame in a visit can be a few tenths of a micrometre away (the readout shows it).
+- The speed stays at the individual-frames default of 5 fps, which is quick for three or four visits; the Speed setting changes it.
+- A series that finishes loading autostarts in the stacked view, so the new mode is reached by choosing Individual frames and pressing Play.
+- Not tried on a touch screen or outside Chromium (T25).
+
 ## 2026-11-15: Say why the stacked view has no wavelength slider (T36)
 Commits: see the T36 row on the board.
 
