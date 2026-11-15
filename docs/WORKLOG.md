@@ -21,6 +21,15 @@ Commit: see `git log` (message starts "T44").
 **Why:** T23 findings 1, 3, 4.
 **Gaps:** The lock-free rendering is tested with a blocked render, not measured on a 1 degree field. Frames that arrive during a re-render get the new stretch rendered under the lock (a few frames, cheap). Not run against the live archive (down).
 
+## 2026-11-15: Stale and unverified statements fixed (T46)
+Commits: branch `t46-claims`, messages start "T46".
+
+**What:** T23 findings 5 and 6. (1) `docs/contract.md` choice 13: a live series is the first N images of `spread_order` (N = `load`, else min(`max_frames`, 40)), and `frames[].index` is the position in that order, not time order; cached series stay in `obs_mjd` order (`wavelength_um` for `wise0855`). The schema text for `index` ("Position in the planned series") is still correct, so no contract file changed. (2) `pipeline/grid.py`: re-read `.cache/expsupp/` (Explanatory Supplement v2.0, 2026-08-25): Sect. 3.2.5 "Bad Pixel Flagging", Table 16 lists FULLSAMPLE at bit 12 ("purely informational") and SOURCE at bit 21 ("Pixel mapped to a known source"). Both confirmed; the ignored bits are unchanged. (3) `pipeline/targets.py`: the "adequate at ~0.01 arcsec" claim is now marked UNVERIFIED. (4) `web/index.html` and the archive-search progress line in `web/src/model.js` (same claim, one test updated): "about a minute" became "usually under a minute to a few minutes, depending on the archive", and the sizes and waits are called rough figures.
+
+**Why:** CLAUDE.md: never invent facts; cite or mark unverified.
+
+**Gaps:** not verified: that bit N means 2**N (the table gives bit numbers only); the proper-motion adequacy (no full propagation was done); `IMAGES_PER_MIN` and `MB_PER_IMAGE` are still from one run and only labelled as rough. The "proper motion negligible" note for RW Aurigae in `targets.py` was not reviewed. The index text was screenshotted in the Advanced panel; `make test` and `make verify` passed.
+
 ## 2026-11-15: Small review items (T47)
 Commit: on branch `t47-review-items`.
 
