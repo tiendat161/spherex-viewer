@@ -15,6 +15,22 @@ Commits: abc1234, def5678
 
 ---
 
+## 2026-11-15: Visit slider and evenly spaced wavelength marks (T35)
+Commits: see the T35 row on the board. Refines T34.
+
+**What:**
+- The visit buttons are now a horizontal slider: one evenly spaced mark per visit, labelled with the visit number, its dates and its frame count. Drag or click to change visit; the wavelength is kept as nearly as possible. A new visit shows up as another mark, because visits are read from the data (the response's `stacks.visits`, or the 30-day gap rule while loading).
+- The vertical wavelength slider no longer places marks by wavelength value. Each frame of the visit is one evenly spaced mark, shortest wavelength at the bottom, so every frame can be reached and one drag step or arrow press is one frame. The real wavelengths are written beside it (about seven, first and last always; the current one at the handle, in the accent colour), and a small break is drawn where the wavelength jumps by more than three times the typical step (needs 4 or more frames in the visit).
+- Unit tests for the spacing, the labelling and the gap rule; the Playwright test drives both sliders.
+
+**Why:** the log-scale slider crowded many frames into a few pixels and was hard to land on; the choice was agreed in chat. No contract change, no new dependency.
+
+**Gaps:**
+- The real spacing in wavelength is only visible through the written values and the breaks; the gap rule (3 times the typical step, and over 0.1 in log) is a first choice and not tuned.
+- Marks are per visit, so the handle can change height when the visit changes.
+- Whether further visits will appear as the telescope revisits the sky was not checked here; the control follows whatever visits the data has.
+- Not tried on a touch screen or outside Chromium (T25).
+
 ## 2026-11-15: Visit buttons and a vertical wavelength slider (T34)
 Commits: see the T34 row on the board. Replaces the horizontal axis of T33.
 

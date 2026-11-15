@@ -63,3 +63,4 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 | T27 | Structure guide brought up to date, `CLAUDE.md` points to it, `make verify-docs` fails when a source file is missing from it | none | `3ab1d85`, `18f595a`, `c8f4e76` |
 | T33 | Frame slider as a draggable axis: a tick per frame at its real wavelength (log scale), drag to move through the frames | none (usability) | `5dde92a` |
 | T34 | Visit selector and a vertical wavelength slider for the individual frames (replaces the horizontal axis of T33) | none (usability) | `200f489` |
+| T35 | Visit slider instead of buttons; wavelength marks evenly spaced with written wavelengths and breaks at big gaps (refines T34) | none (usability) | `92de4f1` |
