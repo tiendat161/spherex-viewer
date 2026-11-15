@@ -68,3 +68,4 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 | T37 | Play mode "across visits, same wavelength" (the default for individual frames when there are two or more visits) next to "through the frames, in Order" | none (usability, motion check) | `887d108` |
 | T38 | Buttons follow the two sliders: step visit, step wavelength, "Play across visits", "Play through wavelengths"; the Order and Play selectors are removed (replaces T37's selector) | none (usability) | `90cdc9c` |
 | T39 | Simple first screen: target dropdown and RA/Dec boxes on top (paste both at once), "By date / By wavelength" toggle, caption, visit slider for stacks too, everything else under "Advanced" | none (usability) | `801e2ff` |
+| T40 | Staged loading of a live position: a first batch of 8 frames spread over dates and bands, then "Load more" / "Load up to 102"; 8 downloads at once; archive-search message | `7e23de0` and `1ddb0f8` (contract), `5725cb3`, `60cea46` |

@@ -15,6 +15,27 @@ Commits: abc1234, def5678
 
 ---
 
+## 2026-11-15: Staged loading of a live position (T40)
+Commits: `7e23de0` and `1ddb0f8` (contract, own commits), `5725cb3` (backend), see the T40 row for the web commit.
+
+**What:**
+- A position that is not cached now loads a first batch of 8 frames, chosen by `pipeline.select.spread_order` so that any first N cover the observation dates and the detector bands (greedy farthest-point order on date and band). The page then offers "Load 16 more" and "Load up to 102 / Load all N", each with a time estimate and, for the big one, the download size. Nothing loads by itself after the first batch.
+- A live series is one job per position and field of view. A larger `load` extends it: frames already loaded keep their index and URL, only new images are fetched, and the stretch and stacks are rebuilt when they are in. While it loads, the response keeps the previous stacks (contract change `1ddb0f8`), so the view does not jump.
+- `progress.available` (new, optional, contract commit `7e23de0`) says how many images the archive lists; the page shows "8 of 269 images loaded". While the archive search runs (total still 0) the page says so, with the seconds elapsed and "usually about a minute".
+- 8 archive downloads at once instead of 4 (`MAX_IN_FLIGHT`). Network errors were already retried like HTTP 503s.
+- A finished series keeps its pixels so it can be extended; to bound memory only the most recent ones do (300 MB budget). Extending an older one builds it again from its kept archive rows, without searching again.
+- Cached targets are untouched (no `load` is sent for them, and the API ignores it for them).
+
+**Measured (this machine, one position, one run, RA 135 Dec -7.245, against the real archive):** search 40 s; first frames on screen after 48 s; the first 8 ready after 56 s; extending to 24 took 24 s more (about 40 images a minute). Before, the same position showed nothing for about a minute and took about 4 minutes for 40 frames. Earlier direct tests: archive search 47 to 67 s over three runs; 8 at once about 30 images a minute against about 14 at 4; 12 at once had the server reset a connection; the cutout service cannot leave out its 3.9 MB PSF table (checked in its documentation and with requests), so each image stays about 4.4 MB.
+
+**Gaps:**
+- The archive search (about a minute, not under our control) still comes first for every new position and is not cached between server restarts.
+- The time estimates assume 30 images a minute, measured once; they will be wrong when the archive is slower.
+- 12 downloads at once was not safe in one test, so 8 is the ceiling; the effect of many visitors sharing the 8 slots was not tested.
+- Reading only the needed pixels straight from the AWS copy of the archive was tried by hand (about 10% of the bytes, no faster from here, flags extension not decoded) and not built. It may be worth another look if the backend is deployed in AWS us-east-1 (T10).
+- Pixels are kept for a few finished series; a visitor who comes back to an older position and asks for more waits for the downloads again.
+- "Load all" is capped at 102, the contract ceiling, even when the archive lists more (269 here).
+
 ## 2026-11-15: A simple first screen, advanced settings folded away (T39)
 Commits: see the T39 row on the board.
 
