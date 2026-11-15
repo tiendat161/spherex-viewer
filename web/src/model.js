@@ -354,13 +354,54 @@ export function pingPong(spec, slot, dir) {
   return { slot: back, dir: back === slot ? dir : -dir };
 }
 
+const NUM = '(\\d+(?:\\.\\d*)?|\\.\\d+)';
+const SIGN = /^[-\u2212\u2013]/;
+
 /**
- * RA and Dec pasted together, separated by spaces (or a comma or semicolon): ['133.79', '-7.24'], else null.
- * Only decimal degrees, the same as the boxes accept. A single value or anything else is not split.
+ * One angle as text to degrees, or null. Accepts decimal degrees ("133.795129"), and sexagesimal in any of these forms:
+ * "08h55m10.831s", "8h 55m 10.8s", "08:55:10.831", "08 55 10.831" (hours for RA, degrees for Dec) and "-7d14m42.53s",
+ * "-07°14′42.53″", "-07:14:42.53", "-07 14 42.53" (degrees). A unit letter (h or d) decides the unit; without one, RA
+ * sexagesimal is hours. Minutes and seconds must be below 60. `kind` is 'ra' (0 to below 360) or 'dec' (-90 to 90).
+ */
+export function parseAngle(text, kind) {
+  let t = String(text ?? '').trim().replace(/[\u00B0]/g, 'd').replace(/[\u2032']/g, 'm').replace(/[\u2033"]/g, 's');
+  if (t === '') return null;
+  const sign = SIGN.test(t) ? -1 : 1;
+  t = t.replace(/^[+\-\u2212\u2013]\s*/, '');
+  let value = null;
+  if (new RegExp(`^${NUM}$`).test(t)) {
+    value = Number(t); // decimal: degrees
+  } else {
+    let m = t.match(new RegExp(`^${NUM}\\s*([hd])\\s*(?:${NUM}\\s*m\\s*)?(?:${NUM}\\s*s?\\s*)?$`, 'i'));
+    let unit;
+    if (m) {
+      unit = m[2].toLowerCase();
+    } else {
+      m = t.match(new RegExp(`^${NUM}[\\s:]+${NUM}(?:[\\s:]+${NUM})?$`));
+      if (!m) return null;
+      m = [m[0], m[1], null, m[2], m[3]];
+      unit = kind === 'ra' ? 'h' : 'd';
+    }
+    const [a, b, c] = [Number(m[1]), Number(m[3] ?? 0), Number(m[4] ?? 0)];
+    if (b >= 60 || c >= 60) return null;
+    const v = a + b / 60 + c / 3600;
+    value = unit === 'h' ? v * 15 : v;
+  }
+  value *= sign;
+  if (!Number.isFinite(value)) return null;
+  if (kind === 'ra') return value >= 0 && value < 360 ? value : null;
+  return value >= -90 && value <= 90 ? value : null;
+}
+
+/**
+ * RA and Dec pasted together: ['133.795129', '-7.245147'] or ['08h55m10.831s', '-7d14m42.53s'], else null.
+ * Separated by spaces, a comma or a semicolon. Two parts (each a decimal or sexagesimal value), or six parts that are
+ * a sexagesimal RA then a sexagesimal Dec ("08 55 10.831 -07 14 42.53"). A single value, or anything else, is not split.
  */
 export function splitCoordinates(text) {
   const t = String(text ?? '').trim().split(/[\s,;]+/).filter(Boolean);
-  return t.length === 2 && t.every((x) => x !== '' && Number.isFinite(Number(x))) ? t : null;
+  const pair = t.length === 2 ? t : t.length === 6 ? [t.slice(0, 3).join(' '), t.slice(3).join(' ')] : null;
+  return pair && parseAngle(pair[0], 'ra') !== null && parseAngle(pair[1], 'dec') !== null ? pair : null;
 }
 
 /** One plain sentence about the frame on screen. `visitText` is e.g. 'visit 2 of 3' for an individual frame, or ''. */

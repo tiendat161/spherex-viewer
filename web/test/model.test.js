@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isCachedPosition, loadPlan, loadTimeText, sepArcsec, captionText, splitCoordinates, blinkPair, buildSlots, cycleVisit, pingPong, labelIndexes, nearestWavelength, nearestY, padPosition, padSpec, stepVisit, stepWavelength, visitsOf, gridFovDeg, isWideField, locationQuery, mjdToUtc, nextSlot, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, seriesUrl, zoomRect } from '../src/model.js';
+import { parseAngle, isCachedPosition, loadPlan, loadTimeText, sepArcsec, captionText, splitCoordinates, blinkPair, buildSlots, cycleVisit, pingPong, labelIndexes, nearestWavelength, nearestY, padPosition, padSpec, stepVisit, stepWavelength, visitsOf, gridFovDeg, isWideField, locationQuery, mjdToUtc, nextSlot, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, seriesUrl, zoomRect } from '../src/model.js';
 import { errorResponse, fixture, gapResponse, loadingResponse, validateSeries, validateTargets } from './helpers.js';
 
 describe('hand-built responses are schema-valid', () => {
@@ -257,7 +257,7 @@ describe('splitCoordinates: RA and Dec pasted together', () => {
     ['133.795129, -7.245147', ['133.795129', '-7.245147']],
     ['133.795129\t-7.245147', ['133.795129', '-7.245147']],
   ])('%j', (text, out) => expect(splitCoordinates(text)).toEqual(out));
-  it.each(['133.795129', '', '   ', '1 2 3', 'abc def', '08h55m10.8s -7d14m42s', '133.7 north'])('does not split %j', (text) => {
+  it.each(['133.795129', '', '   ', '1 2 3', 'abc def', '133.7 north', '08h55m10.8s', '400 10', '10 95'])('does not split %j', (text) => {
     expect(splitCoordinates(text)).toBeNull();
   });
   it('is null for missing text', () => expect(splitCoordinates(undefined)).toBeNull());
@@ -320,5 +320,39 @@ describe('staged loading helpers', () => {
     expect(progressText(found)).toBe('Loading: 3 / 8 frames · 269 images found');
     expect(progressText(resp({ total: 8, available: 269 }))).toBe('8 of 269 images loaded');
     expect(progressText({ status: 'ready', progress: { done: 7, total: 8, failed: 1, available: 269 } })).toBe('7 of 269 images loaded, 1 failed');
+  });
+});
+
+describe('parseAngle: decimal or sexagesimal', () => {
+  const close = (a, b) => expect(a).toBeCloseTo(b, 6);
+  it('the challenge text coordinates of WISE 0855 are the cached degrees', () => {
+    close(parseAngle('08h55m10.831s', 'ra'), 133.795129);
+    close(parseAngle('-7d14m42.53s', 'dec'), -7.245147);
+    close(parseAngle('08 55 10.831', 'ra'), 133.795129);
+    close(parseAngle('-07:14:42.53', 'dec'), -7.245147);
+    close(parseAngle('8h 55m 10.831s', 'ra'), 133.795129);
+    close(parseAngle('-07\u00B014\u203242.53\u2033', 'dec'), -7.245147);
+  });
+  it('decimal degrees as before, and plus or minus signs', () => {
+    expect(parseAngle('133.795129', 'ra')).toBe(133.795129);
+    expect(parseAngle('-7.5', 'dec')).toBe(-7.5);
+    expect(parseAngle('+4 41 36.11', 'dec')).toBeCloseTo(4.693364, 5);
+    expect(parseAngle('-0d30m', 'dec')).toBeCloseTo(-0.5, 9); // minus on a zero degree part still counts
+  });
+  it('a unit letter decides hours or degrees', () => {
+    expect(parseAngle('6h', 'ra')).toBe(90);
+    expect(parseAngle('90d', 'ra')).toBe(90);
+    expect(parseAngle('1h30m', 'ra')).toBeCloseTo(22.5, 9);
+  });
+  it.each([
+    ['360', 'ra'], ['-1', 'ra'], ['24h', 'ra'], ['91', 'dec'], ['-90d1m', 'dec'], ['8h60m', 'ra'], ['8h5m60s', 'ra'],
+    ['', 'ra'], ['abc', 'ra'], ['8h55m10s extra', 'ra'], ['1:2:3:4', 'ra'], ['NaN', 'dec'],
+  ])('refuses %j as %s', (text, kind) => expect(parseAngle(text, kind)).toBeNull());
+  it('splits a pasted pair of sexagesimal values', () => {
+    expect(splitCoordinates('08h55m10.831s -7d14m42.53s')).toEqual(['08h55m10.831s', '-7d14m42.53s']);
+    expect(splitCoordinates('08:55:10.831 -07:14:42.53')).toEqual(['08:55:10.831', '-07:14:42.53']);
+    expect(splitCoordinates('08 55 10.831 -07 14 42.53')).toEqual(['08 55 10.831', '-07 14 42.53']);
+    expect(splitCoordinates('08h 55m 10.831s -7d 14m 42.53s')).toEqual(['08h 55m 10.831s', '-7d 14m 42.53s']);
+    expect(splitCoordinates('133.795129 -7d14m42.53s')).toEqual(['133.795129', '-7d14m42.53s']); // mixed is fine
   });
 });

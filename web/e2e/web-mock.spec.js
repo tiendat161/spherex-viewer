@@ -293,6 +293,19 @@ test('top bar: target menu, pasting RA and Dec, view toggle, caption', async ({ 
   await expect(page.locator('#ra')).toHaveValue('10.5');
   await expect(page.locator('#dec')).toHaveValue('20.25');
   expect(await paste('ra', '77.7')).toBe(false); // one value: the browser pastes it as usual
+  // Hours and degrees work too: pasted together they fill both boxes, and Load turns them into the same position as the degrees.
+  expect(await paste('dec', '08h55m10.831s -7d14m42.53s')).toBe(true);
+  await expect(page.locator('#ra')).toHaveValue('08h55m10.831s');
+  await expect(page.locator('#dec')).toHaveValue('-7d14m42.53s');
+  await page.getByRole('button', { name: 'Load' }).click();
+  await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
+  await expect(page.locator('#ra')).toHaveValue('133.795129');
+  await expect(page.locator('#dec')).toHaveValue('-7.245147');
+  expect(page.url()).toContain('ra=133.795129&dec=-7.245147');
+  // Something that is not a position gets a message that says what is accepted.
+  await page.locator('#ra').fill('25h');
+  await page.getByRole('button', { name: 'Load' }).click();
+  await expect(page.locator('#message')).toContainText('08h55m10.831s');
 
   // The caption says in words what is on screen; the toggle is by date or by wavelength (the mock has no stacks, so only wavelength).
   await page.goto(wise);

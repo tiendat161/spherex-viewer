@@ -17,11 +17,11 @@
       <ul id="targets" class="targets"><li class="muted">Loading targets…</li></ul>
     </details>
     <form id="coords" class="coords">
-      <label>RA <input id="ra" name="ra" inputmode="decimal" autocomplete="off" placeholder="degrees" aria-label="Right ascension, decimal degrees" /></label>
-      <label>Dec <input id="dec" name="dec" inputmode="decimal" autocomplete="off" placeholder="degrees" aria-label="Declination, decimal degrees" /></label>
+      <label>RA <input id="ra" name="ra" inputmode="decimal" autocomplete="off" placeholder="degrees or 08h55m10.8s" aria-label="Right ascension, decimal degrees or hours minutes seconds" /></label>
+      <label>Dec <input id="dec" name="dec" inputmode="decimal" autocomplete="off" placeholder="degrees or -7d14m42s" aria-label="Declination, decimal degrees or degrees minutes seconds" /></label>
       <button type="submit">Load</button>
     </form>
-    <p class="coords-hint muted small">Paste RA and Dec together (separated by a space) into either box, or one at a time. Decimal degrees, ICRS. Any position is built live from the SPHEREx archive; the cached targets open at once.</p>
+    <p class="coords-hint muted small">Paste RA and Dec together (separated by a space) into either box, or one at a time. Decimal degrees or sexagesimal (08h55m10.831s -7d14m42.53s), ICRS. Any position is built live from the SPHEREx archive; the cached targets open at once.</p>
   </div>
   <main>
     <section id="viewer">

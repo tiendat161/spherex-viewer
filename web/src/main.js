@@ -1,6 +1,6 @@
 import { fetchTargets, pollSeries } from './api.js';
 import { PALETTE, fluxPoints, fluxSummary, lightCurveLayout, reasonText, reasonWords, spectrumLayout } from './chart.js';
-import { FOV_DEG, INITIAL_LOAD, MB_PER_IMAGE, isCachedPosition, loadPlan, loadTimeText, captionText, splitCoordinates, WIDE_FOV_DEG, bandLabel, blinkPair, buildSlots, cycleVisit, pingPong, formatFlag, gridFovDeg, isWideField, locationQuery, mjdToUtc, nearestWavelength, nearestY, nextSlot, orderSlots, padPosition, padSpec, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, stackSlots, stepVisit, stepWavelength, visitsOf, zoomRect } from './model.js';
+import { FOV_DEG, parseAngle, INITIAL_LOAD, MB_PER_IMAGE, isCachedPosition, loadPlan, loadTimeText, captionText, splitCoordinates, WIDE_FOV_DEG, bandLabel, blinkPair, buildSlots, cycleVisit, pingPong, formatFlag, gridFovDeg, isWideField, locationQuery, mjdToUtc, nearestWavelength, nearestY, nextSlot, orderSlots, padPosition, padSpec, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, stackSlots, stepVisit, stepWavelength, visitsOf, zoomRect } from './model.js';
 
 const $ = (id) => document.getElementById(id);
 const el = {
@@ -616,13 +616,13 @@ for (const box of [el.ra, el.dec]) {
 document.addEventListener('click', (e) => { if (el.targetsMenu.open && !el.targetsMenu.contains(e.target)) el.targetsMenu.open = false; });
 el.coords.addEventListener('submit', (e) => {
   e.preventDefault();
-  const p = parseLocation(`?ra=${encodeURIComponent(el.ra.value)}&dec=${encodeURIComponent(el.dec.value)}`);
-  if (!p) {
+  const ra = parseAngle(el.ra.value, 'ra'), dec = parseAngle(el.dec.value, 'dec');
+  if (ra === null || dec === null) {
     el.message.hidden = false;
-    el.message.textContent = 'Enter RA in [0, 360) and Dec in [-90, 90], in decimal degrees.';
+    el.message.textContent = 'Enter RA below 360 and Dec from -90 to 90, as decimal degrees (133.795129, -7.245147) or as hours and degrees (08h55m10.831s, -7d14m42.53s).';
     return;
   }
-  load(p.ra, p.dec, { fov: parseFov(el.fov.value), push: true });
+  load(Number(ra.toFixed(6)), Number(dec.toFixed(6)), { fov: parseFov(el.fov.value), push: true });
 });
 // Changing the field of view reloads the position on screen at the new size (a live build unless it is the cached 0.2°).
 el.fov.addEventListener('change', () => { if (state.pos) load(state.pos.ra, state.pos.dec, { fov: parseFov(el.fov.value), push: true }); });
