@@ -38,6 +38,7 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 | T24 | P3 | Epsilon Indi B: confirm what the bright object at the field edge is and whether the target is visible | test target | none, or T15 | Presumed Epsilon Indi A, not checked. |
 | T25 | P3 | Check the frontend outside Chromium | none | `web/playwright*.config.js` | Only Chromium has been tested. |
 | T26 | P3 | Remove the merged Day 1 worktrees and branches (`claude/build-backend-2cca9d`, `claude/build-web-cb39ff`) | none | git only | Fully merged, no uncommitted work. Needs Dat's go-ahead. |
+| T34 | P3 | Show time and wavelength together: a small plot with time across and wavelength up, one dot per frame, click or drag to pick a frame | none (usability) | `web/src/main.js`, `web/src/model.js`, `web/index.html`, `web/src/style.css` | Each frame has one time and one wavelength, so two separate sliders cannot be set independently; one 2-D plot can. Would also show which frames "Blink widest pair" chooses. Clashes with T14, T15, T20 in `main.js`. |
 
 ### Which tasks can run at the same time
 
@@ -61,4 +62,4 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 | T11 | Push `main` to `origin` | none | pushed up to `ac6e722` |
 | T13 | Field-of-view selector: 0.1°, 0.2° (default), 0.5°, 1°; `&fov=` in the URL; wide-field wavelength note | "Let users choose the field of view" | `07fc9f5` (contract), `1703a89`, `cb845e5` |
 | T27 | Structure guide brought up to date, `CLAUDE.md` points to it, `make verify-docs` fails when a source file is missing from it | none | `3ab1d85`, `18f595a`, `c8f4e76` |
-| T33 | Frame slider as a draggable axis: a tick per frame at its real wavelength (log scale) or date, drag to move through the frames | none (usability) | `5dde92a` |
+| T33 | Frame slider as a draggable axis: a tick per frame at its real wavelength (log scale), drag to move through the frames | none (usability) | `5dde92a` |

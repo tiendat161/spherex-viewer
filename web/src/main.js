@@ -13,7 +13,7 @@ const el = {
 };
 
 const state = { targets: [], resp: null, slots: [], current: 0, playing: false, timer: null, abort: null, pos: null, pair: null };
-let axisShown = null; // {slots, key, spec} of the axis as drawn, rebuilt only when the slots or the ordering change
+let axisShown = null; // {slots, key, spec} of the axis as drawn, rebuilt only when the slots or the view change
 const images = new Map(); // url -> HTMLImageElement, preloaded so blinking does not stutter
 const ctx = el.canvas.getContext('2d');
 
@@ -152,11 +152,11 @@ function render() {
   drawCurrent();
 }
 
-/** The draggable axis: a tick per frame at its real wavelength or date, and a handle on the current frame. */
+/** The draggable wavelength axis: a tick per frame at its real wavelength, and a handle on the current frame. */
 function renderAxis() {
-  const key = `${stackView()}|${el.order.value}`;
+  const key = String(stackView());
   if (!axisShown || axisShown.slots !== state.slots || axisShown.key !== key) {
-    const spec = axisSpec(state.slots, { stacked: stackView(), order: el.order.value });
+    const spec = axisSpec(state.slots, { stacked: stackView() });
     axisShown = { slots: state.slots, key, spec };
     el.axisTicks.replaceChildren(...(spec?.points ?? []).map((p) => {
       const t = document.createElement('div');

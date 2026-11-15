@@ -167,40 +167,32 @@ describe('stackSlots', () => {
   });
 });
 
-describe('axisSpec: the draggable axis', () => {
+describe('axisSpec: the draggable wavelength axis', () => {
   const f = (i, mjd, wl) => ({ index: i, obs_mjd: mjd, wavelength_um: wl, url: `/${i}.png`, flag_fraction: 0 });
-  const slots = [f(0, 100, 1), f(1, 101, 2), { skipped: true, index: 2 }, f(3, 200, 4)];
 
-  it('puts frames at their real dates, leaving out failed ones', () => {
-    const a = axisSpec(slots, { order: 'time' });
-    expect(a.kind).toBe('time');
+  it('puts frames at their real wavelengths on a log scale, leaving out failed ones', () => {
+    const a = axisSpec([f(0, 5, 1), f(1, 3, 2), { skipped: true, index: 2 }, f(3, 9, 4)]);
     expect(a.points.map((p) => p.slot)).toEqual([0, 1, 3]);
-    expect(a.points.map((p) => p.x)).toEqual([0, 0.01, 1]);
-    expect(a.ends).toEqual([mjdToUtc(100).slice(0, 10), mjdToUtc(200).slice(0, 10)]);
-  });
-  it('uses a log wavelength scale in wavelength order, with ticks inside the range', () => {
-    const a = axisSpec([f(0, 5, 1), f(1, 3, 2), f(2, 9, 4)], { order: 'wavelength' });
-    expect(a.kind).toBe('wavelength');
     expect(a.points.map((p) => p.x)).toEqual([0, 0.5, 1]); // 1, 2, 4 um are evenly spaced on a log axis
     expect(a.ends).toEqual(['1.00 µm', '4.00 µm']);
     expect(a.ticks.map((t) => t.label)).toEqual(['1.5 µm', '2 µm', '3 µm']); // 1 and 4 sit on the ends, no label
   });
-  it('places a stacked visit at the middle of its dates, always on the time axis', () => {
-    const st = [{ stack: true, start_mjd: 100, end_mjd: 102 }, { stack: true, start_mjd: 300, end_mjd: 304 }];
-    const a = axisSpec(st, { stacked: true, order: 'wavelength' });
-    expect(a.kind).toBe('time');
-    expect(a.points.map((p) => p.x)).toEqual([0, 1]);
+  it('does not depend on the play order: frames in time order are still placed by wavelength', () => {
+    const timeOrder = [f(0, 1, 4), f(1, 2, 1), f(2, 3, 2)];
+    expect(axisSpec(timeOrder).points).toEqual([{ slot: 0, x: 1 }, { slot: 1, x: 0 }, { slot: 2, x: 0.5 }]);
   });
-  it('is null with fewer than two distinct positions', () => {
+  it('is null for stacked visits, which have no single wavelength', () => {
+    expect(axisSpec([{ stack: true, start_mjd: 1, end_mjd: 2 }, { stack: true, start_mjd: 3, end_mjd: 4 }], { stacked: true })).toBeNull();
+  });
+  it('is null with fewer than two distinct wavelengths', () => {
     expect(axisSpec([f(0, 100, 1)])).toBeNull();
-    expect(axisSpec([f(0, 100, 1), f(1, 100, 2)], { order: 'time' })).toBeNull();
-    expect(axisSpec([], {})).toBeNull();
+    expect(axisSpec([f(0, 100, 1), f(1, 101, 1)])).toBeNull();
+    expect(axisSpec([])).toBeNull();
   });
   it('nearestPoint picks the closest frame, or -1 with none', () => {
-    const pts = axisSpec(slots, { order: 'time' }).points;
-    expect(nearestPoint(pts, 0.004)).toBe(0);
-    expect(nearestPoint(pts, 0.02)).toBe(1);
-    expect(nearestPoint(pts, 0.9)).toBe(3);
+    const pts = axisSpec([f(0, 1, 1), f(1, 2, 1.1), f(2, 3, 4)]).points;
+    expect(nearestPoint(pts, 0.0)).toBe(0);
+    expect(nearestPoint(pts, 0.9)).toBe(2);
     expect(nearestPoint([], 0.5)).toBe(-1);
   });
 });

@@ -191,31 +191,27 @@ export function blinkPair(slots, { minBaseline = 0.8 } = {}) {
 const WAVELENGTH_TICKS_UM = [1, 1.5, 2, 3, 4, 5]; // labelled on the wavelength axis when inside its range
 
 /**
- * The draggable axis under the player. Every frame that exists is a point at its real position:
- * wavelength (log scale) when the individual frames are ordered by wavelength, otherwise time
- * (a stacked visit sits at the middle of its dates). Failed frames have no position and are left out.
- * Returns null when fewer than two distinct positions exist. `x` values run from 0 to 1.
+ * The draggable axis under the player: wavelength, on a log scale, whatever order the frames are played in.
+ * Every individual frame that exists is a point at its real wavelength; failed frames have no position and are
+ * left out. Stacked visits have no single wavelength (they combine a band), so there is no axis for them: null,
+ * and the plain slider is used. Also null with fewer than two distinct wavelengths. `x` values run from 0 to 1.
  */
-export function axisSpec(slots, { stacked = false, order = 'time' } = {}) {
-  const wave = !stacked && order === 'wavelength';
+export function axisSpec(slots, { stacked = false } = {}) {
+  if (stacked) return null;
   const pts = [];
   slots.forEach((s, slot) => {
-    if (s.skipped) return;
-    const v = s.stack ? (s.start_mjd + s.end_mjd) / 2 : wave ? s.wavelength_um : s.obs_mjd;
-    if (Number.isFinite(v) && (!wave || v > 0)) pts.push({ slot, v });
+    if (!s.skipped && Number.isFinite(s.wavelength_um) && s.wavelength_um > 0) pts.push({ slot, v: s.wavelength_um });
   });
   if (pts.length < 2) return null;
   const lo = Math.min(...pts.map((p) => p.v));
   const hi = Math.max(...pts.map((p) => p.v));
   if (!(hi > lo)) return null;
-  const f = wave ? Math.log : (v) => v;
-  const x = (v) => (f(v) - f(lo)) / (f(hi) - f(lo));
+  const x = (v) => (Math.log(v) - Math.log(lo)) / (Math.log(hi) - Math.log(lo));
   return {
-    kind: wave ? 'wavelength' : 'time',
-    caption: wave ? 'Wavelength, log scale' : stacked ? 'Date of each visit (middle of its dates)' : 'Observation date',
-    ends: wave ? [`${lo.toFixed(2)} µm`, `${hi.toFixed(2)} µm`] : [mjdToUtc(lo).slice(0, 10), mjdToUtc(hi).slice(0, 10)],
+    caption: 'Wavelength, log scale',
+    ends: [`${lo.toFixed(2)} µm`, `${hi.toFixed(2)} µm`],
     points: pts.map((p) => ({ slot: p.slot, x: x(p.v) })),
-    ticks: wave ? WAVELENGTH_TICKS_UM.filter((t) => t > lo && t < hi && x(t) > 0.08 && x(t) < 0.92).map((t) => ({ x: x(t), label: `${t} µm` })) : [],
+    ticks: WAVELENGTH_TICKS_UM.filter((t) => t > lo && t < hi && x(t) > 0.08 && x(t) < 0.92).map((t) => ({ x: x(t), label: `${t} µm` })),
   };
 }
 
