@@ -12,6 +12,7 @@ column names `w1mpro` and `w1mjdmean` are from IRSA's AllWISE column documentati
 import math
 from typing import Dict, List, Optional
 
+from pipeline import messages
 from pipeline.irsa import IrsaClient, IrsaError
 
 TABLE = "allwise_p3as_psd"
@@ -54,10 +55,12 @@ def catalogue_document(ra: float, dec: float, fov_deg: float, client: Optional[I
         rows = (client or IrsaClient()).tap_query(query_text(ra, dec, fov_deg), timeout=TIMEOUT_S)
         sources = parse_rows(rows)
     except IrsaError as e:
+        messages.log_failure("catalogue", messages.CATALOGUE_DOWN, str(e))
         return {"status": "error", "catalogue": info, "sources": [],
-                "error": {"message": f"The catalogue service (IRSA) did not answer: {e}. The images are not affected; try again later."}}
+                "error": {"message": messages.CATALOGUE_DOWN, "detail": f"The catalogue service (IRSA TAP) did not answer: {e}"}}
     except Exception as e:  # unreadable answer
+        messages.log_failure("catalogue", messages.CATALOGUE_UNREADABLE, f"{type(e).__name__}: {e}")
         return {"status": "error", "catalogue": info, "sources": [],
-                "error": {"message": f"The catalogue answer could not be read ({type(e).__name__}). The images are not affected."}}
+                "error": {"message": messages.CATALOGUE_UNREADABLE, "detail": f"{type(e).__name__}: {e}"}}
     truncated = len(sources) > MAX_SOURCES
     return {"status": "ok", "catalogue": info, "sources": sources[:MAX_SOURCES], "truncated": truncated}

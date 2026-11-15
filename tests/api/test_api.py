@@ -221,7 +221,7 @@ def test_series_requests_are_limited_per_client(tmp_path):
     r = c.get("/api/series", params={"ra": RA, "dec": DEC})
     assert r.status_code == 429 and r.headers["retry-after"] == "30"
     valid_doc = r.json()
-    assert valid_doc["status"] == "error" and "Too many" in valid_doc["error"]["message"]
+    assert valid_doc["status"] == "error" and "too fast" in valid_doc["error"]["message"] and "429" in valid_doc["error"]["detail"]
     assert c.get("/api/targets").status_code == 200  # other routes are not limited
 
 

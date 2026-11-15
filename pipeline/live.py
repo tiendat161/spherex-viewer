@@ -33,7 +33,7 @@ from . import stretch as stretch_mod
 from .cutout import CutoutError, read_cutout, sky_to_pixel, wavelength_at
 from .grid import PIXEL_SCALE_ARCSEC, grid_shape, make_grid_wcs, reproject_frame, to_png_array
 from .irsa import MAX_IN_FLIGHT, IrsaError
-from . import livestore, tapcache
+from . import livestore, messages, tapcache
 from .photometry import flux_for_series, method_block, spectrum_method_block
 from .select import spread_order
 from .stack import band_id, build_stacks, subtract_background, with_urls
@@ -85,9 +85,9 @@ class TapHealth:
         self._until = 0.0
 
 
-def error_document(message) -> dict:
+def error_document(message, detail=None) -> dict:
     """A document with status error and nothing else, valid for the contract's `spectrum` response (the series response needs `grid` and `stretch` too)."""
-    return {"status": "error", "data_origin": "real", "progress": {"done": 0, "total": 0, "failed": 0}, "frames": [], "error": {"message": message}}
+    return {"status": "error", "data_origin": "real", "progress": {"done": 0, "total": 0, "failed": 0}, "frames": [], "error": {"message": message, **({"detail": detail} if detail else {})}}
 
 
 def _native_bytes(c) -> int:
@@ -108,6 +108,7 @@ class LiveSeries:
         self.available = None   # distinct images the archive lists, once it has answered
         self.failed = 0
         self.error = None
+        self.error_detail = None  # technical text behind `error` (T56): in the document's error.detail and the log, not in the message
         self.finished_at = None
         self.last_used = time.time()
         self.pix_dropped = False  # True once the pixels were let go: the series can no longer be extended in place
@@ -130,7 +131,7 @@ class LiveSeries:
     def doc(self) -> dict:
         with self._lock:
             if self.status == "error":
-                return dict(error_document(self.error), grid=None, stretch=None)
+                return dict(error_document(self.error, self.error_detail), grid=None, stretch=None)
             frames = []
             for i, f in sorted(self._frames.items()):
                 if i not in self._pngs:
@@ -167,9 +168,9 @@ class LiveSeries:
         as downloaded (the method of `frames[].flux`), with the wavelength at that pixel of each frame."""
         with self._lock:
             if self.status == "error":
-                return error_document(self.error)
+                return error_document(self.error, self.error_detail)
             if self.pix_dropped:
-                return error_document("The pixels of this series were released to save memory. Load the position again.")
+                return error_document(messages.PIXELS_RELEASED)
             items = [(i, f["native"], f["obs_mjd"]) for i, f in sorted(self._frames.items()) if f.get("native") is not None]
             status, total, failed, available = self.status, self.total, self.failed, self.available
             key = (at_ra, at_dec, len(items), status, total, failed)
@@ -317,16 +318,17 @@ class LiveSeries:
                 if self.stretch is stretch:  # not replaced while rendering; otherwise the re-render covers this frame
                     self._pngs[index] = png
 
-    def _fail(self, message):
+    def _fail(self, message, detail=None):
+        messages.log_failure(f"live series {self.ra:.4f},{self.dec:.4f}", message, detail)
         with self._lock:
-            self.status, self.error, self.finished_at = "error", message, time.time()
+            self.status, self.error, self.error_detail, self.finished_at = "error", message, detail, time.time()
             self._frames, self._pngs = {}, {}
 
     def run(self, client, health=None):
         try:
             self._run(client, health or TapHealth(0.0))
         except Exception as e:  # a job must always end in ready or error, never hang in loading
-            self._fail(f"{type(e).__name__}: {e}")
+            self._fail(messages.UNEXPECTED, f"{type(e).__name__}: {e}")
 
     def _run(self, client, health):
         if self._order is None:
@@ -354,7 +356,7 @@ class LiveSeries:
                         rows = client.sia_rows(self.ra, self.dec, SIA_LIVE_TIMEOUT_S)
                         self.search = "sia2"
                     except IrsaError as sia_err:
-                        return self._fail(f"The archive query failed: {tap_err}; the SIA2 fallback also failed: {sia_err}")
+                        return self._fail(*messages.archive_failure(f"TAP: {tap_err}", f"SIA2 fallback: {sia_err}"))
                 if self._tap_dir is not None and self.search == "tap":
                     try:
                         tapcache.save(self._tap_dir, self.ra, self.dec, rows)
@@ -362,7 +364,7 @@ class LiveSeries:
                         pass  # not remembering is only slower
             order = spread_order(rows)
             if not order:
-                return self._fail("The SPHEREx archive lists no images covering this position.")
+                return self._fail(messages.NO_IMAGES, "the archive search answered with no images for this position")
             with self._lock:
                 self._rows, self._order = rows, order
                 self._all_mjds = [float(r["time_bounds_lower"]) for r in rows]
@@ -393,8 +395,10 @@ class LiveSeries:
                 if lo >= hi:
                     snap = [{**f, "index": i} for i, f in self._frames.items()]  # the frames this pass produced
                     if not snap:
+                        messages.log_failure(f"live series {self.ra:.4f},{self.dec:.4f}", messages.NONE_READABLE, f"none of the {self.total} images could be read")
                         self.status, self.finished_at = "error", time.time()
-                        self.error = f"None of the {self.total} images could be read from the archive. Try again later."
+                        self.error = messages.NONE_READABLE
+                        self.error_detail = f"None of the {self.total} planned images could be read from the archive."
                         return
                     total = hi
                 else:
@@ -466,7 +470,7 @@ class LiveBuilder:
             if job not in self._jobs or not job.pix_dropped:
                 return next((j for j in self._jobs if j.id == job.id), job)  # someone already did
             if self._busy():
-                raise LiveBusy("Too many positions are being built right now. Try again in a few minutes.")
+                raise LiveBusy(messages.SERVER_BUSY)
             self._jobs.remove(job)
             new = LiveSeries(job.ra, job.dec, job.fov, job.cap, rows=job._rows, tap_dir=self._tap_dir)
             self._jobs.append(new)
@@ -512,7 +516,7 @@ class LiveBuilder:
                     if cap <= j.cap or j.status == "error":
                         return j
                     if self._busy() and j.finished:
-                        raise LiveBusy("Too many positions are being built right now. Try again in a few minutes.")
+                        raise LiveBusy(messages.SERVER_BUSY)
                     if not j.pix_dropped:
                         if j.extend(cap):
                             self._pool.submit(self._run_job, j)
@@ -522,10 +526,10 @@ class LiveBuilder:
                     self._jobs.remove(j)
                     break
             if rows is None and self._busy():
-                raise LiveBusy("Too many positions are being built right now. Try again in a few minutes.")
+                raise LiveBusy(messages.SERVER_BUSY)
             self._evict_to_budget(keep_latest=False)  # a new build may push out any finished series
             if self.total_bytes() > self._max_total_bytes:  # running series alone fill the budget
-                raise LiveBusy("The server is holding as much data as it can. Try again in a few minutes.")
+                raise LiveBusy(messages.SERVER_MEMORY)
             done = [j for j in self._jobs if j.finished]
             for old in done[:max(0, len(self._jobs) + 1 - self._max_kept)]:
                 self._jobs.remove(old)

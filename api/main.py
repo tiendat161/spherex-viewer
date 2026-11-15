@@ -28,6 +28,7 @@ from fastapi.staticfiles import StaticFiles
 from pipeline import catalogue as catalogue_mod
 from pipeline import targets as targets_mod
 from pipeline.grid import FOVS_DEG, allowed_fov
+from pipeline import messages
 from pipeline.live import LIVE_FRAMES, MAX_LIVE_FRAMES, LiveBuilder, LiveBusy, error_document
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -66,7 +67,7 @@ class RateLimiter:
             return True
 
 
-def error_doc(message: str) -> dict:
+def error_doc(message: str, detail: str = None) -> dict:
     return {
         "status": "error",
         "data_origin": "real",  # nothing in this response is placeholder or synthetic
@@ -74,7 +75,7 @@ def error_doc(message: str) -> dict:
         "grid": None,
         "stretch": None,
         "frames": [],
-        "error": {"message": message},
+        "error": {"message": message, **({"detail": detail} if detail else {})},
     }
 
 
@@ -124,7 +125,7 @@ def create_app(series_dir: Optional[Path] = None, web_dist: Optional[Path] = Non
     @app.get("/api/series")
     def series(request: Request):
         if limiter is not None and not limiter.allow(request.client.host if request.client else "?"):
-            return JSONResponse(error_doc("Too many requests from this address. Wait a minute and try again."), status_code=429,
+            return JSONResponse(error_doc(messages.TOO_MANY_REQUESTS, "per-client rate limit (HTTP 429)"), status_code=429,
                                 headers={"Retry-After": "30"})
         try:
             ra = _num(request, "ra")
@@ -155,13 +156,13 @@ def create_app(series_dir: Optional[Path] = None, web_dist: Optional[Path] = Non
                 cap = int(load) if load else min(int(max_frames), LIVE_FRAMES)  # without `load`: as before, at most LIVE_FRAMES
                 return JSONResponse(live.get_or_start(ra, dec, fov, cap).doc())
             except LiveBusy as e:
-                return JSONResponse(error_doc(str(e)))
+                messages.log_failure("series", str(e), "LiveBusy")
+                return JSONResponse(error_doc(str(e), "LiveBusy"))
         if fov != CACHED_FOV:
             return JSONResponse(error_doc(
-                f"Only fov={CACHED_FOV:g} is cached, and this server does not build series live."))
+                messages.NO_LIVE, f"Only fov={CACHED_FOV:g} is cached, and this server does not build series live."))
         return JSONResponse(error_doc(
-            "No cached series within 1 arcsec of this position. This prototype serves only its cached targets "
-            "(see /api/targets); nothing is built live."))
+            messages.NO_LIVE, "No cached series within 1 arcsec of this position; SPHEREX_LIVE=0, nothing is built live (see /api/targets)."))
 
     @app.get("/api/spectrum")
     def spectrum(request: Request):
@@ -188,8 +189,7 @@ def create_app(series_dir: Optional[Path] = None, web_dist: Optional[Path] = Non
             return JSONResponse(error_document("at_ra, at_dec: the clicked position is outside the field of view."))
         if live is None:
             return JSONResponse(error_document(
-                "This server does not build series live, so a spectrum at a clicked position cannot be measured "
-                "(it needs the archive cutouts, which only live series keep)."))
+                messages.NO_LIVE_SPECTRUM, "A spectrum needs the archive cutouts, which only live series keep; SPHEREX_LIVE=0."))
         try:
             job = live.find_at(ra, dec, fov) if load == 0 else None  # load=0: use the series as loaded, never extend it
             if job is None:
@@ -198,7 +198,8 @@ def create_app(series_dir: Optional[Path] = None, web_dist: Optional[Path] = Non
                 job = live.revive(job)
             doc = job.spectrum(at_ra, at_dec)
         except LiveBusy as e:
-            return JSONResponse(error_document(str(e)))
+            messages.log_failure("spectrum", str(e), "LiveBusy")
+            return JSONResponse(error_document(str(e), "LiveBusy"))
         return JSONResponse(doc)
 
     cat_cache = OrderedDict()  # (ra, dec, fov) rounded -> (time, document); only answered queries, so a failure is retried
@@ -208,7 +209,7 @@ def create_app(series_dir: Optional[Path] = None, web_dist: Optional[Path] = Non
         if limiter is not None and not limiter.allow(request.client.host if request.client else "?"):
             return JSONResponse({"status": "error", "catalogue": {"name": catalogue_mod.NAME, "table": catalogue_mod.TABLE,
                                  "service": catalogue_mod.SERVICE}, "sources": [],
-                                 "error": {"message": "Too many requests from this address. Wait a minute and try again."}},
+                                 "error": {"message": messages.TOO_MANY_REQUESTS, "detail": "per-client rate limit (HTTP 429)"}},
                                 status_code=429, headers={"Retry-After": "30"})
         try:
             ra, dec, fov = _num(request, "ra"), _num(request, "dec"), allowed_fov(_num(request, "fov", CACHED_FOV))
@@ -221,7 +222,7 @@ def create_app(series_dir: Optional[Path] = None, web_dist: Optional[Path] = Non
         if live is None:  # SPHEREX_LIVE=0 means the server contacts no archive at all
             return JSONResponse({"status": "error", "catalogue": {"name": catalogue_mod.NAME, "table": catalogue_mod.TABLE,
                                  "service": catalogue_mod.SERVICE}, "sources": [],
-                                 "error": {"message": "This server does not contact archives, so the catalogue overlay is unavailable."}})
+                                 "error": {"message": messages.CATALOGUE_OFF, "detail": "SPHEREX_LIVE=0: this server contacts no archive."}})
         key, now = (round(ra, 4), round(dec, 4), fov), time.monotonic()
         hit = cat_cache.get(key)
         if hit is not None and now - hit[0] < CATALOGUE_TTL_S:

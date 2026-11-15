@@ -8,6 +8,7 @@ import pytest
 from jsonschema import Draft202012Validator
 
 from pipeline.irsa import IrsaError
+from pipeline import messages
 from pipeline.live import LiveBuilder, LiveBusy, LiveSeries
 from tests.pipeline.test_build import FakeClient
 
@@ -69,8 +70,8 @@ def test_fewer_images_than_cap_uses_them_all():
 
 
 @pytest.mark.parametrize("client, text", [
-    (FakeClient(n=0), "no images covering"),
-    (FakeClient(n=5, fail=("OBS",)), "None of the 5 images"),
+    (FakeClient(n=0), "lists no SPHEREx images"),
+    (FakeClient(n=5, fail=("OBS",)), "none of them could be downloaded"),
 ])
 def test_errors_are_schema_valid(client, text):
     job = LiveSeries(RA, DEC, 0.2, 40)
@@ -88,7 +89,8 @@ def test_tap_and_sia2_failure_is_an_error():
             raise IrsaError("SIA2 query failed after retries: HTTP 503")
     job = LiveSeries(RA, DEC, 0.2, 40)
     job.run(Down())
-    assert job.doc()["status"] == "error" and "503" in job.doc()["error"]["message"]
+    e = job.doc()["error"]
+    assert job.doc()["status"] == "error" and "503" in e["detail"] and "503" not in e["message"]
 
 
 def wait(job, seconds=30):
@@ -266,8 +268,10 @@ def test_both_searches_failing_names_both():
             raise IrsaError("SIA2 query spherex_dr1 failed after retries: HTTP 502")
     job = LiveSeries(RA, DEC, 0.2, 8)
     job.run(AllDown())
-    msg = job.doc()["error"]["message"]
-    assert job.doc()["status"] == "error" and "TAP" in msg and "SIA2" in msg
+    e = job.doc()["error"]
+    assert job.doc()["status"] == "error" and "TAP" in e["detail"] and "SIA2" in e["detail"] and "HTTP 502" in e["detail"]
+    assert e["message"] == messages.ARCHIVE_DOWN
+    valid(job.doc())
 
 
 def test_tap_that_works_is_used_and_remembered(tmp_path):

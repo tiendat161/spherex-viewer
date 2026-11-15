@@ -39,7 +39,7 @@ def test_truncated_when_more_than_max():
 
 def test_service_down_is_an_error_document_not_an_exception():
     doc = catalogue.catalogue_document(1, 2, 0.2, client(status=502))
-    assert doc["status"] == "error" and "did not answer" in doc["error"]["message"] and doc["sources"] == []
+    assert doc["status"] == "error" and "could not be fetched" in doc["error"]["message"] and "HTTP 502" in doc["error"]["detail"] and "TAP" not in doc["error"]["message"] and doc["sources"] == []
     assert not list(SCHEMA.iter_errors(doc))
 
 
