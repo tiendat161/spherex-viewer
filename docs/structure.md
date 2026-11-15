@@ -225,6 +225,7 @@ Pytest unit tests; none touches the network.
 | `TASKS.md` | The task board: todo, in progress, done, with the files each task touches |
 | `WORKLOG.md` | What was done, why, and what is still missing, newest first |
 | `data-updates.md` | How to refresh the cached targets for a new data release, and where the release preference is set |
+| `SUBMISSION.md` | Submission pack (T62): requirements checklist, form text, demo script, pre-submission checklist, freeze list, repository checks |
 | `contract.md` | The API contract in prose, the choices made and the open decisions |
 | `PLAN.md` | The pre-hackathon prep plan: goal, schedule, challenge text, open questions |
 | `spike.md` | Measurements from the feasibility spike: query times, cutout sizes, 503 rates, CORS, coordinate epoch |
