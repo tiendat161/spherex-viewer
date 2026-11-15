@@ -78,4 +78,6 @@ Re-deployed 2026-11-15 with the SIA2 backup (T43): a live build of M42 (`ra=83.8
 
 **Redeployed again 2026-11-15 at `69433e0`** (target-menu stacking fix, T50 follow-up): same steps, `spherex-viewer:previous` now holds the `b877d4c` image. Checked: page 200, 5 targets, CSS asset has `body.sky-on .topbar{z-index:3}`, Barnard series ready with 40 frames, viewer healthy, about 76 MB.
 
+**Redeployed again 2026-11-15 at `b7feb5e`** (idle backdrop, orange image panel border): same steps; `spherex-viewer:previous` holds the `69433e0` image. Checked: page 200, 5 targets, CSS has `--accent-panel:#e07b00` and `.stage{border:2px solid var(--accent-panel)}`, bundle has the idle-backdrop code, Barnard series ready (40 frames), viewer healthy, about 76 MB.
+
 Not yet checked: a live build to the end with TAP answering, a second live build while the first runs, memory under load (about 466 MB used of 1.9 GB at idle), `make verify` against the server, a stop and start of the instance.
