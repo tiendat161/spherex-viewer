@@ -8,7 +8,7 @@ from pipeline import targets
 def test_resolved_targets_and_barnard_cross_check():
     cfg = targets.load_config()
     ts = {t.id: t for t in targets.resolve(cfg)}
-    assert set(ts) == {"wise0855", "barnard", "epsindb", "rwaur", "rdra"}
+    assert set(ts) == {"wise0855", "barnard", "epsindb", "rwaur", "rdra", "m42", "m16", "m31"}  # five challenge targets and three demo targets
     assert (ts["wise0855"].ra, ts["wise0855"].dec) == (133.795129, -7.245147)
     cc = next(t for t in cfg["targets"] if t["id"] == "barnard")["cross_check"]
     assert targets.sep_arcsec(ts["barnard"].ra, ts["barnard"].dec, cc["ra_deg"], cc["dec_deg"]) <= cc["max_sep_arcsec"]

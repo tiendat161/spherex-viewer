@@ -1,5 +1,6 @@
 {
   "_comment": "Acceptance targets (challenge text, docs/PLAN.md). Source positions only: the pipeline converts and propagates them; no derived numbers are typed in here. SIMBAD values are ICRS, epoch J2000, read 2026-11-08 via simbad.cfa.harvard.edu and recorded in the prep repo's learning-log.md. pm_ra_cosdec is mu_alpha*cos(dec).",
+  "_comment_demo": "m42, m16 and m31 (added 2026-11-15, T41) are demo targets, not challenge targets: famous extended objects, cached so a demo never waits for the archive. Positions are the SIMBAD object positions (ICRS J2000 degrees, read 2026-11-15 from simbad.cfa.harvard.edu TAP; they are the centre of the object, not a point source, and no proper motion is applied). They are built with stack_images 80 so the visit stacks have something to combine.",
   "fov": 0.2,
   "max_frames": 40,
   "min_frames": 30,
@@ -46,6 +47,30 @@
       "pm_mas_per_yr": { "pm_ra_cosdec": -20.64, "pm_dec": 6.15 },
       "position_source": "SIMBAD",
       "propagate": false
+    },
+    {
+      "id": "m42",
+      "name": "Orion Nebula (M42)",
+      "position": { "ra_deg": 83.8201, "dec_deg": -5.3876 },
+      "position_source": "SIMBAD object position for 'M 42' (simbad.cfa.harvard.edu TAP, read 2026-11-15), ICRS J2000, centre of the object",
+      "propagate": false,
+      "stack_images": 80
+    },
+    {
+      "id": "m16",
+      "name": "Eagle Nebula (M16)",
+      "position": { "ra_deg": 274.688, "dec_deg": -13.792 },
+      "position_source": "SIMBAD object position for 'M 16' (simbad.cfa.harvard.edu TAP, read 2026-11-15), ICRS J2000, centre of the object",
+      "propagate": false,
+      "stack_images": 80
+    },
+    {
+      "id": "m31",
+      "name": "Andromeda Galaxy (M31)",
+      "position": { "ra_deg": 10.684708, "dec_deg": 41.26875 },
+      "position_source": "SIMBAD object position for 'M 31' (simbad.cfa.harvard.edu TAP, read 2026-11-15), ICRS J2000, centre of the object",
+      "propagate": false,
+      "stack_images": 80
     }
   ]
 }
