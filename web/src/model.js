@@ -200,7 +200,7 @@ function progressLine(resp, elapsedS) {
     if (elapsedS == null) return 'Waiting for the archive query (0 / 0)';
     const s = Math.round(elapsedS);
     return elapsedS < SLOW_SEARCH_S
-      ? `Asking the archive which images cover this position… ${s} s (it usually takes about a minute)`
+      ? `Asking the archive which images cover this position… ${s} s (usually under a few minutes, depending on the archive)`
       : `The archive is slower than usual today. Still waiting for the list of images that cover this position… ${s} s. Nothing is wrong on this page; this step is the archive's own queue.`;
   }
   if (resp.status === 'loading') return `Loading: ${done} / ${total} frames${fail}${typeof available === 'number' ? ` · ${available} images found` : ''}`;
