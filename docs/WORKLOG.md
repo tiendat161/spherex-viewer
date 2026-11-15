@@ -15,6 +15,13 @@ Commits: abc1234, def5678
 
 ---
 
+## 2026-11-15: Container built and run locally (T10)
+Commit: see `git log` (message starts "Deploy: fix the image build").
+
+**What:** started Docker, built the image for the first time and ran it. Three build failures fixed in the `Dockerfile`/`.dockerignore`: the web stage lacked `fixtures/` and `verify/targets.json` (the Vite config imports the dev-only mock, which reads them), and `numcodecs` had to be compiled on arm64 (gcc installed and purged in the same layer). The running container served the page, `/api/targets` (5), a cached series (Barnard's Star, 38 real frames with flux), a frame PNG, and reported healthy.
+
+**Gaps:** T10 is not finished: nothing is deployed and no host is chosen (needs Dat). Not checked: a live build run to the end in the container, an amd64 build, memory under load, `make verify` against the container.
+
 ## 2026-11-15: Data-release updates (T21)
 Commit: `d26ff13`.
 

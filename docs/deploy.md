@@ -2,7 +2,7 @@
 
 One container runs everything: the API and the built web app, on one port. The Dockerfile is at the top of the repository.
 
-**Status (2026-11-15):** the Dockerfile and these notes are written but the image has **not been built or deployed**: Docker's background service was not running on the machine they were written on. What was checked instead: the files the image copies (`api/`, `pipeline/`, `contracts/`, `static/`, `verify/targets.json`, `web/dist`, 4.3 MB) were copied to an empty folder and the service was started there with the project's Python; the page, the target list, a cached series with flux, a frame image and the start of a live build all worked. The Python version in the image (3.9) is the one the project runs on. Run `docker build` once before trusting any of this.
+**Status (2026-11-15):** the image **builds and runs** (built and run with Docker Desktop on an arm64 Mac, 723 MB). In the running container the page, the target list, a cached series (Barnard's Star: 38 real frames, all with flux), a frame image and the health check (`healthy`) all worked, and a request for an uncached position started a live build. Not checked: a full live build to the end inside the container, an amd64 build (what most hosts run), memory use under load. **Not deployed anywhere yet.** Building it first needed three fixes, now in the Dockerfile: the web stage needs `fixtures/` and `verify/targets.json` (the Vite config loads the dev-only mock even for a production build), and `numcodecs` has no prebuilt wheel on arm64 so a compiler is installed for the pip step only.
 
 ## Build and run locally
 

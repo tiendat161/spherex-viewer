@@ -9,7 +9,6 @@ verify/e2e.py
 spike
 docs
 tests
-fixtures
 **/__pycache__
 **/.pytest_cache
 web/test-results

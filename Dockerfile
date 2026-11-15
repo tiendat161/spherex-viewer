@@ -9,6 +9,9 @@ WORKDIR /src/web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
 COPY web/ ./
+# vite.config.js loads the dev-only mock, which reads these two files even for a production build; they are not copied into the final image from here.
+COPY fixtures/ /src/fixtures/
+COPY verify/targets.json /src/verify/targets.json
 RUN npm run build
 
 # ---- the service
@@ -19,7 +22,10 @@ ENV PYTHONUNBUFFERED=1 \
     PORT=8000
 WORKDIR /app
 COPY requirements.txt ./
-RUN pip install -r requirements.txt
+# numcodecs (pulled in by reproject) has no prebuilt wheel on some platforms (seen on arm64), so a compiler is installed for the install only.
+RUN apt-get update && apt-get install -y --no-install-recommends gcc libc6-dev \
+ && pip install -r requirements.txt \
+ && apt-get purge -y gcc libc6-dev && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 COPY api/ api/
 COPY pipeline/ pipeline/
 COPY contracts/ contracts/
