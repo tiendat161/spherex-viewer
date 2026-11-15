@@ -41,8 +41,8 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 ## Done
 
 | ID | Task | Challenge item | Commits |
-| T25 | Frontend checked in Firefox and WebKit: mock and real-data specs pass on all three browsers; `E2E_BROWSERS`, `make verify-browsers` | none | `c426091` |
 |---|---|---|---|
+| T25 | Frontend checked in Firefox and WebKit: mock and real-data specs pass on all three browsers; `E2E_BROWSERS`, `make verify-browsers` | none | `c426091` |
 | T16 | Deeper stacks: `stack_images: 120` for Barnard's Star, Epsilon Indi B, RW Aurigae, R Draconis (stacks now from 119-120 images, was 35-40) | "add together ... to improve the signal-to-noise" | `dbd05fa` |
 | T18 | The 8 failed frames (Barnard's Star 3, R Draconis 5) retried: all 40 of 40 frames now load for every target | test targets | `dbd05fa` |
 | T14 | Spectrum on click: click the image, the Clicked point tab shows that point's flux in every frame (`GET /api/spectrum`, measured on the native cutouts with the T28 method, wavelength read at the clicked pixel). A click on a cached target builds a live series at the same position (about 40 frames, slow the first time) and the panel says its frames differ from the cached ones | "Extra kudos if your tool can generate spectra on the fly" | `a226402` (contract), `cae72f4`, `b9085dc`, `1fe2a65`, `c051d9f` |
