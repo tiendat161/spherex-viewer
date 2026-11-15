@@ -16,7 +16,6 @@ Details of finished work (what, why, what is still missing) are in [`WORKLOG.md`
 | ID | Task | Owner | Touches |
 |---|---|---|---|
 | T41 | Cache three famous positions as demo targets (Orion M42, Eagle M16, Andromeda M31) so a demo never waits for the archive | parked on branch `t41-demo-targets` (entries added, series not built: the archive search service was down, HTTP 502). To finish: when the archive answers, on that branch run `python -m pipeline.build verify/targets.json --only m42 m16 m31`, then `--offline` for flux, then `make verify` | `verify/targets.json`, `static/series/`, `tests/pipeline/test_targets.py` |
-| T50 | Sky backdrop: Aladin Lite (DSS2 colour) behind the page on desktop; flies to the position on Load. Review fixes done on branch `claude/t50-sky-backdrop`; done only when merged (commits `1163911` and the review-fix commits) | branch `claude/t50-sky-backdrop` | `web/src/sky.js`, `web/index.html`, `web/src/style.css`, `web/src/main.js`, `web/e2e/web-mock.spec.js`, docs |
 
 ## Todo
 
@@ -26,7 +25,6 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 |---|---|---|---|---|---|
 | T20 | P2 | Flag detail: per-pixel flag overlay or a breakdown by flag bit | "display metadata, like contamination flags" | `pipeline/grid.py`, `pipeline/writer.py`, `contracts/`, `web/src/main.js` | Only a flagged fraction per frame is shown today. |
 | T24 | P3 | Epsilon Indi B: confirm what the bright object at the field edge is and whether the target is visible | test target | none, or T15 | Presumed Epsilon Indi A, not checked. |
-| T26 | P3 | Remove the merged Day 1 worktrees and branches (`claude/build-backend-2cca9d`, `claude/build-web-cb39ff`) | none | git only | Fully merged, no uncommitted work. Needs Dat's go-ahead. |
 | T32 | P2 | Validate and tune the photometry | none | `pipeline/photometry.py`, `tests/pipeline/`, docs | T28 uses an aperture, annulus and flag rule that are first choices, not tuned. Compare against a source with a known brightness (source and value to be found, not assumed), check the aperture size against the real PSF, decide whether an aperture correction is needed, and handle crowded fields and moving objects (WISE 0855, Barnard's Star). |
 
 ### Which tasks can run at the same time
@@ -40,6 +38,8 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 
 | ID | Task | Challenge item | Commits |
 |---|---|---|---|
+| T50 | Sky backdrop: Aladin Lite (DSS2 colour) behind the page on desktop, flies to the position on Load; shown only after a survey tile loads, with credit and privacy line, Aladin script checked by SHA-384. Checked in Chromium only | "Aladin" (optional idea); "overlay astronomical data from other telescopes" (partly) | `1163911`, `320c381` |
+| T26 | Merged Day 1 worktrees and local branches `claude/build-backend-2cca9d`, `claude/build-web-cb39ff` removed (remote branches left) | none | git only |
 | T25 | Frontend checked in Firefox and WebKit: mock and real-data specs pass on all three browsers; `E2E_BROWSERS`, `make verify-browsers` | none | `c426091` |
 | T16 | Deeper stacks: `stack_images: 120` for Barnard's Star, Epsilon Indi B, RW Aurigae, R Draconis (stacks now from 119-120 images, was 35-40) | "add together ... to improve the signal-to-noise" | `dbd05fa` |
 | T18 | The 8 failed frames (Barnard's Star 3, R Draconis 5) retried: all 40 of 40 frames now load for every target | test targets | `dbd05fa` |
