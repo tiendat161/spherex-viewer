@@ -3,6 +3,9 @@
 // Aladin Lite is loaded from a CDN at run time (not bundled; a CDN script keeps the build small and lets the page work
 // unchanged when it cannot be reached), pinned to an exact release so a new upstream release cannot change the page.
 // 3.8.2 is a stable release from 2026-03-06 (npm registry time stamp), well over two weeks old.
+// SHA-384 of that exact file (computed from the 3.8.2 file on 2026-11-15, 2390678 bytes). A dynamic import() cannot take an
+// integrity attribute, so the file is fetched, hashed here and only then imported from a blob URL.
+export const ALADIN_SHA384 = '/ymkiSIIZYSHUE2kIcPf4PWW4meM/MIvDZbgCurNjz4k6/Fe21cxLQ9cEn0DlBsZ';
 export const ALADIN_URL = 'https://cdn.jsdelivr.net/npm/aladin-lite@3.8.2/dist/aladin.js';
 export const SURVEY_NAME = 'DSS2 colour (optical)';
 // HiPS roots of the same survey, tried in order: the CDS server, then the STScI (MAST) copy, then the CSIRO copy.
@@ -15,6 +18,7 @@ export const SURVEY_ROOTS = [
 ];
 export const MIN_WIDTH_PX = 900;
 const LOAD_TIMEOUT_MS = 10000;
+const TILE_PATH = 'Norder3/Dir0/Npix0.jpg'; // one real survey tile must load before the backdrop is shown
 const WIDE_FOV_DEG = 150;
 const FLY_S = 2.5;
 
@@ -39,18 +43,32 @@ export function backdropEnabled(win = window) {
 
 let starting = null; // promise of the aladin object, or null when it failed or is not wanted
 let gaveUp = false;
+let latest = 0; // number of the newest showSky call; an older call does nothing when it is overtaken
+
+const b64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
 
 // dist/aladin.js is an ES module whose default export is the Aladin Lite object `A`.
-function loadAladin() {
-  const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), LOAD_TIMEOUT_MS));
-  return Promise.race([import(/* @vite-ignore */ ALADIN_URL).then((m) => m.default), timeout]);
+// The hash can be replaced by a test (window.__skyHash) that serves a stand-in file.
+async function loadAladin() {
+  const expected = window.__skyHash || ALADIN_SHA384;
+  const r = await fetch(ALADIN_URL, { signal: AbortSignal.timeout(LOAD_TIMEOUT_MS) });
+  if (!r.ok) throw new Error('script');
+  const bytes = await r.arrayBuffer();
+  if (b64(await crypto.subtle.digest('SHA-384', bytes)) !== expected) throw new Error('hash');
+  const url = URL.createObjectURL(new Blob([bytes], { type: 'text/javascript' }));
+  try {
+    return (await import(/* @vite-ignore */ url)).default;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
+/** First survey server whose tile loads (a tile, not only the properties file: the CDS server answered the latter with an error page). */
 async function findSurvey() {
   for (const root of SURVEY_ROOTS) {
     try {
-      const r = await fetch(`${root}/properties`, { signal: AbortSignal.timeout(6000) });
-      if (r.ok && (await r.text()).includes('hips_')) return root;
+      const r = await fetch(`${root}/${TILE_PATH}`, { signal: AbortSignal.timeout(6000) });
+      if (r.ok && (r.headers.get('content-type') || '').startsWith('image/')) return root;
     } catch { /* try the next one */ }
   }
   throw new Error('no survey');
@@ -61,7 +79,7 @@ async function start(ra, dec) {
   await A.init;
   const box = document.getElementById('sky');
   // Start wide and off to the side so the first Load visibly flies in.
-  const a = A.aladin(box, {
+  return A.aladin(box, {
     survey: root, fov: WIDE_FOV_DEG, target: `${(ra + 50) % 360} ${Math.max(-85, Math.min(85, dec))}`,
     cooFrame: 'ICRSd', projection: 'TAN', reticleSize: 0,
     showReticle: false, showZoomControl: false, showFullscreenControl: false, showLayersControl: false,
@@ -70,7 +88,6 @@ async function start(ra, dec) {
     showStatusBar: false, showCatalogue: false, showCooLocation: false, showFov: false,
     showFullscreen: false, showCooGrid: false,
   });
-  return a;
 }
 
 function giveUp() {
@@ -78,18 +95,20 @@ function giveUp() {
   document.body.classList.remove('sky-on');
 }
 
-/** Fly the backdrop to the position. Never throws; the first call starts Aladin Lite. */
-export function showSky(ra, dec, fov, { reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches } = {}) {
-  if (gaveUp || !backdropEnabled()) return;
+/** Fly the backdrop to the position. Never throws; the first call starts Aladin Lite. The page is changed
+ *  (body.sky-on: backdrop and label shown) only after the library is running and a survey tile has loaded. */
+export function showSky(ra, dec, fov) {
   try {
+    if (gaveUp || !backdropEnabled()) return;
+    const me = ++latest;
     if (!starting) {
       starting = start(ra, dec).then((a) => { document.body.classList.add('sky-on'); return a; }).catch(() => { giveUp(); return null; });
     }
     starting.then((a) => {
-      if (!a) return;
+      if (!a || me !== latest) return;
       try {
         const w = backdropFov(fov);
-        if (reduceMotion) { a.gotoRaDec(ra, dec); a.setFoV(w); return; }
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) { a.gotoRaDec(ra, dec); a.setFoV(w); return; }
         a.animateToRaDec(ra, dec, FLY_S);
         a.zoomToFoV(w, FLY_S);
       } catch { giveUp(); }

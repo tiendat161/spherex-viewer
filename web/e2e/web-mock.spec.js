@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
@@ -437,4 +438,68 @@ test('mock: catalogue service failure gives a message and keeps the images', asy
   await page.locator('#catalogue').check();
   await expect(page.locator('#cat-note')).toContainText('unavailable');
   await expect(page.locator('#badge')).not.toHaveText('NO DATA YET');
+});
+
+// Sky backdrop (T50). ?backdrop=on forces it for an automated browser; the real Aladin Lite is replaced by a stand-in.
+const ALADIN = /cdn\.jsdelivr\.net\/npm\/aladin-lite@/;
+const TILE = /\/Norder3\/Dir0\/Npix0\.jpg$/;
+const STUB = `export default { init: Promise.resolve(), aladin(box) {
+  const c = document.createElement('canvas'); c.width = 50; c.height = 50; box.append(c);
+  window.__flights = (window.__flights || 0);
+  return { animateToRaDec() { window.__flights++; }, zoomToFoV() {}, gotoRaDec() {}, setFoV() {} };
+} };`;
+const stubHash = createHash('sha384').update(STUB).digest('base64');
+const pixel = Buffer.from('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=', 'base64');
+const wide = { width: 1280, height: 900 };
+
+test('mock: backdrop on with the script blocked leaves the page as it was (no label, no class)', async ({ page }) => {
+  await page.setViewportSize(wide);
+  await page.route(ALADIN, (r) => r.abort());
+  await page.goto(wise + '&backdrop=on');
+  await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
+  await page.waitForTimeout(1500);
+  expect(await page.evaluate(() => document.body.className)).toBe('');
+  await expect(page.locator('#sky-label')).toBeHidden();
+});
+
+test('mock: backdrop gives up when no survey tile loads', async ({ page }) => {
+  await page.setViewportSize(wide);
+  await page.addInitScript((h) => { window.__skyHash = h; }, stubHash);
+  await page.route(ALADIN, (r) => r.fulfill({ contentType: 'text/javascript', body: STUB }));
+  await page.route(TILE, (r) => r.fulfill({ status: 404, contentType: 'text/html', body: 'nope' }));
+  await page.goto(wise + '&backdrop=on');
+  await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
+  await page.waitForTimeout(1500);
+  expect(await page.evaluate(() => document.body.className)).toBe('');
+  await expect(page.locator('#sky-label')).toBeHidden();
+});
+
+test('mock: backdrop refuses a script whose hash does not match the pinned one', async ({ page }) => {
+  await page.setViewportSize(wide);
+  await page.route(ALADIN, (r) => r.fulfill({ contentType: 'text/javascript', body: STUB }));
+  await page.route(TILE, (r) => r.fulfill({ contentType: 'image/jpeg', body: pixel }));
+  await page.goto(wise + '&backdrop=on');
+  await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
+  await page.waitForTimeout(1500);
+  expect(await page.evaluate(() => document.body.className)).toBe('');
+});
+
+test('mock: with the backdrop on the SPHEREx canvas gets the clicks and Clicked point still works', async ({ page }) => {
+  await page.setViewportSize(wide);
+  await page.addInitScript((h) => { window.__skyHash = h; }, stubHash);
+  await page.route(ALADIN, (r) => r.fulfill({ contentType: 'text/javascript', body: STUB }));
+  await page.route(TILE, (r) => r.fulfill({ contentType: 'image/jpeg', body: pixel }));
+  await page.goto(wise + '&backdrop=on');
+  await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
+  await expect(page.locator('body')).toHaveClass(/sky-on/);
+  await expect(page.locator('#sky-label')).toBeVisible();
+  await expect(page.locator('#sky-label')).toContainText('not SPHEREx data');
+  await expect(page.locator('#sky-label')).toContainText('Digitized Sky Survey');
+  expect(await page.evaluate(() => window.__flights)).toBeGreaterThanOrEqual(1);
+  const box = await page.locator('#canvas').boundingBox();
+  const x = box.x + box.width * 0.4, y = box.y + box.height * 0.6;
+  expect(await page.evaluate(([a, b]) => document.elementFromPoint(a, b).id, [x, y])).toBe('canvas');
+  await page.mouse.click(x, y);
+  await expect(page.locator('#tab-point')).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#point-marker')).toBeVisible();
 });
