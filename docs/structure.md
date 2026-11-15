@@ -125,9 +125,9 @@ The frontend, built with Vite and no UI framework. It only ever calls relative `
 | Path | Holds |
 |---|---|
 | `index.html`, `src/style.css` | Page markup and styling |
-| `src/model.js` | Pure helpers, no DOM: URL parsing and building, field-of-view list, frame slots and ordering, visits and the wavelength pad (`visitsOf`, `padSpec`, `labelIndexes`, `stepWavelength`, `stepVisit`), blink pair, zoom rectangle, scale bar, progress text, date conversion |
+| `src/model.js` | Pure helpers, no DOM: URL parsing and building, field-of-view list, frame slots and ordering, visits and the wavelength pad (`visitsOf`, `padSpec`, `labelIndexes`, `stepWavelength`, `stepVisit`, `cycleVisit`), blink pair, zoom rectangle, scale bar, progress text, date conversion |
 | `src/api.js` | `fetchTargets` and `pollSeries` |
-| `src/main.js` | The player: target list, form, canvas, controls, the visit slider and the vertical wavelength slider (`renderPad`), badge, readouts |
+| `src/main.js` | The player: target list, form, canvas, controls, the visit slider and the vertical wavelength slider (`renderPad`), the play loop with its two modes, badge, readouts |
 | `mock/plugin.js`, `mock/png.js` | Dev-only stand-in for the API (`npm run dev:mock`): serves the fixture and generated placeholder frames, labelled simulated. Never part of a build |
 | `test/model.test.js`, `test/api.test.js` | Vitest unit tests for the two modules |
 | `test/bundle.test.js` | Checks the built bundle contains no archive hostname |

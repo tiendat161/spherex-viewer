@@ -200,3 +200,40 @@ test('visit slider and the vertical wavelength slider', async ({ page }) => {
   await expect(page.locator('.visit-labels .cur')).toHaveAttribute('data-visit', '1');
   await page.screenshot({ path: outDir + 'web-mock-pad.png', fullPage: true });
 });
+
+test('play across visits holds the wavelength; the other mode walks through the frames', async ({ page }) => {
+  await page.goto(wise);
+  await expect(page.locator('#progress-text')).toHaveText('40 / 40 frames');
+  await expect(page.locator('#play')).toHaveText('Pause');
+  await page.locator('#play').click();
+  await expect(page.locator('#play')).toHaveText('Play');
+  await expect(page.locator('#playmode')).toBeVisible();
+  await expect(page.locator('#playmode')).toHaveValue('visits');
+
+  // Start from a frame in the first visit, then play: the visit changes, the wavelength stays close to the held one.
+  const box = await page.locator('#vaxis-track').boundingBox();
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  const held = Number.parseFloat(await page.locator('#r-wave').textContent());
+  await page.locator('#fps').selectOption('10');
+  await page.locator('#play').click();
+  await expect(page.locator('#play-note')).toContainText(`${held.toFixed(2)} µm`);
+  // Each visit always shows the same frame (the one closest to the held wavelength), so the wavelength does not drift.
+  const waveOf = new Map();
+  for (let i = 0; i < 14; i++) {
+    const [v, w] = await page.evaluate(() => [document.querySelector('.visit-labels .cur').dataset.visit, document.getElementById('r-wave').textContent]); // read together: playback is running
+    expect(waveOf.get(v) ?? w).toBe(w);
+    waveOf.set(v, w);
+    await page.waitForTimeout(110);
+  }
+  expect(waveOf.size).toBe(3); // all three visits were shown
+  await page.locator('#play').click();
+
+  // Through the frames, in Order: steps through one visit's frames first (time order), so the visit stays the same for a while.
+  await page.locator('#playmode').selectOption('frames');
+  await page.locator('#slider').fill('0');
+  await page.locator('#play').click();
+  await expect(page.locator('#play-note')).toBeHidden();
+  await expect.poll(() => page.locator('#r-frame').textContent()).not.toBe('1 of 40');
+  expect(await page.locator('.visit-labels .cur').getAttribute('data-visit')).toBe('0');
+  await page.locator('#play').click();
+});

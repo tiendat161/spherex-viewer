@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { blinkPair, buildSlots, labelIndexes, nearestWavelength, nearestY, padPosition, padSpec, stepVisit, stepWavelength, visitsOf, gridFovDeg, isWideField, locationQuery, mjdToUtc, nextSlot, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, seriesUrl, zoomRect } from '../src/model.js';
+import { blinkPair, buildSlots, cycleVisit, labelIndexes, nearestWavelength, nearestY, padPosition, padSpec, stepVisit, stepWavelength, visitsOf, gridFovDeg, isWideField, locationQuery, mjdToUtc, nextSlot, parseFov, parseLocation, progressText, scaleBarArcsec, scaleBarLabel, seriesUrl, zoomRect } from '../src/model.js';
 import { errorResponse, fixture, gapResponse, loadingResponse, validateSeries, validateTargets } from './helpers.js';
 
 describe('hand-built responses are schema-valid', () => {
@@ -222,6 +222,12 @@ describe('visits and the wavelength pad', () => {
     expect(stepVisit(spec, 4, -1)).toBe(1); // 3 um -> 4 um (0.29) rather than 2 um (0.41)
     expect(stepVisit(spec, 0, -1)).toBe(0);
     expect(stepVisit(spec, 4, 1)).toBe(4);
+  });
+  it('cycles through the visits at a held wavelength and wraps round', () => {
+    expect(cycleVisit(spec, 2, 2)).toBe(4); // visit A (2 um) -> visit B: 3 um is nearer 2 than 1.1 um is
+    expect(cycleVisit(spec, 4, 2)).toBe(2); // visit B -> wraps to visit A: the 2 um frame
+    expect(cycleVisit(spec, 4, 1.05)).toBe(0); // the held wavelength, not the current frame, decides
+    expect(cycleVisit(spec, 3, 2)).toBe(3); // a failed frame has no visit: stays put
   });
   it('nearestWavelength and nearestY pick within one visit', () => {
     expect(nearestWavelength(spec.visits[1], 1.5)).toBe(5);

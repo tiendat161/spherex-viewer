@@ -76,11 +76,15 @@
         </label>
         <label class="speed" id="band-wrap" hidden>Band <select id="band"></select></label>
         <label class="speed" id="diff-wrap" hidden title="Show each later visit minus the earliest visit. Things that did not change cancel to grey; a moving object leaves a dark and a bright spot."><input id="diff" type="checkbox" /> Difference from first visit</label>
+        <label class="speed" id="playmode-wrap" hidden title="What Play does with the individual frames. Across visits: the same wavelength in each visit in turn, the way to see something move. Through the frames: one after another in the Order chosen.">Play
+          <select id="playmode"><option value="visits" selected>across visits, same wavelength</option><option value="frames">through the frames, in Order</option></select>
+        </label>
         <label class="speed" id="order-wrap">Order
           <select id="order"><option value="time" selected>Time</option><option value="wavelength">Wavelength</option></select>
         </label>
       </div>
       <p id="pair-note" class="muted small" hidden></p>
+      <p id="play-note" class="muted small" hidden></p>
       <dl id="readout" class="readout">
         <div><dt>Frame</dt><dd id="r-frame">—</dd></div>
         <div><dt>Observed</dt><dd id="r-date">—</dd></div>

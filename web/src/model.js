@@ -289,3 +289,10 @@ export function stepVisit(spec, slot, dir) {
   if (!at || to < 0 || to >= spec.visits.length) return slot;
   return nearestWavelength(spec.visits[to], spec.visits[at.visit].points[at.point].wl);
 }
+
+/** The next visit (wrapping round) as a slot: the frame of that visit closest in wavelength to `wl`. Used to blink across visits at one wavelength. */
+export function cycleVisit(spec, slot, wl) {
+  const at = padPosition(spec, slot);
+  if (!at) return slot;
+  return nearestWavelength(spec.visits[(at.visit + 1) % spec.visits.length], wl);
+}
