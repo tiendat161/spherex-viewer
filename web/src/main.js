@@ -55,9 +55,10 @@ function setView(view) {
 const currentFrameUrl = () => (currentSlot() && !currentSlot().skipped ? currentSlot().url : null);
 
 function setBadge(resp) {
-  const origin = resp?.data_origin;
+  // An error document carries no data, so its data_origin says nothing about what is on screen.
+  const origin = resp?.status === 'error' ? undefined : resp?.data_origin;
   el.badge.className = 'badge ' + (origin === 'simulated' ? 'badge-simulated' : origin === 'real' ? 'badge-real' : 'badge-unknown');
-  el.badge.textContent = origin === 'simulated' ? 'SIMULATED DATA' : origin === 'real' ? 'REAL DATA' : resp ? 'DATA ORIGIN UNKNOWN' : 'NO DATA YET';
+  el.badge.textContent = origin === 'simulated' ? 'SIMULATED DATA' : origin === 'real' ? 'REAL DATA' : resp && resp.status !== 'error' ? 'DATA ORIGIN UNKNOWN' : 'NO DATA YET';
 }
 
 function drawCurrent() {

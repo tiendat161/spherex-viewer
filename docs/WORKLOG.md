@@ -21,6 +21,15 @@ Commit: see `git log` (message starts "T44").
 **Why:** T23 findings 1, 3, 4.
 **Gaps:** The lock-free rendering is tested with a blocked render, not measured on a 1 degree field. Frames that arrive during a re-render get the new stretch rendered under the lock (a few frames, cheap). Not run against the live archive (down).
 
+## 2026-11-15: Small review items (T47)
+Commit: on branch `t47-review-items`.
+
+**What:** T23 findings 7 to 14. `api/main.py`: regexes use `fullmatch` and `[0-9]`; `series.json` is re-read only when its mtime changes and a damaged file is skipped instead of giving a 500; `load` is range-checked only on the live path (`contract.md` says a cached series ignores it; a non-number is still rejected first). `pipeline/tapcache.py`: unique temp file per save, at most 500 entries kept (oldest removed). `pipeline/live.py`: a series rebuilt after losing its pixels keeps its first position, so its id and frame URLs stay; `extend` beyond the images the archive has starts no new pass. `requirements.txt` is now what the service needs, `requirements-dev.txt` adds jsonschema, pytest, httpx (README updated; the container installs only the first). Makefile comment says 8 requests in flight. `setBadge` shows "NO DATA YET" for a `status: "error"` document instead of "REAL DATA".
+
+**Why:** "never invent facts" and a public server: a wrong badge, a 500 from one bad file, and an unbounded cache folder are the kind of small errors a visitor or a reviewer notices.
+
+**Gaps:** not changed: Docker on Python 3.9 (the venv is the same version, so changing it needs its own check) and `vite.config.js` importing the dev mock (not part of the bundle; `bundle.test.js` covers the archive hostname only). The badge change was seen only as "NO DATA YET" on a rejected position in the browser; an error document coming back from the API during a poll was not screenshotted. The 500-entry cap is a guess, not measured.
+
 ## 2026-11-15: SIA2 as the backup archive search for live series (T43)
 Commits: see `git log` (the contract commit "Contract: optional progress.search", then "T43: SIA2 backup ...").
 

@@ -179,7 +179,7 @@ def test_a_series_that_let_go_of_its_pixels_is_rebuilt_without_searching_again()
     assert c.pix_dropped is False and a.pix_dropped is True and a.pixel_bytes() == 0
     assert a.doc()["progress"]["done"] == 5 and a.png("00.png") is not None  # it can still be shown
     assert client.searches == 2
-    again = b.get_or_start(1.0, 1.0, 0.2, 9)
+    again = b.get_or_start(1.0, 1.0 + 0.5 / 3600, 0.2, 9)  # half an arcsec off: still the same id
     assert again is not a and again.id == a.id  # a new job with the same id, so the frame URLs stay valid
     wait(again)
     assert again.doc()["progress"]["done"] == 9 and client.searches == 2  # the rows were reused
@@ -295,3 +295,13 @@ def test_polls_are_not_blocked_while_pngs_are_rendered():
         gate.set()
         t.join(30)
     assert j.doc()["status"] == "ready"
+
+
+def test_asking_for_more_than_the_archive_has_does_not_start_another_pass():
+    b = LiveBuilder(FakeClient())
+    j = b.get_or_start(1.0, 1.0, 0.2, 100)
+    wait(j)
+    n = j.doc()["progress"]["total"]
+    assert n < 100  # the archive (the fake) has fewer images than asked for
+    gen = j.gen
+    assert j.extend(102) is False and j.status == "ready" and j.gen == gen and j.doc()["progress"]["total"] == n

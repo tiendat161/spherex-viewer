@@ -29,8 +29,8 @@ ROOT = Path(__file__).resolve().parent.parent
 MATCH_ARCSEC = 1.0
 CACHED_FOV = 0.2
 CACHED_MAX_FRAMES = 102  # default and ceiling; a cached series is returned if max_frames >= its frame count
-ID_RE = re.compile(r"^[a-z0-9]+$")
-FRAME_RE = re.compile(r"^(\d{2,3}|[sd]_[A-Za-z0-9]+_\d{1,3})\.png$")  # frame NN.png, stack s_<band>_<visit>.png, difference d_...
+ID_RE = re.compile(r"[a-z0-9]+")  # used with fullmatch: `$` would also accept a trailing newline
+FRAME_RE = re.compile(r"([0-9]{2,3}|[sd]_[A-Za-z0-9]+_[0-9]{1,3})\.png")  # (fullmatch; ASCII digits only) frame NN.png, stack s_<band>_<visit>.png, difference d_...
 
 
 RATE_LIMIT = 120      # /api/series requests per client per RATE_WINDOW_S (the web app polls every 2 s: 30 a minute per tab)
@@ -96,12 +96,22 @@ def create_app(series_dir: Optional[Path] = None, web_dist: Optional[Path] = Non
         rate_limit = int(os.environ.get("SPHEREX_RATE_LIMIT", RATE_LIMIT))  # 0 turns the limit off
     limiter = RateLimiter(rate_limit) if rate_limit > 0 else None
 
+    docs = {}  # path -> (mtime_ns, doc): series.json is read again only when the file changes
+
     def cached():
-        """[(id, series doc)] for every directory that holds a series.json."""
+        """[(id, series doc)] for every directory that holds a readable series.json (a damaged one is skipped)."""
         out = []
         for p in sorted(series_dir.glob("*/series.json")):
-            if ID_RE.match(p.parent.name):
-                out.append((p.parent.name, json.loads(p.read_text())))
+            if not ID_RE.fullmatch(p.parent.name):
+                continue
+            try:
+                mtime = p.stat().st_mtime_ns
+                hit = docs.get(p)
+                if hit is None or hit[0] != mtime:
+                    hit = docs[p] = (mtime, json.loads(p.read_text()))
+            except (OSError, ValueError):
+                continue
+            out.append((p.parent.name, hit[1]))
         return out
 
     @app.get("/api/series")
@@ -123,8 +133,6 @@ def create_app(series_dir: Optional[Path] = None, web_dist: Optional[Path] = Non
         if fov is None or not (1 <= max_frames <= CACHED_MAX_FRAMES):
             return JSONResponse(error_doc(
                 f"fov must be one of {', '.join(f'{f:g}' for f in FOVS_DEG)} (degrees) and 1 <= max_frames <= {CACHED_MAX_FRAMES}."))
-        if load != 0 and not (1 <= load <= MAX_LIVE_FRAMES and load == int(load)):
-            return JSONResponse(error_doc(f"load must be a whole number from 1 to {MAX_LIVE_FRAMES}."))
         # The static cache holds fov=0.2 only; every other size is built live, also at a cached position.
         for _id, doc in (cached() if fov == CACHED_FOV else []):
             c = doc["grid"]["center"]
@@ -134,6 +142,8 @@ def create_app(series_dir: Optional[Path] = None, web_dist: Optional[Path] = Non
                         f"The cached series has {doc['progress']['total']} frames; request max_frames >= that."))
                 return JSONResponse(doc)
         if live is not None:
+            if load != 0 and not (1 <= load <= MAX_LIVE_FRAMES and load == int(load)):  # ignored for cached series
+                return JSONResponse(error_doc(f"load must be a whole number from 1 to {MAX_LIVE_FRAMES}."))
             try:
                 cap = int(load) if load else min(int(max_frames), LIVE_FRAMES)  # without `load`: as before, at most LIVE_FRAMES
                 return JSONResponse(live.get_or_start(ra, dec, fov, cap).doc())
@@ -160,7 +170,7 @@ def create_app(series_dir: Optional[Path] = None, web_dist: Optional[Path] = Non
 
     @app.get("/api/frames/{series_id}/{name}")
     def frame(series_id: str, name: str):
-        if not ID_RE.match(series_id) or not FRAME_RE.match(name):
+        if not ID_RE.fullmatch(series_id) or not FRAME_RE.fullmatch(name):
             raise HTTPException(404, "not found")
         path = series_dir / series_id / "frames" / name
         if not path.is_file():

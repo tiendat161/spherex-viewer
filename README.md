@@ -18,7 +18,7 @@ A web tool for NASA Space Apps 2026, challenge "Planet X and SPHEREx". Enter a s
 Needs Python 3.9+ and Node.
 
 ```bash
-python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
 cd web && npm install && npm run build && cd ..
 make dev            # http://localhost:8000
 ```

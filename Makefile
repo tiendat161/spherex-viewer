@@ -5,7 +5,7 @@ PY := .venv/bin/python
 dev:
 	$(PY) -m uvicorn api.main:app --reload --port 8000
 
-# The only target that contacts IRSA (at most 4 requests in flight). Session A fills this in.
+# The only target that contacts IRSA (at most 8 requests in flight (MAX_IN_FLIGHT in pipeline/irsa.py)). Session A fills this in.
 cache:
 	$(PY) -m pipeline.build verify/targets.json
 

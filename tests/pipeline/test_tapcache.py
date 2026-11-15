@@ -81,3 +81,12 @@ def test_without_a_folder_nothing_is_remembered(tmp_path):
     b = LiveBuilder(client).get_or_start(RA, DEC, 0.2, 3)
     wait(b)
     assert client.searches == 2
+
+
+def test_the_folder_is_capped_to_the_newest_entries_and_no_temp_files_are_left(tmp_path):
+    with mock.patch.object(tapcache, "MAX_ENTRIES", 3):
+        for i in range(5):
+            tapcache.save(tmp_path, float(i), 0.0, ROWS)
+            os.utime(tapcache._path(tmp_path, float(i), 0.0), (1000 + i, 1000 + i))
+    assert {p.name for p in tmp_path.glob("*.csv")} == {tapcache._path(tmp_path, float(i), 0.0).name for i in (2, 3, 4)}
+    assert not list(tmp_path.glob("*.part"))

@@ -171,7 +171,10 @@ class LiveSeries:
                 return False
             self.cap = cap
             if self._order is not None:
-                self.total = min(cap, len(self._order))
+                total = min(cap, len(self._order))
+                if total == self.total:
+                    return False  # the archive has no more images than are planned: nothing to load, no new stretch or stacks
+                self.total = total
             if self.status == "ready":
                 self.status, self.finished_at = "loading", None
                 return True
@@ -377,7 +380,7 @@ class LiveBuilder:
             now = time.time()
             self._jobs = [j for j in self._jobs
                           if not (j.status == "error" and now - (j.finished_at or now) > self._error_ttl_s)]
-            rows = None
+            rows = rebuilt = None
             for j in self._jobs:
                 if j.fov == fov and sep_arcsec(ra, dec, j.ra, j.dec) <= MATCH_ARCSEC:
                     j.last_used = now
@@ -389,7 +392,8 @@ class LiveBuilder:
                         if j.extend(cap):
                             self._pool.submit(self._run_job, j)
                         return j
-                    rows = j._rows  # its pixels were let go: build it again, without searching the archive again
+                    rows, rebuilt = j._rows, (j.ra, j.dec)  # same position, so the same id and frame URLs
+                    # its pixels were let go: build it again, without searching the archive again
                     self._jobs.remove(j)
                     break
             if rows is None and self._busy():
@@ -400,7 +404,7 @@ class LiveBuilder:
             done = [j for j in self._jobs if j.finished]
             for old in done[:max(0, len(self._jobs) + 1 - self._max_kept)]:
                 self._jobs.remove(old)
-            job = LiveSeries(ra, dec, fov, cap, rows=rows, tap_dir=self._tap_dir)
+            job = LiveSeries(*(rebuilt if rebuilt else (ra, dec)), fov, cap, rows=rows, tap_dir=self._tap_dir)
             self._jobs.append(job)
             self._pool.submit(self._run_job, job)
             return job

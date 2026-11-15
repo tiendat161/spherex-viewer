@@ -10,12 +10,14 @@ The cache build (`pipeline/build.py`) has its own copies of these rows under .ca
 """
 import csv
 import os
+import tempfile
 import time
 from pathlib import Path
 from typing import Dict, List, Optional
 
 ROOT = Path(__file__).resolve().parent.parent
 TTL_S = 7 * 24 * 3600
+MAX_ENTRIES = 500  # files kept in the folder; the oldest are removed when a save goes past this
 
 
 def default_dir() -> Path:
@@ -45,9 +47,28 @@ def save(folder: Path, ra: float, dec: float, rows: List[Dict[str, str]]) -> Non
         return
     p = _path(folder, ra, dec)
     p.parent.mkdir(parents=True, exist_ok=True)
-    tmp = p.with_suffix(".part")
-    with tmp.open("w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
-        w.writeheader()
-        w.writerows(rows)
-    tmp.replace(p)
+    fd, tmp = tempfile.mkstemp(dir=p.parent, suffix=".part")  # unique name: two saves of one position do not share a file
+    try:
+        with os.fdopen(fd, "w", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
+            w.writeheader()
+            w.writerows(rows)
+        os.replace(tmp, p)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+    _prune(p.parent)
+
+
+def _prune(folder: Path, keep: Optional[int] = None) -> None:
+    """Remove the oldest remembered searches beyond `keep`."""
+    try:
+        keep = MAX_ENTRIES if keep is None else keep
+        files = sorted(Path(folder).glob("*.csv"), key=lambda q: q.stat().st_mtime, reverse=True)
+        for q in files[keep:]:
+            q.unlink(missing_ok=True)
+    except OSError:
+        pass

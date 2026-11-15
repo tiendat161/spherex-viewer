@@ -181,10 +181,36 @@ def test_load_parameter_sets_the_frames_of_a_live_series_and_extends_it(tmp_path
 
 @pytest.mark.parametrize("load", ["103", "1.5", "-3", "abc"])
 def test_a_bad_load_is_an_error_document(tmp_path, load):
-    series, _ = make_cache(tmp_path)
-    body = TestClient(create_app(series_dir=series, web_dist=tmp_path / "nodist")).get("/api/series", params={"ra": 10, "dec": 10, "load": load}).json()
+    from pipeline.live import LiveBuilder
+    from tests.pipeline.test_build import FakeClient
+    series, doc = make_cache(tmp_path)
+    c = TestClient(create_app(series_dir=series, web_dist=tmp_path / "nodist", live=LiveBuilder(FakeClient())))
+    body = c.get("/api/series", params={"ra": 10, "dec": 10, "load": load}).json()
     valid(body)
-    assert body["status"] == "error"
+    assert body["status"] == "error" and "load" in body["error"]["message"]
+    if load != "abc":  # (not a number at all is still rejected up front)
+        assert c.get("/api/series", params={"ra": RA, "dec": DEC, "load": load}).json() == doc  # ignored for a cached series
+
+
+def test_ids_and_frame_names_must_match_in_full(tmp_path):
+    series, _ = make_cache(tmp_path)
+    c = TestClient(create_app(series_dir=series, web_dist=tmp_path / "nodist"))
+    assert c.get("/api/frames/wise0855/00.png").status_code == 200
+    for name in ("00.png%0A", "%DF%A0%DF%A0.png"):  # trailing newline; non-ASCII digits
+        assert c.get(f"/api/frames/wise0855/{name}").status_code == 404
+    assert c.get("/api/frames/wise0855%0A/00.png").status_code == 404
+
+
+def test_a_changed_or_damaged_series_file_is_picked_up_without_a_restart(tmp_path):
+    series, doc = make_cache(tmp_path)
+    c = TestClient(create_app(series_dir=series, web_dist=tmp_path / "nodist"))
+    params = {"ra": RA, "dec": DEC}
+    assert c.get("/api/series", params=params).json() == doc
+    f = series / "wise0855" / "series.json"
+    f.write_text("{not json")
+    assert c.get("/api/series", params=params).json()["status"] == "error"  # damaged: skipped, not a 500
+    f.write_text(json.dumps(doc))
+    assert c.get("/api/series", params=params).json() == doc
 
 
 def test_series_requests_are_limited_per_client(tmp_path):

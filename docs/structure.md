@@ -70,7 +70,8 @@ spherex-viewer/
 ├── .claude/          Claude Code agents and the preview launch config
 ├── Dockerfile        One container for the API and the built web app (see docs/deploy.md)
 ├── Makefile          dev, cache, test and verify commands
-├── requirements.txt  Python dependencies
+├── requirements.txt  Python dependencies the service needs (the container installs only these)
+├── requirements-dev.txt  Test and check dependencies (jsonschema, pytest, httpx), on top of requirements.txt
 ├── CLAUDE.md         Working rules for AI-assisted sessions
 ├── README.md         Project summary
 └── REFERENCES.md     Data sources, tools and AI-usage notes for the submission
