@@ -33,6 +33,31 @@ Commit: see `git log` (branch `t31-tap-or-sia2`, message starts "Docs: T31").
 
 **Gaps:** (1) The phrase "Search DR1 and QR3 through SIA2" comes from the task board; it is not in `docs/PLAN.md`'s summary of the challenge text, and the official page was not re-read, so whether SIA2 is required is unverified. Re-read the Resources tab; if SIA2 is required, this needs a new task. (2) SIA2 got one quick test afterwards, from a laptop, not from the Sydney host: about 1 to 5 s per query, same 258 `dr1` rows for WISE 0855 and 0 `qr3`, while TAP did not answer for over 9 minutes (the archive's bad state of that day; earlier TAP took 10 to 45 s). The rows' columns were not checked. Follow-up: T43. (3) The counts come from searches saved on 2026-11-14 and may be older than the archive; `make refresh` would update them. (4) The WISE 0855 field has no `qr3` images; that is what the archive returned, not checked further.
 
+## 2026-11-15: Reviewer pass over the whole diff since Day 1 (T23)
+Commit: see `git log` (message starts "Docs: record the T23 review").
+
+**What:** the `reviewer` agent read `f080347..HEAD` (pipeline, api, web/src, contracts, verify, tests, Dockerfile, Makefile). Read-only: nothing was run and nothing was changed in code. Clean: no secrets or large files committed; no `innerHTML` with untrusted text; no path traversal in frame serving (`ID_RE`, `FRAME_RE`); the live document matches `series.schema.json`; the `extend` hand-off is race-free; the archive request limit is released before a retry sleep.
+
+**Findings (from reading only; the first four marked * were also re-read by me):**
+1. Live-build lock held while PNGs are re-rendered (`pipeline/live.py` `_restretch`, `build_stacks`): polls and `LiveBuilder.get_or_start` stall for seconds on a big field of view (T44).
+2. No abuse limit on a public server: one client can fill the 8 job slots; memory estimate ignores running jobs' pixels and kept PNG sets (about 165 MB per running 1° series and about 1 GB of PNGs are the reviewer's estimates, not measured) (T45).
+3. One bad frame (`ValueError`, WCS `NoConvergence`) fails the whole series and wipes its frames (`live.py` `work`, `_fail`) (T44).
+4. * `retry-after` is not capped (`pipeline/irsa.py` `_retry_after`): a large value parks a worker for that long (T44).
+5. * `docs/contract.md` decision 13 is stale: it says min(`max_frames`, 40) evenly spaced in time; live frames now use `spread_order` and `load`, so `frames[].index` is not time order for live series (T46).
+6. Unverified science in code: flag-bit meanings in `pipeline/grid.py` ("relayed, not re-read"); proper-motion adequacy claim in `pipeline/targets.py`; `IMAGES_PER_MIN` and `MB_PER_IMAGE` come from one local run, and the "about a minute" wording in `web/index.html` is not marked indicative (T46).
+7. * `ID_RE` and `FRAME_RE` use `$`, which matches before a trailing newline (harmless, a 404 follows); `\d` accepts non-ASCII digits (T47).
+8. `cached()` re-reads every `series.json` per request; a damaged file would give a 500 (T47).
+9. `load` is range-checked even for cached series, although `contract.md` says it is ignored there (T47).
+10. `tapcache` has no entry cap and a shared `.part` temp name (T47).
+11. A rebuilt live series takes the new request's ra/dec, so its id and frame URLs can change (T47).
+12. `extend` with a cap above the frame count re-runs the stretch and stacks for nothing (T47).
+13. Dev-only packages (`jsonschema`, `pytest`, `httpx`) are in the production image; the web build imports the dev mock; Makefile comment says 4 requests in flight but the limit is 8; Docker uses Python 3.9 (T47).
+14. * Error documents carry `data_origin: "real"` and `setBadge` in `web/src/main.js` reads only `data_origin`, so an error may show "REAL DATA": check whether the caller hides the badge on `status: "error"` (T47).
+
+**Why:** Day 1 merge step 4 was never done; the app is now public (T10), so the review matters more.
+
+**Gaps:** the review was by reading; no finding was reproduced by running code, and none is fixed. Each is a todo row (T44 to T47). The reviewer did not check the Python tests, the e2e spec or `web/` styling.
+
 ## 2026-11-15: Deployed on AWS EC2 (T10)
 Commit: see `git log` (message starts "Deploy: record the EC2 deployment").
 
