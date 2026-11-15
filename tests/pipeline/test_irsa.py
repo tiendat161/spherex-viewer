@@ -82,3 +82,38 @@ def test_urls_and_keys():
     uri = "ibe/data/spherex/qr3/level2/2026W34_2A/l2b-v27-2026-243/2/level2_2026W34_2A_0233_2D2_spx_l2b-v27-2026-243.fits"
     assert irsa.observation_key(uri) == "2026W34_2A_0233_2D2"
     assert irsa.release_of(uri) == "qr3"
+
+
+def _sia_body(rows):
+    """A minimal SIA2 answer: the self-description table, then the result table (columns as the archive returns them)."""
+    cols = [("obs_id", "char"), ("energy_bandpassname", "char"), ("access_url", "char"), ("access_estsize", "long"), ("t_min", "double"), ("t_max", "double")]
+    fields = "".join(f'<FIELD ID="col_{i}" name="{n}" datatype="{t}"' + (' arraysize="*"' if t == "char" else "") + "/>" for i, (n, t) in enumerate(cols))  # ID col_N as in the archive's answer
+    trs = "".join("<TR>" + "".join(f"<TD>{v}</TD>" for v in r) + "</TR>" for r in rows)
+    return (
+        '<?xml version="1.0"?><VOTABLE version="1.3" xmlns="http://www.ivoa.net/xml/VOTable/v1.3">'
+        '<RESOURCE type="meta"><PARAM name="BAND" datatype="double" value="0"/></RESOURCE>'
+        f'<RESOURCE type="results"><TABLE>{fields}<DATA><TABLEDATA>{trs}</TABLEDATA></DATA></TABLE></RESOURCE></VOTABLE>'
+    ).encode()
+
+
+URI = "ibe/data/spherex/dr1/level2/2025W19_1B/v/3/level2_2025W19_1B_0116_1D3_spx_v.fits"
+SIA_ROW = ("2025W19_1B_0116_1", "SPHEREx-D3", irsa.BASE + URI, 65791, 60800.700028, 60800.701361)
+
+
+def test_sia_rows_have_the_keys_the_pipeline_reads():
+    seen = []
+    def transport(m, u, d):
+        seen.append(u)
+        return Response(200, {}, _sia_body([SIA_ROW]))
+    rows = IrsaClient(transport).sia_rows(133.795129, -7.245147)
+    assert len(seen) == 2 and "spherex_dr1" in seen[0] and "spherex_qr3" in seen[1]  # one query per collection
+    r = rows[0]
+    assert r["uri"] == URI and r["energy_bandpassname"] == "SPHEREx-D3"
+    assert float(r["time_bounds_lower"]) == 60800.700028 and float(r["time_bounds_upper"]) == 60800.701361
+    assert irsa.observation_key(r["uri"]) == "2025W19_1B_0116_1D3"
+
+
+def test_sia_unreadable_answer_is_an_irsa_error():
+    c = IrsaClient(lambda m, u, d: Response(200, {}, b"<html>not a votable"))
+    with pytest.raises(IrsaError):
+        c.sia_rows(1.0, 2.0)

@@ -97,7 +97,7 @@ Turns archive data into series. Used in two ways: `build.py` writes the static c
 
 | File | Does |
 |---|---|
-| `irsa.py` | The one IRSA client (`IrsaClient`): archive query and cutout download, a process-wide limit on requests in flight (8), retries on HTTP 503, de-duplication across data releases |
+| `irsa.py` | The one IRSA client (`IrsaClient`): archive query (TAP, used; `sia_rows` for SIA2, tried and not used) and cutout download, a process-wide limit on requests in flight (8), retries on HTTP 503, de-duplication across data releases |
 | `targets.py` | Reads `verify/targets.json`, converts positions to degrees, applies proper motion where the target asks for it; `sep_arcsec` |
 | `select.py` | Picks which images make a series: evenly spaced in time (`select_frames`), one per wavelength band (`select_per_wavelength`), or for live series an order in which any first N spread over the dates and detector bands (`spread_order`); prefers releases in the order of `RELEASE_PREFERENCE` (`dr1` first) |
 | `cutout.py` | Reads one downloaded cutout: image, flags, variance, sky coordinates, unit, wavelength and `MJD-AVG`; helpers for sky-to-pixel and pixel solid angle |

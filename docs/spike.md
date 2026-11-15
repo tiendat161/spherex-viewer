@@ -73,6 +73,20 @@ I checked headers with curl only; I did not test in a browser. Without this head
 
 **Barnard's Star** (Gaia DR3 2016.0 pm, 10.393″/yr): 10.6″ over the same-length window; 102″ from its 2016.0 position by 2025.85. The Barnard cutouts above were centered on my 2026.0 propagated position (about 1.6″ from its 2025.85 position by the same arithmetic).
 
+## 5. SIA2 against TAP (T43, 2026-11-15, from a laptop; not from the EC2 host)
+
+Query: `https://irsa.ipac.caltech.edu/SIA?COLLECTION=spherex_dr1` (and `spherex_qr3`), `POS=circle <ra> <dec> 0.0003`, one call per collection. The answer is a VOTable whose rows carry `t_min`, `t_max`, `energy_bandpassname`, `access_url` (the same file URL as TAP's `uri`, with the host in front) and `access_estsize` (kilobytes). So every field the pipeline reads can be filled (`IrsaClient.sia_rows`).
+
+| Target | SIA2 rows (both collections) | TAP rows (saved 2026-11-14) | SIA2 time |
+|---|---|---|---|
+| WISE 0855 | 258 | 258 | 5.3 s |
+| Barnard's Star | 358 | 358 | 5.6 s |
+| Epsilon Indi B | 458 | 458 | 6.5 s |
+| RW Aurigae | 335 | 335 | 6.1 s |
+| R Draconis | 539 (413 dr1 + 126 qr3) | 2493 (1638 dr1 + 855 qr3) | 6.7 s |
+
+Where both agree, the file URIs, times and bands are identical. For R Draconis SIA2 lists only 22% of what TAP lists; every SIA2 row is also in TAP. Widening the circle to 0.05° gave 451 dr1 rows, still far below 1638. The cause was not found. TAP itself did not answer for over 9 minutes on the same day, so these times are not a like-for-like speed comparison.
+
 ## Caveats
 - The failed 503 requests were counted as failures, not retried, in the benchmark tables.
 - `make verify` and a UI screenshot are not applicable: no code under `pipeline/`, `api/` or `web/` was touched.
