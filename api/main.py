@@ -149,8 +149,9 @@ def create_app(series_dir: Optional[Path] = None, web_dist: Optional[Path] = Non
 def default_live() -> Optional[LiveBuilder]:
     if os.environ.get("SPHEREX_LIVE", "1") == "0":
         return None
+    from pipeline import tapcache
     from pipeline.irsa import IrsaClient
-    return LiveBuilder(IrsaClient())
+    return LiveBuilder(IrsaClient(), tap_dir=tapcache.default_dir())
 
 
 app = create_app(live=default_live())
