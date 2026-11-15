@@ -68,6 +68,7 @@ spherex-viewer/
 ├── docs/             Task board, work log, contract write-up, plans, this guide
 ├── spike/            Day-one feasibility scripts and their logs
 ├── .claude/          Claude Code agents and the preview launch config
+├── Dockerfile        One container for the API and the built web app (see docs/deploy.md)
 ├── Makefile          dev, cache, test and verify commands
 ├── requirements.txt  Python dependencies
 ├── CLAUDE.md         Working rules for AI-assisted sessions
@@ -205,6 +206,7 @@ Pytest unit tests; none touches the network.
 | `contract.md` | The API contract in prose, the choices made and the open decisions |
 | `PLAN.md` | The pre-hackathon prep plan: goal, schedule, challenge text, open questions |
 | `spike.md` | Measurements from the feasibility spike: query times, cutout sizes, 503 rates, CORS, coordinate epoch |
+| `deploy.md` | Running the container, its settings, what a host must provide (one instance), what was and was not checked |
 | `build-plan.md` | The Day 1 build plan: session briefs, verify design, merge order, risks, cut list. Historical |
 
 ### `spike/`
