@@ -570,3 +570,6 @@ Fixes: `/api/catalogue` has the same per-client rate limit as `/api/series` (429
 ### T50 fix: target menu hidden behind the page
 
 With the backdrop on, `header`, `.topbar` and `main` all had `z-index:1`, and `main` (later in the page) painted over the target menu that overflows the top bar. Fix: `body.sky-on .topbar { z-index:3 }` (`web/src/style.css`); the backdrop is still click-through. A Playwright case (backdrop forced on with the stand-in Aladin) checks that `elementFromPoint` at the centre of every menu option is inside `.targets` (it fails without the fix, at option 1) and that picking the last option loads it. Other overflowing things were checked by reading the CSS: the catalogue hover label (`.cat-tip`), the Advanced panel and the charts are inside `main` or in normal flow, so `main`'s z-index does not hide them; not each one re-tested with the backdrop on.
+
+## 2026-11-15: Redeployed 69433e0 to EC2
+**What:** target-menu stacking fix deployed (build on server, container swapped, about 10 s downtime). Checked from outside: page 200, 5 targets, `.topbar` z-index 3 under `sky-on` in the CSS, Barnard series (40 frames), healthy. **Gaps:** menu not clicked through in a browser on the public site; IRSA-dependent paths not rechecked.
