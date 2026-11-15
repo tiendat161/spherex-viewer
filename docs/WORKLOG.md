@@ -15,6 +15,15 @@ Commits: abc1234, def5678
 
 ---
 
+## 2026-11-15: Say why the stacked view has no wavelength slider (T36)
+Commits: see the T36 row on the board.
+
+**What:** a series opens in the stacked view, which has no wavelength slider (a stack combines a whole band), and the slider was found missing twice. In the stacked view there is now a "Pick a wavelength" button in its place, with the note "Stacks have no single wavelength"; it switches to the individual frames, where the visit and wavelength sliders are. The real-data browser test checks both states.
+
+**Why:** a hidden control reads as a missing one. The default view was left alone: the stacked view is the better first look, and the choice of a different default is the user's.
+
+**Gaps:** the default view is still the stacked one; the button is the only pointer to the sliders.
+
 ## 2026-11-15: Visit slider and evenly spaced wavelength marks (T35)
 Commits: see the T35 row on the board. Refines T34.
 

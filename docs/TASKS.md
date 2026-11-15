@@ -64,3 +64,4 @@ Priority: P1 = needed for the challenge's core objective or the submission, P2 =
 | T33 | Frame slider as a draggable axis: a tick per frame at its real wavelength (log scale), drag to move through the frames | none (usability) | `5dde92a` |
 | T34 | Visit selector and a vertical wavelength slider for the individual frames (replaces the horizontal axis of T33) | none (usability) | `200f489` |
 | T35 | Visit slider instead of buttons; wavelength marks evenly spaced with written wavelengths and breaks at big gaps (refines T34) | none (usability) | `92de4f1` |
+| T36 | A "Pick a wavelength" button beside the stacked view, which has no wavelength slider (people could not find it) | none (usability) | `37f24d8` |
